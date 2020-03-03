@@ -1,0 +1,66 @@
+
+
+{{ block "header_sidebar_text" .}}Add an LB Alias{{end}}
+
+{{ block "scripts" .}}
+<script src="/staticfiles/js/LBCluster.js?newversion">
+</script>
+<script src="/staticfiles/js/LBAdd.js?newversion">
+</script>
+{{end}}
+
+{{block "content" .}}
+<div class="content clearfix">
+  <div class="field field-name-body field-type-text-with-summary field-label-hidden">
+    <div class="field-items">
+      <div class="field-item even" property="content:encoded"></div>
+    </div>
+  </div>
+  <form class="webform-client-form" enctype="application/x-www-form-urlencoded" action="/new_alias"
+    method="post" id="webform-client-form-3" accept-charset="UTF-8">
+    <div>
+     {{.csrf_token}}
+
+      <table border="0" id="aliasTable">
+        <tr>
+          <td class="left">
+            <div class="form-item webform-component webform-component-textfield" id="webform-component-alias-name">
+              <label for="edit-submitted-alias-name">Alias Name (fully qualified)<span class="form-required"
+                  title="This field is required.">*</span></label>
+              <input type="text" id="edit-submitted-alias-name" name="alias_name" value="" size="60" maxlength="128"
+                class="form-text required" />
+            </div>
+            <div class="form-item webform-component webform-component-markup" id="webform-component-namestatus">
+              <div id="NameStatus"></div>
+            </div>
+          </td>
+        </tr>
+      </table>
+    
+      {{template "external.html" .}}
+
+      <div class="form-item webform-component webform-component-markup" id="webform-component-alias-members">
+        <p><strong>Alias Members</strong></p>
+        <p>Only Puppet managed nodes can be used as alias members.</p>
+        <p>Alias members have to be defined following the documentation in the following URL:</p>
+        <p><a
+            href="https://configdocs.web.cern.ch/configdocs/dnslb/aliasmembers.html">https://configdocs.web.cern.ch/configdocs/dnslb/aliasmembers.html</a>
+        </p>
+
+      </div>
+
+     
+      {{template "hostgroup.html" .}}
+
+      {{template "advanced.html" .}}
+
+      <div class="form-actions form-wrapper" id="edit-actions"><input type="submit" id="edit-submit" name="op"
+          value="Submit" class="form-submit" /></div>
+    </div>
+  </form>
+</div>
+
+</div>
+</div> <!-- /.section, /#content -->
+
+{{end}}

@@ -1,0 +1,38 @@
+
+{{ block "header_sidebar_text" .}}Delete an LB Alias{{end}}
+
+{{block "scripts" .}}
+<script src="/staticfiles/js/LBDel.js?newversion">
+        </script>
+{{end}}
+
+{{block "content" .}}
+<div class="content clearfix">
+    <div class="field field-name-body field-type-text-with-summary field-label-hidden"><div class="field-items"><div class="field-item even" property="content:encoded"></div></div></div><form class="webform-client-form" enctype="application/x-www-form-urlencoded" action="/delete_alias" method="post" id="webform-client-form-3" accept-charset="UTF-8"><div>
+{{.csrf_token}}
+
+{{ template "alias_select.html" .}}
+
+
+{{ template "alias.html" .}}
+
+{{ template "external.html" .}} 
+
+<div class="form-item webform-component webform-component-markup" id="webform-component-alias-members">
+ <p><strong>LB Alias Members</strong></p>
+<p>Please consider removing the puppet configuration in the URL below from the former alias member manifests:</p>
+<p><a href="https://configdocs.web.cern.ch/configdocs/dnslb/aliasmembers.html">https://configdocs.web.cern.ch/configdocs/dnslb/aliasmembers.html</a></p>
+
+</div>
+
+{{template "hostgroup.html" .}}
+
+{{template "advanced.html" .}}
+{{ template "nodes.html" .}} 
+
+<div class="form-actions form-wrapper" id="edit-actions"><input type="submit" id="edit-submit" name="op" value="Submit" class="form-submit" /></div></div></form>  </div>
+
+</div></div> <!-- /.section, /#content -->
+
+{{end}}
+

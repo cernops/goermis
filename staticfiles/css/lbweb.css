@@ -1,0 +1,62 @@
+#webform-component-hidden-nodelist{display:none;}
+#webform-component-addbutton{padding-top: 15px;  padding-left: 4px; padding-right: 4px;}
+#webform-component-removebutton{padding-left: 4px; padding-right: 4px;}
+
+#alias td.left{
+  width:300px;
+}
+
+#webform-component-alias-name {
+  float:left;
+  margin-right:15px;
+}
+
+#edit-submitted-alias-name {
+  width:155px;
+}
+
+#webform-component-namestatus {
+  margin-top:10px;
+}
+
+#webform-component-visibilitystatus{
+  margin-top:0px;
+  margin-bottom:0px;
+}
+
+#externalTable td.first{
+  width:70px;
+}
+
+#besthostsTable td.left{
+        width:70px;
+}
+#edit-submitted-nodes{
+  width:250px;
+  height:70px;
+  margin:0px;
+}
+
+#removeNodeButton,#addNodeButton{
+  width:90px;
+}
+
+#nodeSelect {
+  width:250px;
+  height:70px;
+  margin-top:20px;
+  background-color:#DEDEDE;
+}
+
+#nodeTable td.buttons{
+  width: 100px;
+}
+
+#edit-submit[disabled]{
+  background:#DEDEDE;
+  border:red 2px solid;
+}
+#edit-submit{
+  border:green 2px solid;
+}
+

@@ -1,0 +1,17 @@
+{{define "nodes.html"}}
+<fieldset class="webform-component-fieldset collapsible collapsed form-wrapper" id="webform-component-advanced">
+        <legend><span class="fieldset-legend">Node Management</span></legend>
+        <div class="fieldset-wrapper">
+          <div class="description">Please provide the full name, including the full domain </div>
+          <div class="form-item webform-component webform-component-textfield" id="webform-component-advanced--best-hosts">
+                <div class="form-item webform-component webform-component-textfield" id="webform-component-advanced--best-hosts"> 
+                    <div class="form-item webform-component webform-component-markup" align="center" id="nodes-name-status"></div>
+                    <input type="hidden" id="AllowedNodes" name="AllowedNodes" value="" size="60" maxlength="700" class="form-text " />
+                    <input type="hidden" id="ForbiddenNodes" name="ForbiddenNodes" value="" size="60" maxlength="700" class="form-text " />
+                    <table id="myTable" border="0" name ="nodeNames" value="" maxlength="512" class="table table-bordered table-responsive table-striped" style="margin:0px auto auto auto;"></table>
+            
+        </div>
+    </div>
+</div>
+</fieldset>
+{{end}}

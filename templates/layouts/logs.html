@@ -1,0 +1,20 @@
+
+
+{{ block "header_sidebar_text" .}}Display the log of an LB Alias{{ end }}
+
+{{ block "scripts" .}}
+<script src="/staticfiles/js/LBLog.js?newversion"></script>
+{{ end }}
+
+{{ define "content" }}
+<div class="content clearfix">
+    <div class="field field-name-body field-type-text-with-summary field-label-hidden"><div class="field-items"><div class="field-item even" property="content:encoded"></div></div></div>
+    <form class="webform-client-form" enctype="application/x-www-form-urlencoded" action="/modify_alias" method="post" id="webform-client-form-3" accept-charset="UTF-8"><div>
+        {{ .csrf_token}}
+
+        {{ template "alias_select.html" .}}
+
+</div></div> <!-- /.section, /#content -->
+
+{{ end }}
+

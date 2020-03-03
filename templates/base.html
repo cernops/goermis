@@ -1,0 +1,72 @@
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <link rel="stylesheet" href="/staticfiles/css/colors.css" />
+        <link rel="stylesheet" href="/staticfiles/css/style.css" />
+        <link rel="stylesheet" href="/staticfiles/css/layout.css" />
+        <link rel="stylesheet" href="/staticfiles/css/lbweb.css" />
+        
+
+        <script src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
+        <script src="https://code.jquery.com/ui/1.11.3/jquery-ui.min.js"></script>
+        <link rel="stylesheet" href="https://code.jquery.com/ui/1.11.3/themes/smoothness/jquery-ui.css" />
+        <link rel="stylesheet" href="/staticfiles/dist/fastselect.min.css">
+
+        <script src="/staticfiles/js/LBCommon.js?newversion"></script>
+        <script src="/staticfiles/js/LBCluster.js?newversion"></script>
+        <script src="/staticfiles/dist/fastselect.standalone.js"></script>
+        <script src="/staticfiles/js/jquery.dynamicTable-1.0.0.js?newversion" type="text/javascript"></script>
+
+        {{ block "head" .}}{{ end }}
+        <title>DNS Load Balancing Service</title>
+    </head>
+    <body class="html not-front not-logged-in one-sidebar sidebar-first page-node page-node- page-node-3 node-type-webform" >
+        <h1 id="loadbalancing">{{ block "header_text" .}}DNS Load Balancing Service{{ end }}</h1>
+        <div id="navbar">
+            {{ if .Auth  }}
+                <p>Logged in as {{.User}}</p>
+                <p><a id="logout" href="/sso_logout/">CERN SSO Logout</a></p>
+            {{ else }}
+                <p>Not authorized. To use the service, please log in</p>
+                <p><a id="login" href="/sso_login/">CERN SSO Login</a></p>
+            {{ end }}
+        </div>
+
+        <div id="sidebar">
+           {{ if .Auth  }}
+            {{ block "sidebar" .}}
+          <!-- <div id="main-wrapper" class="clearfix"> -->
+          <!-- <div id="main" class="clearfix"> -->
+          <div id="sidebar-first" class="column sidebar"><div class="section">
+          <div class="region region-sidebar-first">
+    <div id="block-system-main-menu" class="block block-system contextual-links-region block-menu">
+
+    <h2>Main menu</h2>
+  <div class="content">
+    <ul class="menu clearfix">
+<li class="last expanded active-trail"><a href="/lbweb" class="active-trail">LBWeb</a><ul class="menu clearfix"><li class="first leaf active-trail"><a href="/lbweb/create/" class="active-trail active">Add LB Alias</a></li>
+<li class="leaf"><a href="/lbweb/modify/">Modify LB Alias</a></li>
+<li class="leaf"><a href="/lbweb/display/">Display LB Alias</a></li>
+<li class="last"><a href="/lbweb/delete/">Delete LB Alias</a></li>
+<li class="last leaf"><a href="/lbweb/logs/">LB Alias Logs</a></li>
+</ul></li>
+</ul>  </div>
+</div>
+  </div>
+      </div></div> <!-- /.section, /#sidebar-first -->
+            {{ end }}
+            {{ end }}
+        </div>
+
+        <div id="content">
+             {{ if .Auth  }}
+            <h2>{{ block "header_sidebar_text" .}}{{ end }}</h2>
+            {{ block "scripts" .}}{{end}}
+            {{ block "content" .}}{{end}}
+            <h1>{{ block "message_text" .}}<p><strong>{{.Message}}</strong></p>{{ end }}</h1>
+            {{ end }}
+        </div>
+
+    </body>
+</html>

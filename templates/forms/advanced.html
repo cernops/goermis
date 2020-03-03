@@ -1,0 +1,51 @@
+{{define "advanced.html"}}
+<fieldset class="webform-component-fieldset collapsible collapsed form-wrapper" id="webform-component-advanced">
+  <legend><span class="fieldset-legend">Advanced</span></legend>
+  <div class="fieldset-wrapper">
+    <div class="form-item webform-component webform-component-textfield" id="webform-component-advanced--best-hosts">
+      <table border="0" id="besthostsTable">
+        <tr>
+          <td class="left">
+            <div class="form-item webform-component webform-component-textfield" id="webform-component-besthosts">
+              <label for="edit-submitted-advanced-best-hosts">Best Hosts <span class="form-required" title="This field is required.">*</span></label>
+              <input type="text" id="edit-submitted-advanced-best-hosts" name="best_hosts" value="" size="2" maxlength="2"
+                class="form-text required" />
+          </td>
+          <td>
+            <div class="form-item webform-component webform-component-markup" id="webform-component-besthoststatus">
+              <div id="BestHostStatus"></div>
+            </div>
+          </td>
+        </tr>
+      </table>
+      <div class="description">best_hosts is the number if IPs exposed at any time by the load balanced alias.
+        The default is 1.
+        Special value -1 means to expose the IPs of all available healthy nodes that are load balanced alias members.</div>
+    </div>
+  </div>
+  <div class="fieldset-wrapper">
+    <div class="form-item webform-component webform-component-textfield" id="webform-component-advanced--cnames">
+      <table border=0 id='cnamesTable'>
+        <tr>
+          <td class="left">
+            <div class="form-item webform-component webform-component-textfield" id="webform-component-cnames">
+              <label for="edit-submitted-advanced-cnames">Canonical Name Records <span class="form-required" title="This field is optional"></span></label>
+              <input type="text" id="edit-submitted-advanced-cnames" name="cnames" multiple class="cnamesInput form-text required"
+                loadOnce="true" data-url="/staticfiles/dist/nodata.json" placeholder="Enter the name of the cname record"
+                data-user-option-allowed="true" />
+          </td>
+          <td>
+            <div class="form-item webform-component webform-component-markup" id="webform-component-cnamesstatus">
+              <div id="CNames"></div>
+            </div>
+          </td>
+        </tr>
+      </table>
+      <div class="description">The canonical name records (or cname records) are synonyms of the alias. See <a href="https://en.wikipedia.org/wiki/CNAME_record">this</a>
+        for more details</div>
+
+    </div>
+  </div>
+
+</fieldset>
+{{end}}

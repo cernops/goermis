@@ -1,0 +1,36 @@
+app_name: Goermis
+app_version: 0.0.1
+app_env: dev
+
+dev:
+  adapter: mysql 
+  database: ---CHANGE---
+  username: ---CHANGE---
+  password: ---CHANGE---
+  host: ---CHANGE---   #defaults to 127.0.0.1
+  port: ---CHANGE---
+  idle_conns: 10
+  open_conns: 100
+  sslmode: disable
+
+staging:
+  adapter: ---CHANGE---
+  database: ---CHANGE---
+  username: ---CHANGE---
+  password: ---CHANGE---
+  host: ---CHANGE---   #defaults to 127.0.0.1
+  port: ---CHANGE---
+  idle_conns: 10
+  open_conns: 100
+  sslmode: disable
+
+production:
+  adapter: ---CHANGE---
+  database: ---CHANGE---
+  username: ---CHANGE---
+  password: ---CHANGE---
+  host: ---CHANGE---   #defaults to 127.0.0.1
+  port: ---CHANGE---
+  idle_conns: 10
+  open_conns: 100
+  sslmode: disable
