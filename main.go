@@ -21,25 +21,25 @@ func main() {
 	//Seeding
 	/*db.ManagerDB().Debug().Save(&models.Alias{
 
-		AliasName:        "test62",
+		AliasName:        "seeder",
 		Behaviour:        "rogue",
 		BestHosts:        1,
 		External:         "yes",
 		Metric:           "yes",
 		PollingInterval:  5,
-		Statistics:       "very much",
-		Clusters:         "alot",
+		Statistics:       "cmsfrontier",
+		Clusters:         "none",
 		LastModification: time.Now(),
-		Tenant:           "me",
-		Hostgroup:        "yeap",
-		User:             "againme",
+		Tenant:           "kkouros"
+		Hostgroup:        "ailbd
+		User:             "kkouros
 		TTL:              7,
 		Relations: []*models.Relation{
 			{
 				Node: &models.Node{
 
-					NodeName:         "imback16",
-					Hostgroup:        "yeap",
+					NodeName:         "node
+					Hostgroup:        "ailbd
 					LastModification: time.Now(),
 				},
 
@@ -49,8 +49,8 @@ func main() {
 			{
 				Node: &models.Node{
 
-					NodeName:         "im16",
-					Hostgroup:        "yeap",
+					NodeName:         "node2
+					Hostgroup:        "ailbd
 					LastModification: time.Now(),
 				},
 
@@ -60,7 +60,7 @@ func main() {
 
 		Cnames: []models.Cname{
 			{
-				CName: "heyheyu",
+				CName: "seed
 			},
 		},
 	})*/
