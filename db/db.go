@@ -74,7 +74,7 @@ func mysqlConn() {
 	db.DB().SetMaxOpenConns(bootstrap.App.DBConfig.Int("open_conns"))
 }
 
-//ManagerDB return GORM's postgres database connection instance.
+//ManagerDB return GORM's database connection instance.
 func ManagerDB() *gorm.DB {
 	var adapter string
 	adapter = bootstrap.App.DBConfig.String("adapter")
