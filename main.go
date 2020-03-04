@@ -30,16 +30,16 @@ func main() {
 		Statistics:       "cmsfrontier",
 		Clusters:         "none",
 		LastModification: time.Now(),
-		Tenant:           "kkouros"
-		Hostgroup:        "ailbd
-		User:             "kkouros
+		Tenant:           "kkouros",
+		Hostgroup:        "ailbd",
+		User:             "kkouros",
 		TTL:              7,
 		Relations: []*models.Relation{
 			{
 				Node: &models.Node{
 
-					NodeName:         "node
-					Hostgroup:        "ailbd
+					NodeName:         "node",
+					Hostgroup:        "ailbd",
 					LastModification: time.Now(),
 				},
 
@@ -49,8 +49,8 @@ func main() {
 			{
 				Node: &models.Node{
 
-					NodeName:         "node2
-					Hostgroup:        "ailbd
+					NodeName:         "node2",
+					Hostgroup:        "ailbd",
 					LastModification: time.Now(),
 				},
 
@@ -60,12 +60,12 @@ func main() {
 
 		Cnames: []models.Cname{
 			{
-				CName: "seed
+				CName: "seed",
 			},
 		},
 	})*/
 
-	e.Logger.Fatal(e.StartTLS(":8080", "host_cert.pem", "host_key.pem"))
+	e.Logger.Fatal(e.Start(":8080"))
 
 }
 

@@ -45,7 +45,7 @@ function initialize_form(retrieveData, action)
   //clearForm();
   if (retrieveData) {
     //getData('https://it-lcs-01.cern.ch/p/api/v1/alias/');
-    getData('https://localhost:8080/aliases');
+    getData('http://localhost:8080/aliases');
    
   } else {
     loaderWindow('close');

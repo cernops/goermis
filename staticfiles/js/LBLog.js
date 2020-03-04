@@ -13,7 +13,7 @@ $(document).ready(function(){
 	loaderWindow();
 
   //getData('https://it-lcs-01.cern.ch/p/api/v1/alias/');
-  getData('https://localhost:8080/aliases');
+  getData('http://localhost:8080/aliases');
 
 	$('#clusterList').change(function(){
 		location = $('#clusterList').val();

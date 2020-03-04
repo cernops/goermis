@@ -16,10 +16,10 @@ func InitRoutes(e *echo.Echo) {
 	e.GET("/lbweb/delete/", handlers.DeleteHandler)
 	e.GET("/lbweb/logs/", handlers.LogsHandler)
 
-	e.GET("/aliases", handlers.AliasesList)
+	e.GET("/aliases", handlers.GetAliases)
 	e.GET("/aliases/:alias", handlers.GetAlias)
 
-	e.GET("/lbweb/create/checkname", handlers.CheckNameDNS)
+	e.GET("/lbweb/*/checkname", handlers.CheckNameDNS)
 	e.POST("/new_alias", handlers.NewAlias)
 	e.POST("/delete_alias", handlers.DeleteAlias)
 	e.POST("/modify_alias", handlers.ModifyAlias)
