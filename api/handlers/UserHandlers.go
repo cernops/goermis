@@ -4,14 +4,15 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
-
 	"github.com/asaskevich/govalidator"
+	"github.com/davecgh/go-spew/spew"
 	schema "github.com/gorilla/Schema"
 	"github.com/labstack/echo/v4"
 	log "github.com/sirupsen/logrus"
+	"gitlab.cern.ch/lb-experts/goermis/api/common"
 	"gitlab.cern.ch/lb-experts/goermis/api/models"
 	"gitlab.cern.ch/lb-experts/goermis/db"
 )
@@ -132,46 +133,64 @@ func NewAlias(c echo.Context) error {
 
 //DeleteAlias is a prototype
 func DeleteAlias(c echo.Context) error {
-	object := c.FormValue("alias_name")
+	var cnames bool
+	//Get the params from the form
+	aliasName := c.FormValue("alias_name")
+	defer c.Request().Body.Close()
 
-	err := models.DeleteObject(object)
+	if c.FormValue("cnames") != "" {
+		cnames = true
+	}
+
+	err := models.DeleteObject(aliasName, cnames)
+
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error)
+
+		return c.Render(http.StatusBadRequest, "home.html", map[string]interface{}{
+			"Auth":    true,
+			"Message": err,
+		})
 
 	}
 
 	return c.Render(http.StatusOK, "home.html", map[string]interface{}{
 		"Auth":    true,
-		"Message": object + "  deleted Successfully",
+		"Message": aliasName + "  deleted Successfully",
 	})
 
 }
 
 //ModifyAlias is a prototype
 func ModifyAlias(c echo.Context) error {
+	//Prepare cnames separately
+	var cnames []string
+	cnames = common.DeleteEmpty(strings.Split(c.FormValue("cnames"), ","))
+
+	//Declare the model that will be used
 	alias := new(models.Alias)
-	params, err := c.FormParams()
 
-	if err != nil {
-		panic(err)
-	}
+	//Update external and hostgroup fields
+	con.Model(&alias).Where("alias_name = ?", c.FormValue("alias_name")).Take(&alias).UpdateColumns(
+		map[string]interface{}{
+			"external":  c.FormValue("external"),
+			"hostgroup": c.FormValue("hostgroup"),
+		},
+	)
 
-	decoder.Decode(alias, params)
-	spew.Dump(alias)
-	spew.Dump(params)
-	err = con.Model(alias).Where("alias_name = ?", params.Get("alias_name")).Updates(alias).Error
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error)
-	}
-	if params.Get("cnames") != "" {
-		con.Model(alias).Association("Cnames").Append(&models.Cname{CName: params.Get("cnames")})
+	//WIP: If there are no cnames from UI , delete them all, otherwise append them
+	if len(cnames) > 0 {
+		for _, cname := range cnames {
+			spew.Dump(cname)
+			con.Model(alias).Association("Cnames").Append(&models.Cname{CName: cname})
+		}
 	} else {
-		con.Model(models.Alias{}).Association("Cnames").Delete(&models.Cname{CName: params.Get("cnames")})
+		con.Where("alias_id = ?", alias.ID).Delete(&models.Cname{})
+
 	}
 
 	return c.Render(http.StatusOK, "home.html", map[string]interface{}{
 		"Auth":    true,
-		"Message": params.Get("alias_name") + "  updated Successfully",
+		"Message": c.FormValue("alias_name") + "  updated Successfully",
 	})
 }
 

@@ -47,7 +47,7 @@ type Relation struct {
 
 //Cname structure is a model for the cname description
 type Cname struct {
-	ID      int    `json:"cname_id" gorm:"not null;primary_key,auto_increment"`
-	AliasID uint   `json:"alias_id"`
-	CName   string `json:"cname" schema:"cnames" gorm:"primary_key" `
+	ID      int    `json:"cname_id" gorm:"auto_increment;primary_key"`
+	AliasID uint   `json:"alias_id" gorm:"not null"`
+	CName   string `json:"cname" schema:"cnames" gorm:"not null;unique" `
 }

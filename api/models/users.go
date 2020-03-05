@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/davecgh/go-spew/spew"
 	schema "github.com/gorilla/Schema"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
@@ -109,6 +110,8 @@ func GetObject(param string, tablerow string) (Objects, error) {
 func NewObject(alias *Alias, cnames string) (err error) {
 
 	con.Create(&alias)
+	spew.Dump(cnames)
+	spew.Dump(alias)
 	if cnames != "" {
 		cnames := strings.Split(cnames, ",")
 		for _, cname := range cnames {
@@ -120,10 +123,32 @@ func NewObject(alias *Alias, cnames string) (err error) {
 
 //DeleteObject deletes an alias and its Relations
 /////WIP
-func DeleteObject(alias string) (err error) {
+func DeleteObject(aliasName string, cnames bool) (err error) {
+	if cnames == true {
 
-	con.Model(&alias).Association("Cnames").Clear()
-	con.Where("alias_name = ?", alias).Delete(&Alias{})
+		err := clearCnames(aliasName)
+		if err != nil {
+			log.Error("Something went wrong when deleting the Cnames")
+		}
+	}
+	print(cnames)
+	//con.Model(&Alias).Where("alias_name = ?", alias).Preload("Cnames").Delete(&Alias.Cnames)
+	con.Where("alias_name = ?", aliasName).Delete(&Alias{})
 
 	return err
+}
+
+func clearCnames(aliasName string) (err error) {
+	var alias Alias
+	print("hello")
+	err = con.Model(&alias).Where("alias_name = ?", aliasName).Take(&alias).Error
+	spew.Dump(alias)
+	err = con.Where("alias_id = ?", alias.ID).Delete(&Cname{}).Error
+
+	if err != nil {
+		return err
+	}
+
+	return err
+
 }
