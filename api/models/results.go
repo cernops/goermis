@@ -2,10 +2,7 @@ package models
 
 import (
 	"net/http"
-	"strings"
 
-	"github.com/davecgh/go-spew/spew"
-	schema "github.com/gorilla/Schema"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
 	"gitlab.cern.ch/lb-experts/goermis/db"
@@ -37,15 +34,12 @@ type (
 	}
 )
 
-var decoder = schema.NewDecoder()
 var con = db.ManagerDB()
 
 //GetObjectsList return list of aliases
-func GetObjectsList() (Objects, error) {
+func (r Objects) GetObjectsList() (Objects, error) {
 
-	var results Objects
 	con := db.ManagerDB()
-
 	rows, err := con.Raw("SELECT a.id, alias_name, behaviour, best_hosts, clusters, COALESCE(GROUP_CONCAT(distinct case when r.blacklist = 1 " +
 		"then n.node_name else null end),'') AS ForbiddenNodes, COALESCE(GROUP_CONCAT(distinct case when r.blacklist = 0 then n.node_name else null end),'') AS AllowedNodes, " +
 		"COALESCE(GROUP_CONCAT(distinct c_name),'') AS cname, external,  a.hostgroup, a.last_modification, metric, polling_interval,tenant, " +
@@ -56,7 +50,7 @@ func GetObjectsList() (Objects, error) {
 	defer rows.Close()
 	if err != nil {
 		log.Error(err)
-		return results, echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		return r, echo.NewHTTPError(http.StatusBadRequest, err.Error())
 
 	}
 	for rows.Next() {
@@ -68,16 +62,16 @@ func GetObjectsList() (Objects, error) {
 			&result.Tenant, &result.TTL, &result.User, &result.Statistics)
 		if err != nil {
 
-			return results, echo.NewHTTPError(http.StatusBadRequest, err.Error())
+			return r, echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
-		results.Objects = append(results.Objects, result)
+		r.Objects = append(r.Objects, result)
 	}
-	return results, err
+	return r, nil
 }
 
 //GetObject returns a single alias
-func GetObject(param string, tablerow string) (Objects, error) {
-	var results Objects
+func (r Objects) GetObject(param string, tablerow string) (Objects, error) {
+
 	rows, err := con.Raw("SELECT a.id, alias_name, behaviour, best_hosts, clusters, COALESCE(GROUP_CONCAT(distinct case when r.blacklist = 1 " +
 		"then n.node_name else null end),'') AS ForbiddenNodes, COALESCE(GROUP_CONCAT(distinct case when r.blacklist = 0 then n.node_name else null end),'') AS AllowedNodes, " +
 		"COALESCE(GROUP_CONCAT(distinct c_name),'') AS cname, external,  a.hostgroup, a.last_modification, metric, polling_interval,tenant, " +
@@ -89,7 +83,7 @@ func GetObject(param string, tablerow string) (Objects, error) {
 
 	defer rows.Close()
 	if err != nil {
-		return results, err
+		return r, err
 	}
 	for rows.Next() {
 		var result result
@@ -99,56 +93,9 @@ func GetObject(param string, tablerow string) (Objects, error) {
 			&result.Tenant, &result.TTL, &result.User, &result.Statistics)
 
 		if err != nil {
-			return results, err
+			return r, err
 		}
-		results.Objects = append(results.Objects, result)
+		r.Objects = append(r.Objects, result)
 	}
-	return results, err
-}
-
-//NewObject creates an alias
-func NewObject(alias *Alias, cnames string) (err error) {
-
-	con.Create(&alias)
-	spew.Dump(cnames)
-	spew.Dump(alias)
-	if cnames != "" {
-		cnames := strings.Split(cnames, ",")
-		for _, cname := range cnames {
-			con.Model(alias).Association("Cnames").Append(&Cname{CName: string(cname)})
-		}
-	}
-	return err
-}
-
-//DeleteObject deletes an alias and its Relations
-/////WIP
-func DeleteObject(aliasName string, cnames bool) (err error) {
-	if cnames == true {
-
-		err := clearCnames(aliasName)
-		if err != nil {
-			log.Error("Something went wrong when deleting the Cnames")
-		}
-	}
-	print(cnames)
-	//con.Model(&Alias).Where("alias_name = ?", alias).Preload("Cnames").Delete(&Alias.Cnames)
-	con.Where("alias_name = ?", aliasName).Delete(&Alias{})
-
-	return err
-}
-
-func clearCnames(aliasName string) (err error) {
-	var alias Alias
-	print("hello")
-	err = con.Model(&alias).Where("alias_name = ?", aliasName).Take(&alias).Error
-	spew.Dump(alias)
-	err = con.Where("alias_id = ?", alias.ID).Delete(&Cname{}).Error
-
-	if err != nil {
-		return err
-	}
-
-	return err
-
+	return r, err
 }

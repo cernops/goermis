@@ -375,7 +375,7 @@ function writeFields(clusterObject)
      $('#alias-log').prop("href", loglink);
      $('#alias-log').text(loglink);
   }
-
+  
   $('#edit-submitted-advanced-cnames').val(clusterObject.getCNames());
   if ( fastSelect != null) {
     $('.fstChoiceItem').remove();
