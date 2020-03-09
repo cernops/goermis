@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/asaskevich/govalidator"
+	"github.com/davecgh/go-spew/spew"
 
 	"github.com/labstack/echo/v4"
 	log "github.com/sirupsen/logrus"
@@ -97,7 +98,8 @@ func DeleteAlias(c echo.Context) error {
 	//Get the params from the form
 	aliasName := c.FormValue("alias_name")
 	defer c.Request().Body.Close()
-	err := alias.DeleteObject(aliasName)
+	alias, err := models.GetExistingData(aliasName)
+	err = alias.DeleteObject()
 	if err != nil {
 
 		return c.Render(http.StatusBadRequest, "home.html", map[string]interface{}{
@@ -109,7 +111,7 @@ func DeleteAlias(c echo.Context) error {
 
 	return c.Render(http.StatusOK, "home.html", map[string]interface{}{
 		"Auth":    true,
-		"Message": aliasName + "  deleted Successfully",
+		"Message": alias.AliasName + "  deleted Successfully",
 	})
 
 }
@@ -118,11 +120,21 @@ func DeleteAlias(c echo.Context) error {
 func ModifyAlias(c echo.Context) error {
 
 	//Retrieve the parameters from the form
+
 	params, err := c.FormParams()
+
 	if err != nil {
 		log.Error("There was an error reading the parameters:" + err.Error())
 		return err
 	}
+
+	alias, err := models.GetExistingData(params.Get("alias_name"))
+	if err != nil {
+		log.Error("There was an error retrieving existing data for this alias")
+		return err
+	}
+	print("Ex")
+	spew.Dump(alias)
 	// Call the modifier
 	err = alias.ModifyObject(params)
 	if err != nil {
