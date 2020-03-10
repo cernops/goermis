@@ -22,7 +22,7 @@ func (a Alias) CreateObject(params url.Values) (err error) {
 	decoder.IgnoreUnknownKeys(true)
 	err = decoder.Decode(&a, params)
 	if err != nil {
-		log.Error(err)
+		log.Error("Error while decoding parameters : " + err.Error())
 		//panic(err)
 
 	}
@@ -32,21 +32,24 @@ func (a Alias) CreateObject(params url.Values) (err error) {
 
 		// check new object
 		if !cgorm.ManagerDB().NewRecord(&a) {
+			log.Error("Alias with the same  name as " + a.AliasName + "already exists")
 			return err
 		}
 		if err = tx.Create(&a).Error; err != nil {
 			tx.Rollback() // rollback
-			log.Error("Error in creation")
+			log.Error("Error in creating alias " + a.AliasName)
 			return err
 		}
 
 		if len(cnames) > 0 {
 			for _, cname := range cnames {
 				if !cgorm.ManagerDB().NewRecord(&Cname{CName: cname}) {
+					log.Error("Cname " + cname + "exists")
 					return err
 				}
 
 				if err = tx.Model(&a).Association("Cnames").Append(&Cname{CName: cname}).Error; err != nil {
+					log.Error("Failed to add cname " + cname + "for alias " + a.AliasName)
 					tx.Rollback()
 					return err
 				}
@@ -60,6 +63,7 @@ func (a Alias) CreateObject(params url.Values) (err error) {
 //Prepare prepares alias before creation with def values
 func (a *Alias) Prepare() {
 	//Populate the struct with the default values
+	log.Info("Preparing alias " + a.AliasName + "with default values")
 	a.User = "kkouros"
 	a.Behaviour = "mindless"
 	a.Metric = "cmsfrontier"
@@ -75,10 +79,11 @@ func (a Alias) DeleteObject() (err error) {
 
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
 
-		/*if tx.Where("alias_name = ?", a.AliasName).First(&a).RecordNotFound() {
+		if tx.Where("alias_name = ?", a.AliasName).First(&a).RecordNotFound() {
+			log.Error("Alias " + a.AliasName + "doesn't exist ?! ")
 			return err
 
-		}*/
+		}
 		err = tx.Where("alias_id= ?", a.ID).Delete(&Cname{}).Error
 		if err != nil {
 			log.Error("Cname deletion failed")
@@ -87,6 +92,7 @@ func (a Alias) DeleteObject() (err error) {
 		//con.Model(&Alias).Where("alias_name = ?", alias).Preload("Cnames").Delete(&Alias.Cnames)
 		err = tx.Where("alias_name = ?", a.AliasName).Delete(&Alias{}).Error
 		if err != nil {
+			log.Error("Alias deletion failed.Aliasname :" + a.AliasName)
 			return err
 		}
 
@@ -99,25 +105,19 @@ func (a Alias) ModifyObject(params url.Values) (err error) {
 	//Prepare cnames separately
 	cnames := DeleteEmpty(strings.Split(params.Get("cnames"), ","))
 	spew.Dump(params)
-	WithinTransaction(func(tx *gorm.DB) (err error) {
+	if err = con.Model(&a).UpdateColumns(
+		map[string]interface{}{
+			"external":   params.Get("external"),
+			"hostgroup":  params.Get("hostgroup"),
+			"best_hosts": stringToInt(params.Get("best_hosts")),
+		}).Error; err != nil {
+		log.Error("Error while updating alias " + a.AliasName)
 
-		if err = tx.Model(&a).Updates(
-			map[string]interface{}{
-				"external":   params.Get("external"),
-				"hostgroup":  params.Get("hostgroup"),
-				"best_hosts": stringToInt(params.Get("best_hosts")),
-			}).Error; err != nil {
-			print("Erroooorr")
-			tx.Rollback()
-			return err
-
-		}
-
-		return err
-	})
+	}
 	//err = a.UpdateNodes()
 	err = a.UpdateCnames(cnames)
 	if err != nil {
+		log.Error("Unable to update cnames ,Error : " + err.Error())
 		return err
 	}
 
@@ -128,11 +128,12 @@ func (a Alias) ModifyObject(params url.Values) (err error) {
 func (a Alias) UpdateCnames(newCnames []string) (err error) {
 	// If there are no cnames from UI , delete them all, otherwise append them
 	existingCnames := getExistingCnames(a)
-	print(existingCnames)
-	print(newCnames)
+	spew.Dump(existingCnames)
+	spew.Dump(newCnames)
 	if len(newCnames) > 0 {
 		for _, value := range existingCnames {
 			if !stringInSlice(value, newCnames) {
+				log.Info("Deleting cname")
 				a.DeleteCname(value)
 			}
 		}
@@ -142,6 +143,7 @@ func (a Alias) UpdateCnames(newCnames []string) (err error) {
 				continue
 			}
 			if !stringInSlice(value, existingCnames) {
+				log.Info("Adding cname")
 				a.AddCname(value)
 			}
 
@@ -149,6 +151,7 @@ func (a Alias) UpdateCnames(newCnames []string) (err error) {
 
 	} else {
 		for _, value := range existingCnames {
+			log.Info("In cname deletion")
 
 			a.DeleteCname(value)
 		}
@@ -167,11 +170,12 @@ func (a Alias) UpdateNodes() (err error) {
 func (a Alias) AddCname(cname string) error {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
 		if !cgorm.ManagerDB().NewRecord(&Cname{CName: cname}) {
-			log.Error("Cname exists")
+			log.Error("Cname" + cname + " already exists")
 			return err
 		}
 
-		if err = tx.Model(&a).Association("Cnames").Append(&Cname{CName: cname}).Error; err != nil {
+		if err = tx.Set("gorm:association_autoupdate", false).Model(&a).Association("Cnames").Append(&Cname{CName: cname}).Error; err != nil {
+			log.Info("There was an error while adding cname " + string(cname))
 			tx.Rollback()
 			return err
 		}
@@ -181,11 +185,12 @@ func (a Alias) AddCname(cname string) error {
 }
 
 //DeleteCname cname from db during modification
+//AutoUpdate is false, because otherwise we will be adding what we just deleted
 func (a Alias) DeleteCname(cname string) error {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
-		if err = tx.Where("alias_id = ? AND c_name = ?", a.ID, cname).Delete(&Cname{}).Error; err != nil {
+		if err = tx.Set("gorm:association_autoupdate", false).Where("alias_id = ? AND c_name = ?", a.ID, cname).Delete(&Cname{}).Error; err != nil {
 			tx.Rollback()
-			print("Erroooorr")
+			log.Error("Error while delete in transaction cname" + cname)
 			return err
 		}
 		return err
@@ -198,6 +203,7 @@ func (a Alias) DeleteCname(cname string) error {
 func GetExistingData(aliasName string) (a Alias, err error) {
 
 	if con.Model(Alias{}).Preload("Cnames").Preload("Relations").Where("alias_name = ?", aliasName).First(&a).RecordNotFound() {
+		log.Error("There was an error while getting existing data for alias " + aliasName + "Error: " + err.Error())
 		return a, err
 
 	}
@@ -209,7 +215,10 @@ func WithinTransaction(fn DBFunc) (err error) {
 	tx := cgorm.ManagerDB().Begin() // start db transaction
 	defer tx.Commit()
 	err = fn(tx)
-	// close db transaction
-	log.Error(err)
+
+	if err != nil {
+		log.Error("Error within transaction: " + err.Error())
+	}
 	return err
+
 }

@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	"github.com/asaskevich/govalidator"
-	"github.com/davecgh/go-spew/spew"
 
 	"github.com/labstack/echo/v4"
 	log "github.com/sirupsen/logrus"
@@ -39,8 +38,10 @@ func init() {
 func GetAliases(c echo.Context) error {
 	response, err := obj.GetObjectsList()
 	if err != nil {
+		log.Errorf("Error while getting list of aliases with error : " + err.Error())
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
+	log.Info("Success while retrieving aliases")
 	return c.JSON(http.StatusOK, response)
 }
 
@@ -65,8 +66,10 @@ func GetAlias(c echo.Context) error {
 
 	response, err := obj.GetObject(string(param), tablerow)
 	if err != nil {
+		log.Error("Unable to get the alias " + param + "with error : " + err.Error())
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
+	log.Info("Alias retrieved successfully")
 	return c.JSON(http.StatusOK, response)
 
 }
@@ -79,13 +82,14 @@ func NewAlias(c echo.Context) error {
 	alias.Prepare()
 	err = alias.CreateObject(params)
 	if err != nil {
+		log.Error("Error while creating alias " + params.Get("alias_name") + "with error : " + err.Error())
 		return c.Render(http.StatusCreated, "home.html", map[string]interface{}{
 			"Auth":    true,
-			"Message": "There was an error while creating the alias " + params.Get("alias_name"),
+			"Message": "There was an error while creating the alias " + params.Get("alias_name") + "Error: " + err.Error(),
 		})
 
 	}
-
+	log.Info("Alias created successfully")
 	return c.Render(http.StatusCreated, "home.html", map[string]interface{}{
 		"Auth":    true,
 		"Message": params.Get("alias_name") + "  created Successfully",
@@ -99,16 +103,19 @@ func DeleteAlias(c echo.Context) error {
 	aliasName := c.FormValue("alias_name")
 	defer c.Request().Body.Close()
 	alias, err := models.GetExistingData(aliasName)
+	if err != nil {
+		log.Error("Error while getting existing data for alias " + aliasName + "with error : " + err.Error())
+	}
 	err = alias.DeleteObject()
 	if err != nil {
-
+		log.Error("Failed to delete object")
 		return c.Render(http.StatusBadRequest, "home.html", map[string]interface{}{
 			"Auth":    true,
 			"Message": err,
 		})
 
 	}
-
+	log.Info("Alias deleted successfully")
 	return c.Render(http.StatusOK, "home.html", map[string]interface{}{
 		"Auth":    true,
 		"Message": alias.AliasName + "  deleted Successfully",
@@ -130,22 +137,20 @@ func ModifyAlias(c echo.Context) error {
 
 	alias, err := models.GetExistingData(params.Get("alias_name"))
 	if err != nil {
-		log.Error("There was an error retrieving existing data for this alias")
+		log.Error("There was an error retrieving existing data for alias " + alias.AliasName + "ERROR:" + err.Error())
 		return err
 	}
-	print("Ex")
-	spew.Dump(alias)
 	// Call the modifier
 	err = alias.ModifyObject(params)
 	if err != nil {
-		log.Error("There was an error updating the alias:" + err.Error())
+		log.Error("There was an error updating the alias: " + params.Get("alias_name") + "Error: " + err.Error())
 
 		return c.Render(http.StatusOK, "home.html", map[string]interface{}{
 			"Auth":    true,
 			"Message": "There was an error while updating the alias" + err.Error(),
 		})
 	}
-
+	log.Info("Alias updated successfully")
 	return c.Render(http.StatusOK, "home.html", map[string]interface{}{
 		"Auth":    true,
 		"Message": c.FormValue("alias_name") + "  updated Successfully",
