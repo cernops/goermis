@@ -1,8 +1,8 @@
 ﻿
-; (function($) {
+; (function ($) {
     'use strict';
 
-    $.fn.dynamicTable = function(options) {
+    $.fn.dynamicTable = function (options) {
         var settings = $.extend({}, {
             showActionColumn: true,
             buttons: {
@@ -14,13 +14,41 @@
             },
             columns: [],
             data: [],
-            getControl: function(columnKey) {
+            getControl: function (columnKey) {
                 return '<input type="text" onfocus= " this.value=null"  class="form-control" />';
             },
+            validate: null,
+            validateSuccess: null,
         }, options);
 
-        var populateActionButtons = function(tableRow, addButton, cancelButton, deleteButton, editButton, saveButton) {
-            var showHideButtons = function(tableCell, localFlags) {
+        var validate = function (columns) {
+            if (settings.validate) {
+                /* Cleaning up from previous runs */
+                if (settings.validateSuccess) {
+                    settings.validateSuccess();
+                    $('#edit-submit').prop("disabled", false);
+                }
+                var validated = true;
+                columns.each(function () {
+                    var key = $(this).attr('data-codeapi-inputkey');
+                    var value = $(this).val();
+                    if (!settings.validate(key, value)) {
+                        validated = false;
+                    }
+                });
+                if (!validated) {
+                    return false;
+                }
+                /* Everything is fine, let's clean up */
+                /*                if (settings.validateSuccess) {
+                                    settings.validateSuccess();
+                                }*/
+            }
+            return true;
+        };
+
+        var populateActionButtons = function (tableRow, addButton, cancelButton, deleteButton, editButton, saveButton) {
+            var showHideButtons = function (tableCell, localFlags) {
                 var theButtons = {
                     cancelButton: $(tableCell).find('*[data-codeapi-cancelcommand]'),
                     deleteButton: $(tableCell).find('*[data-codeapi-deletecommand]'),
@@ -72,20 +100,16 @@
                 $(tableCell).append(' ');
                 $(tableCell).append($(localButton));
 
-                $(localButton).click(function() {
-                    $(this).parents('tr:first').find('*[data-codeapi-inputkey]').each(function() {
+                $(localButton).click(function () {
+                    /*First, the validation */
+                    if (!validate($(this).parents('tr:first').find('*[data-codeapi-inputkey]')))
+                        return;
+
+
+                    $(this).parents('tr:first').find('*[data-codeapi-inputkey]').each(function () {
                         var inputControl = $(this);
                         var key = $(this).attr('data-codeapi-inputkey');
-                        //Validate input
-                        if(isNodeRFC952Compliant($(this).val().toLowerCase())!= true && key =="name"){
-                            $("#nodes-name-status").html('<img src="/staticfiles/js/custom/images/dialog-error.png"</img> The node name ' + $(this).val() + ' is not RFC compliant! <a href="http://configdocs.web.cern.ch/configdocs/dnslb/index.html"><img alt="Help" src="/staticfiles/js/custom/images/help-browser.png"</img></a>');
-                            $('#edit-submit').prop("disabled", true); //Disable submit button
-                            return;    
-                        } else if(isNodeRFC952Compliant($(this).val().toLowerCase()) == true && key =="name") {
-                            $("#nodes-name-status").html(""); //Hide error message and enable submit button
-                            $('#edit-submit').prop("disabled",false);
-                            } 
-                            
+
                         var spanControl = $(inputControl).parent().find('span[data-codeapi-displaykey="' + $(inputControl).attr('data-codeapi-inputkey') + '"]');
                         $(spanControl).attr('data-codeapi-value', encodeURIComponent($(inputControl).val()));
                         if ($(inputControl).is('select')) {
@@ -111,8 +135,8 @@
                 $(tableCell).append(' ');
                 $(tableCell).append($(localButton));
 
-                $(localButton).click(function() {
-                    $(this).parents('tr:first').find('*[data-codeapi-inputkey]').each(function() {
+                $(localButton).click(function () {
+                    $(this).parents('tr:first').find('*[data-codeapi-inputkey]').each(function () {
                         var inputControl = $(this);
                         var spanControl = $(inputControl).parent().find('span[data-codeapi-displaykey="' + $(inputControl).attr('data-codeapi-inputkey') + '"]');
 
@@ -137,15 +161,15 @@
                 $(tableCell).append(' ');
                 $(tableCell).append($(localButton));
 
-                $(localButton).click(function() {
+                $(localButton).click(function () {
                     var table = $(this).parents("table:first");
                     $(this).parents('tr:first').replaceWith('');
                     resetSrNoColumn(table);
                     //Manage the behaviour of error banner and submit button, in case of deletion of erroneous entry 
-                     $("#nodes-name-status").html(""); 
-                     if($("#clusterList").val() != "Please_select") {
-                     $('#edit-submit').prop("disabled",false); 
-                   }
+                    $("#nodes-name-status").html("");
+                    if ($("#clusterList").val() != "Please_select") {
+                        $('#edit-submit').prop("disabled", false);
+                    }
                 });
             }
 
@@ -155,8 +179,8 @@
                 $(localButton).hide();
                 $(tableCell).append(' ');
                 $(tableCell).append($(localButton));
-                $(localButton).click(function() {
-                    $(this).parents('tr:first').find('*[data-codeapi-inputkey]').each(function() {
+                $(localButton).click(function () {
+                    $(this).parents('tr:first').find('*[data-codeapi-inputkey]').each(function () {
                         var inputControl = $(this);
                         var spanControl = $(inputControl).parent().find('span[data-codeapi-displaykey="' + $(inputControl).attr('data-codeapi-inputkey') + '"]');
                         $(inputControl).val(decodeURIComponent($(spanControl).attr('data-codeapi-value')));
@@ -173,13 +197,13 @@
             }
         };
 
-        var resetSrNoColumn = function(table) {
-            $(table).find("td[data-codeapi-srno]").not(':first').each(function(index, element) {
+        var resetSrNoColumn = function (table) {
+            $(table).find("td[data-codeapi-srno]").not(':first').each(function (index, element) {
                 $(this).text((index + 1));
             });
         };
 
-        return this.each(function() {
+        return this.each(function () {
             var addButton = settings.buttons.addButton;
             var cancelButton = settings.buttons.cancelButton;
             var deleteButton = settings.buttons.deleteButton;
@@ -227,29 +251,24 @@
                     var localButton = $($(addButton).clone());
                     $(tableCell).append(' ');
                     $(tableCell).append($(localButton));
-                    $(localButton).click(function() {
+                    $(localButton).click(function () {
                         var table = $(this).parents("table:first");
                         var currentRow = $(this).parents('tr:first');
+                        /* First, let's do the validation */
+                        if (!validate(currentRow.find('td').not(':first,:last').find('*[data-codeapi-inputkey]'))) {
+                            return;
+                        }
                         var newRow = $('<tr></tr>');
                         $(table).append($(newRow));
                         var newTableCell = $('<td data-codeapi-srno="0"></td>');
                         $(newRow).append($(newTableCell));
-                        currentRow.find('td').not(':first,:last').each(function() {
+                        currentRow.find('td').not(':first,:last').each(function () {
                             var tableCell = $(this);
                             var key = $(tableCell).find('*[data-codeapi-inputkey]').attr('data-codeapi-inputkey');
                             var newTableCell = $('<td></td>');
                             $(newRow).append($(newTableCell));
                             var currentInput = $(tableCell).find('*[data-codeapi-inputkey]');
                             //Input validation
-                            if(isNodeRFC952Compliant(currentInput.val().toLowerCase())!= true && key === "name"){
-                                $("#nodes-name-status").html('<img src="/staticfiles/js/custom/images/dialog-error.png"</img> The node name ' +(currentInput).val() + ' is not RFC compliant! <a href="http://configdocs.web.cern.ch/configdocs/dnslb/index.html"><img alt="Help" src="/staticfiles/js/custom/images/help-browser.png"</img></a>');
-                                $('#edit-submit').prop("disabled", true);
-                                return newRow.remove(); 
-                               
-                            }else if(isNodeRFC952Compliant(currentInput.val().toLowerCase()) === true && key === "name" && $('#edit-submitted-alias-name').val() != "") {
-                                $("#nodes-name-status").html("");
-                                $('#edit-submit').prop("disabled", false);
-                                }
                             var inputControl = $(currentInput).clone();
                             $(inputControl).val($(currentInput).val());
                             $(inputControl).hide();
@@ -267,7 +286,7 @@
 
                             $(currentInput).val($(currentInput).attr('data-codeapi-defaultvalue'));
                         });
-                        
+
 
                         if (settings.showActionColumn) {
                             populateActionButtons(newRow, addButton, cancelButton, deleteButton, editButton, saveButton);
@@ -292,7 +311,7 @@
                 for (var y = 0; y < settings.columns.length; y++) {
                     tableCell = $('<td></td>');
                     $(tableRow).append($(tableCell));
-
+                    $($this).find('*[data-codeapi-inputkey]').attr('data-codeapi-inputkey');
                     var inputControl = $(settings.getControl(settings.columns[y].key));
                     $(inputControl).attr('data-codeapi-inputkey', settings.columns[y].key);
                     $(inputControl).val(settings.data[x][settings.columns[y].key]);
@@ -316,15 +335,15 @@
             }
         });
     };
-     // Retrieve data from the table function
-    $.fn.getTableData = function() {
+    // Retrieve data from the table function
+    $.fn.getTableData = function () {
         var data = [];
 
-        $(this).find("tr").each(function() {
+        $(this).find("tr").each(function () {
             if ($(this).find('span[data-codeapi-displaykey]').length > 0) {
                 var objModel = {};
 
-                $(this).find('span[data-codeapi-displaykey]').each(function() {
+                $(this).find('span[data-codeapi-displaykey]').each(function () {
                     var key = 'data-codeapi-displaykey';
                     var valueKey = 'data-codeapi-value';
                     objModel[$(this).attr(key)] = decodeURIComponent($(this).attr(valueKey));

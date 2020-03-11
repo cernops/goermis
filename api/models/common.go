@@ -1,7 +1,9 @@
 package models
 
 import (
+	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/labstack/gommon/log"
 )
@@ -41,4 +43,23 @@ func stringToInt(s string) (i int) {
 		log.Error("Error while converting string to int")
 	}
 	return i
+}
+
+func nodesToMap(p url.Values) map[string]int {
+
+	temp := make(map[string]int)
+
+	modes := map[string]int{
+		"AllowedNodes":   0,
+		"ForbiddenNodes": 1,
+	}
+	for k, v := range modes {
+		if p.Get(k) != "" {
+			for _, val := range DeleteEmpty(strings.Split(p.Get(k), ",")) {
+				temp[val] = v
+			}
+		}
+	}
+
+	return temp
 }

@@ -163,6 +163,7 @@ func (a Alias) ModifyObject(params url.Values) (err error) {
 	//Prepare cnames separately
 	cnames := DeleteEmpty(strings.Split(params.Get("cnames"), ","))
 	spew.Dump(params)
+
 	if err = con.Model(&a).UpdateColumns(
 		map[string]interface{}{
 			"external":   params.Get("external"),
@@ -174,6 +175,12 @@ func (a Alias) ModifyObject(params url.Values) (err error) {
 	}
 	//err = a.UpdateNodes()
 	err = a.UpdateCnames(cnames)
+	if err != nil {
+		log.Error("Unable to update cnames ,Error : " + err.Error())
+		return err
+	}
+
+	err = a.UpdateNodes(nodesToMap(params))
 	if err != nil {
 		log.Error("Unable to update cnames ,Error : " + err.Error())
 		return err
@@ -223,12 +230,13 @@ func (a Alias) UpdateCnames(newCnames []string) (err error) {
 	return nil
 }
 
-/*//UpdateNodes updates cnames
-func (a Alias) UpdateNodes() (err error) {
+//UpdateNodes updates cnames
+func (a Alias) UpdateNodes(m map[string]int) (err error) {
+	spew.Dump(m)
 	// If there are no cnames from UI , delete them all, otherwise append them
 	return err
 
-}*/
+}
 
 //AddCname appends a Cname
 func (a Alias) AddCname(cname string) error {
