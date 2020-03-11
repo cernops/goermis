@@ -1,6 +1,7 @@
 package models
 
 import (
+	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -8,13 +9,70 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	schema "github.com/gorilla/Schema"
 	"github.com/jinzhu/gorm"
+	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
+	"gitlab.cern.ch/lb-experts/goermis/db"
 	cgorm "gitlab.cern.ch/lb-experts/goermis/db"
 )
 
 var (
+	con     = db.ManagerDB()
 	decoder = schema.NewDecoder()
+	q       string
 )
+
+//GetObjects return list of aliases if no parameters are passed or a single alias if parameters are given
+func (r Objects) GetObjects(param string, tablerow string) (b Objects, err error) {
+	if param == "" && tablerow == "" {
+		q = "SELECT a.id, alias_name, behaviour, best_hosts, clusters, " +
+			"COALESCE(GROUP_CONCAT(distinct case when r.blacklist = 1 then n.node_name else null end),'') AS ForbiddenNodes, " +
+			"COALESCE(GROUP_CONCAT(distinct case when r.blacklist = 0 then n.node_name else null end),'') AS AllowedNodes, " +
+			"COALESCE(GROUP_CONCAT(distinct c_name),'') AS cname, external,  a.hostgroup, a.last_modification, metric, polling_interval,tenant, ttl, user, statistics " +
+			"FROM alias a " +
+			"LEFT join cname c on ( a.id=c.alias_id) " +
+			"LEFT JOIN relation r on (a.id=r.alias_id) " +
+			"LEFT JOIN node n on (n.id=r.node_id)" +
+			"GROUP BY a.id, alias_name, behaviour, best_hosts, clusters,  external, a.hostgroup, " +
+			"a.last_modification, metric, polling_interval, statistics, tenant, ttl, user ORDER BY alias_name"
+
+	} else {
+		q = "SELECT a.id, alias_name, behaviour, best_hosts, clusters, " +
+			"COALESCE(GROUP_CONCAT(distinct case when r.blacklist = 1 then n.node_name else null end),'') AS ForbiddenNodes," +
+			"COALESCE(GROUP_CONCAT(distinct case when r.blacklist = 0 then n.node_name else null end),'') AS AllowedNodes, " +
+			"COALESCE(GROUP_CONCAT(distinct c_name),'') AS cname, external,  a.hostgroup, a.last_modification, metric, polling_interval,tenant, ttl, user, statistics" +
+			"FROM alias a " +
+			"LEFT JOIN cname c on ( a.id=c.alias_id) " +
+			"LEFT JOIN relation r on (a.id=r.alias_id) " +
+			"LEFT JOIN node n on (n.id=r.node_id) " +
+			"where a." + tablerow + " = " + "'" + param + "'" +
+			"GROUP BY a.id, alias_name, behaviour, best_hosts, clusters,  external, a.hostgroup, " +
+			"a.last_modification, metric, polling_interval, statistics, tenant, ttl, user ORDER BY alias_name"
+	}
+
+	rows, err := con.Raw(q).Rows()
+
+	defer rows.Close()
+	if err != nil {
+		log.Error("Error while getting list of objects: " + err.Error())
+		return r, echo.NewHTTPError(http.StatusBadRequest, err.Error())
+
+	}
+	for rows.Next() {
+		var result result
+
+		err := rows.Scan(&result.ID, &result.AliasName, &result.Behaviour, &result.BestHosts, &result.Clusters,
+			&result.ForbiddenNodes, &result.AllowedNodes, &result.Cname, &result.External, &result.Hostgroup,
+			&result.LastModification, &result.Metric, &result.PollingInterval,
+			&result.Tenant, &result.TTL, &result.User, &result.Statistics)
+		if err != nil {
+			log.Error("Error when scanning in GetObjectsList: " + err.Error())
+
+			return r, echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		}
+		r.Objects = append(r.Objects, result)
+	}
+	return r, nil
+}
 
 //CreateObject creates an alias
 func (a Alias) CreateObject(params url.Values) (err error) {
@@ -134,7 +192,9 @@ func (a Alias) UpdateCnames(newCnames []string) (err error) {
 		for _, value := range existingCnames {
 			if !stringInSlice(value, newCnames) {
 				log.Info("Deleting cname")
-				a.DeleteCname(value)
+				if err = a.DeleteCname(value); err != nil {
+					return err
+				}
 			}
 		}
 
@@ -144,7 +204,9 @@ func (a Alias) UpdateCnames(newCnames []string) (err error) {
 			}
 			if !stringInSlice(value, existingCnames) {
 				log.Info("Adding cname")
-				a.AddCname(value)
+				if err = a.AddCname(value); err != nil {
+					return err
+				}
 			}
 
 		}
@@ -153,7 +215,9 @@ func (a Alias) UpdateCnames(newCnames []string) (err error) {
 		for _, value := range existingCnames {
 			log.Info("In cname deletion")
 
-			a.DeleteCname(value)
+			if err = a.DeleteCname(value); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

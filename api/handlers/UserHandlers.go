@@ -36,7 +36,7 @@ func init() {
 
 //GetAliases handles requests of all aliases
 func GetAliases(c echo.Context) error {
-	response, err := obj.GetObjectsList()
+	response, err := obj.GetObjects("", "")
 	if err != nil {
 		log.Errorf("Error while getting list of aliases with error : " + err.Error())
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
@@ -64,7 +64,7 @@ func GetAlias(c echo.Context) error {
 
 	defer c.Request().Body.Close()
 
-	response, err := obj.GetObject(string(param), tablerow)
+	response, err := obj.GetObjects(string(param), tablerow)
 	if err != nil {
 		log.Error("Unable to get the alias " + param + "with error : " + err.Error())
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())

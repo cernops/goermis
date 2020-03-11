@@ -56,4 +56,28 @@ type (
 	}
 	//DBFunc type which accept *gorm.DB and return error
 	DBFunc func(tx *gorm.DB) error
+	//result deals with the output from the queries
+	result struct {
+		ID               uint      `json:"alias_id"`
+		AliasName        string    `json:"alias_name"`
+		Behaviour        string    `json:"behaviour"`
+		BestHosts        int       `json:"best_hosts"`
+		Clusters         string    `json:"clusters"`
+		ForbiddenNodes   string    `json:"ForbiddenNodes" gorm:"not null"`
+		AllowedNodes     string    `json:"AllowedNodes" gorm:"not null"`
+		Cname            string    `json:"cnames" gorm:"not null"`
+		External         string    `json:"external"`
+		Hostgroup        string    `json:"hostgroup"`
+		LastModification time.Time `json:"last_modification"`
+		Metric           string    `json:"metric"`
+		PollingInterval  int       `json:"polling_interval"`
+		Tenant           string    `json:"tenant"`
+		TTL              int       `json:"ttl"`
+		User             string    `json:"user"`
+		Statistics       string    `json:"statistics"`
+	}
+	//Objects holds multiple result structs
+	Objects struct {
+		Objects []result `json:"objects"`
+	}
 )
