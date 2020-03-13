@@ -27,9 +27,9 @@ type (
 		Cnames           []Cname   `json:"cnames"  gorm:"foreignkey:AliasID"`
 	}
 
-	//Relation testing
-	Relation struct {
-		ID        int
+	//AliasesNodes testing
+	AliasesNodes struct {
+		ID        int `gorm:"unique;not null;auto_increment;primary_key"`
 		Node      *Node
 		NodeID    int
 		Alias     *Alias

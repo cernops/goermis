@@ -40,7 +40,7 @@ func getExistingCnames(a Alias) (s []string) {
 
 func getExistingNodesToMap(a Alias) (temp map[string]bool) {
 	temp = make(map[string]bool)
-	relation := []Relation{}
+	relation := []AliasesNodes{}
 	con.Where("alias_id=?", a.ID).Find(&relation)
 	if len(relation) > 0 {
 		for _, v := range relation {
@@ -100,7 +100,7 @@ func PrepareNode(a Alias, name string) (n Node) {
 	}
 
 }
-func prepareRelation(nodeID int, aliasID int, p bool) (r *Relation) {
-	r = &Relation{AliasID: aliasID, NodeID: nodeID, Blacklist: p}
+func prepareRelation(nodeID int, aliasID int, p bool) (r *AliasesNodes) {
+	r = &AliasesNodes{AliasID: aliasID, NodeID: nodeID, Blacklist: p}
 	return r
 }

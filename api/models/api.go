@@ -19,7 +19,6 @@ var (
 	con     = db.ManagerDB()
 	decoder = schema.NewDecoder()
 	q       string
-	node    Node
 )
 
 //GetObjects return list of aliases if no parameters are passed or a single alias if parameters are given
@@ -31,7 +30,7 @@ func (r Resource) GetObjects(param string, tablerow string) (b []Resource, err e
 			"COALESCE(GROUP_CONCAT(distinct c_name),'') AS cname, external,  a.hostgroup, a.last_modification, metric, polling_interval,tenant, ttl, user, statistics " +
 			"FROM alias a " +
 			"LEFT join cname c on ( a.id=c.alias_id) " +
-			"LEFT JOIN relation r on (a.id=r.alias_id) " +
+			"LEFT JOIN aliases_nodes r on (a.id=r.alias_id) " +
 			"LEFT JOIN node n on (n.id=r.node_id)" +
 			"GROUP BY a.id, alias_name, behaviour, best_hosts, clusters,  external, a.hostgroup, " +
 			"a.last_modification, metric, polling_interval, statistics, tenant, ttl, user ORDER BY alias_name"
@@ -43,7 +42,7 @@ func (r Resource) GetObjects(param string, tablerow string) (b []Resource, err e
 			"COALESCE(GROUP_CONCAT(distinct c_name),'') AS cname, external,  a.hostgroup, a.last_modification, metric, polling_interval,tenant, ttl, user, statistics " +
 			"FROM alias a " +
 			"LEFT JOIN cname c on ( a.id=c.alias_id) " +
-			"LEFT JOIN relation r on (a.id=r.alias_id) " +
+			"LEFT JOIN aliases_nodes r on (a.id=r.alias_id) " +
 			"LEFT JOIN node n on (n.id=r.node_id) " +
 			"where a." + tablerow + " = " + "'" + param + "'" +
 			"GROUP BY a.id, alias_name, behaviour, best_hosts, clusters,  external, a.hostgroup, " +
@@ -265,17 +264,49 @@ func (a Alias) UpdateNodes(ex map[string]bool, new map[string]bool) (err error) 
 
 //DeleteNode deletes  a Node from the database
 func (a Alias) DeleteNode(name string, p bool) (err error) {
-	return nil
+	var node Node
+
+	return WithinTransaction(func(tx *gorm.DB) (err error) {
+		//find node
+		if err := tx.First(&node, "node_name=?", name).Error; err != nil {
+			log.Error("Coouldnt find the ID of the node for deletion")
+			tx.Rollback()
+			return err
+		}
+
+		//Delete relation
+		if err = tx.Set("gorm:association_autoupdate", false).
+			Where("alias_id = ? AND node_id = ?", a.ID, node.ID).
+			Delete(&AliasesNodes{}).Error; err != nil {
+			tx.Rollback()
+			log.Error("Error while delete in transaction node" + name)
+			return err
+		}
+		//Delete node with no other relations
+		if tx.Model(&node).Association("Aliases").Count() == 0 {
+			log.Info("Node doesnt have other relation, delete it")
+			if err = tx.Delete(&node).Error; err != nil {
+				log.Info("Error while deleting node with no relations")
+				tx.Rollback()
+				return err
+
+			}
+
+		}
+
+		return nil
+
+	})
 }
 
 //AddNode adds a node in the DB
 func (a Alias) AddNode(name string, p bool) (err error) {
+	var node Node
 
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
 		err = tx.Where("node_name = ?", name).
 			Assign(Node{NodeName: name,
-				LastModification: time.Now(),
-				Hostgroup:        a.Hostgroup}).
+				LastModification: time.Now()}).
 			FirstOrCreate(&node).Error
 
 		if err != nil {
@@ -283,9 +314,9 @@ func (a Alias) AddNode(name string, p bool) (err error) {
 			log.Error("Error while dealing with node ")
 			return err
 		}
-		if tx.Where("alias_id = ? AND node_id = ?", a.ID, node.ID).First(&Relation{}).RecordNotFound() {
+		if tx.Where("alias_id = ? AND node_id = ?", a.ID, node.ID).First(&AliasesNodes{}).RecordNotFound() {
 			log.Info("Righttt")
-			if err = tx.Model(&Relation{}).Create(
+			if err = tx.Model(&AliasesNodes{}).Create(
 				prepareRelation(node.ID, a.ID, p),
 			).Error; err != nil {
 				tx.Rollback()
@@ -298,7 +329,27 @@ func (a Alias) AddNode(name string, p bool) (err error) {
 
 //UpdateNodePrivilege updates the privilege of a node from allowed to forbidden and vice versa
 func (a Alias) UpdateNodePrivilege(name string, p bool) (err error) {
-	return nil
+	var node Node
+	return WithinTransaction(func(tx *gorm.DB) (err error) {
+
+		//find node
+		if err := tx.First(&node, "node_name=?", name).Error; err != nil {
+			log.Error("Coouldnt find the ID of the node for deletion")
+			tx.Rollback()
+			return err
+		}
+
+		if err = tx.Model(&AliasesNodes{}).
+			Where("alias_id=? AND node_id = ?", a.ID, node.ID).
+			Update("blacklist", p).Error; err != nil {
+			log.Error("Error while updating privileges")
+			tx.Rollback()
+			return err
+		}
+
+		return nil
+	})
+
 }
 
 //AddCname appends a Cname
