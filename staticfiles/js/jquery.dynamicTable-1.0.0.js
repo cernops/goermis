@@ -3,6 +3,7 @@
     'use strict';
 
     $.fn.dynamicTable = function (options) {
+
         var settings = $.extend({}, {
             showActionColumn: true,
             buttons: {
@@ -25,8 +26,9 @@
             if (settings.validate) {
                 /* Cleaning up from previous runs */
                 if (settings.validateSuccess) {
-                    settings.validateSuccess();
-                    $('#edit-submit').prop("disabled", false);
+                    //settings.validateSuccess();
+                    
+                    
                 }
                 var validated = true;
                 columns.each(function () {
@@ -44,6 +46,7 @@
                                     settings.validateSuccess();
                                 }*/
             }
+            
             return true;
         };
 
@@ -258,6 +261,9 @@
                         if (!validate(currentRow.find('td').not(':first,:last').find('*[data-codeapi-inputkey]'))) {
                             return;
                         }
+                        $("#nodes-name-status").html(""); //Hide error message and enable submit button
+                        $('#edit-submit').prop("disabled", false);
+                        
                         var newRow = $('<tr></tr>');
                         $(table).append($(newRow));
                         var newTableCell = $('<td data-codeapi-srno="0"></td>');

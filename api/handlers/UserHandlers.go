@@ -6,6 +6,8 @@ import (
 	"strconv"
 
 	"github.com/asaskevich/govalidator"
+	"github.com/davecgh/go-spew/spew"
+	schema "github.com/gorilla/Schema"
 
 	"github.com/labstack/echo/v4"
 	log "github.com/sirupsen/logrus"
@@ -19,7 +21,10 @@ var (
 	con      = db.ManagerDB()
 	alias    models.Alias
 	obj      models.Objects
+	res      models.Resource
 	tablerow string
+	err      error
+	decoder  = schema.NewDecoder()
 )
 
 func init() {
@@ -36,18 +41,19 @@ func init() {
 
 //GetAliases handles requests of all aliases
 func GetAliases(c echo.Context) error {
-	response, err := obj.GetObjects("", "")
+
+	obj.Objects, err = res.GetObjects("", "")
+
 	if err != nil {
 		log.Errorf("Error while getting list of aliases with error : " + err.Error())
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	log.Info("Success while retrieving aliases")
-	return c.JSON(http.StatusOK, response)
+	return c.JSON(http.StatusOK, obj)
 }
 
 //GetAlias queries for a specific alias
 func GetAlias(c echo.Context) error {
-
 	param := c.Param("alias")
 
 	if !govalidator.IsAlphanumeric(param) {
@@ -64,13 +70,13 @@ func GetAlias(c echo.Context) error {
 
 	defer c.Request().Body.Close()
 
-	response, err := obj.GetObjects(string(param), tablerow)
+	obj.Objects, err = res.GetObjects(string(param), tablerow)
 	if err != nil {
 		log.Error("Unable to get the alias " + param + "with error : " + err.Error())
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	log.Info("Alias retrieved successfully")
-	return c.JSON(http.StatusOK, response)
+	return c.JSON(http.StatusOK, obj)
 
 }
 
@@ -125,25 +131,26 @@ func DeleteAlias(c echo.Context) error {
 
 //ModifyAlias is a prototype
 func ModifyAlias(c echo.Context) error {
-
+	var new models.Resource
 	//Retrieve the parameters from the form
-
 	params, err := c.FormParams()
+	decoder.Decode(&new, params)
 
 	if err != nil {
 		log.Error("There was an error reading the parameters:" + err.Error())
 		return err
 	}
 
-	alias, err := models.GetExistingData(params.Get("alias_name"))
+	r, err := res.GetObjects(new.AliasName, "alias_name")
+	spew.Dump(r)
 	if err != nil {
-		log.Error("There was an error retrieving existing data for alias " + alias.AliasName + "ERROR:" + err.Error())
+		log.Error("There was an error retrieving existing data for alias " + new.AliasName + "ERROR:" + err.Error())
 		return err
 	}
 	// Call the modifier
-	err = alias.ModifyObject(params)
+	err = alias.ModifyObject(r[0], new)
 	if err != nil {
-		log.Error("There was an error updating the alias: " + params.Get("alias_name") + "Error: " + err.Error())
+		log.Error("There was an error updating the alias: " + new.AliasName + "Error: " + err.Error())
 
 		return c.Render(http.StatusOK, "home.html", map[string]interface{}{
 			"Auth":    true,

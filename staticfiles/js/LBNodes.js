@@ -31,6 +31,7 @@ function initialize_nodes(data, mode) {
         validateSucess: function () {
             $("#nodes-name-status").html(""); //Hide error message and enable submit button
             $('#edit-submit').prop("disabled", false);
+           
         },
         data: data
     })
