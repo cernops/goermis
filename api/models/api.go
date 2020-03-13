@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	schema "github.com/gorilla/Schema"
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo/v4"
@@ -132,24 +131,30 @@ func (a *Alias) Prepare() {
 }
 
 //DeleteObject deletes an alias and its Relations
-func (a Alias) DeleteObject() (err error) {
+func (r Resource) DeleteObject() (err error) {
 
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
 
-		if tx.Where("alias_name = ?", a.AliasName).First(&a).RecordNotFound() {
-			log.Error("Alias " + a.AliasName + "doesn't exist ?! ")
+		if tx.Where("alias_name = ?", r.AliasName).First(&Alias{}).RecordNotFound() {
+			log.Error("Alias " + r.AliasName + "doesn't exist ?! ")
 			return err
 
 		}
-		err = tx.Where("alias_id= ?", a.ID).Delete(&Cname{}).Error
+		err = tx.Where("alias_id= ?", r.ID).Delete(&Cname{}).Error
 		if err != nil {
 			log.Error("Cname deletion failed")
 			return err
 		}
-		//con.Model(&Alias).Where("alias_name = ?", alias).Preload("Cnames").Delete(&Alias.Cnames)
-		err = tx.Where("alias_name = ?", a.AliasName).Delete(&Alias{}).Error
+		///Clear Nodes
+		err = tx.Where("alias_id=? ", r.ID).Delete(&AliasesNodes{}).Error
 		if err != nil {
-			log.Error("Alias deletion failed.Aliasname :" + a.AliasName)
+			log.Error("Failed to clear nodes during alias deletion")
+		}
+
+		//con.Model(&Alias).Where("alias_name = ?", alias).Preload("Cnames").Delete(&Alias.Cnames)
+		err = tx.Where("alias_name = ?", r.AliasName).Delete(&Alias{}).Error
+		if err != nil {
+			log.Error("Alias deletion failed.Aliasname :" + r.AliasName)
 			return err
 		}
 
@@ -158,12 +163,10 @@ func (a Alias) DeleteObject() (err error) {
 }
 
 //ModifyObject modifies aliases and its associations
-func (a Alias) ModifyObject(ex Resource, new Resource) (err error) {
+func (r Resource) ModifyObject(new Resource) (err error) {
 	//Prepare cnames separately
 	newCnames := DeleteEmpty(strings.Split(new.Cname, ","))
-	exCnames := DeleteEmpty(strings.Split(ex.Cname, ","))
-	a.ID = ex.ID
-	a.Hostgroup = ex.Hostgroup
+	exCnames := DeleteEmpty(strings.Split(r.Cname, ","))
 
 	if err = con.Model(&Alias{}).UpdateColumns(
 		map[string]interface{}{
@@ -171,17 +174,17 @@ func (a Alias) ModifyObject(ex Resource, new Resource) (err error) {
 			"hostgroup":  new.Hostgroup,
 			"best_hosts": new.BestHosts,
 		}).Error; err != nil {
-		log.Error("Error while updating alias " + ex.AliasName)
+		log.Error("Error while updating alias " + r.AliasName)
 
 	}
 	//err = a.UpdateNodes()
-	err = a.UpdateCnames(exCnames, newCnames)
+	err = r.UpdateCnames(exCnames, newCnames)
 	if err != nil {
 		log.Error("Unable to update cnames ,Error : " + err.Error())
 		return err
 	}
 	log.Info("Before node update")
-	err = a.UpdateNodes(nodesToMap(ex), nodesToMap(new))
+	err = r.UpdateNodes(nodesToMap(r), nodesToMap(new))
 	if err != nil {
 
 		log.Error("Unable to update nodes ,Error : " + err.Error())
@@ -192,16 +195,13 @@ func (a Alias) ModifyObject(ex Resource, new Resource) (err error) {
 }
 
 //UpdateCnames updates cnames
-func (a Alias) UpdateCnames(exCnames []string, newCnames []string) (err error) {
-	// If there are no cnames from UI , delete them all, otherwise append them
+func (r Resource) UpdateCnames(exCnames []string, newCnames []string) (err error) {
 
-	spew.Dump(exCnames)
-	spew.Dump(newCnames)
 	if len(newCnames) > 0 {
 		for _, value := range exCnames {
 			if !stringInSlice(value, newCnames) {
 				log.Info("Deleting cname")
-				if err = a.DeleteCname(value); err != nil {
+				if err = r.DeleteCname(value); err != nil {
 					return err
 				}
 			}
@@ -213,7 +213,7 @@ func (a Alias) UpdateCnames(exCnames []string, newCnames []string) (err error) {
 			}
 			if !stringInSlice(value, exCnames) {
 				log.Info("Adding cname")
-				if err = a.AddCname(value); err != nil {
+				if err = r.AddCname(value); err != nil {
 					return err
 				}
 			}
@@ -224,7 +224,7 @@ func (a Alias) UpdateCnames(exCnames []string, newCnames []string) (err error) {
 		for _, value := range exCnames {
 			log.Info("In cname deletion")
 
-			if err = a.DeleteCname(value); err != nil {
+			if err = r.DeleteCname(value); err != nil {
 				return err
 			}
 		}
@@ -233,12 +233,11 @@ func (a Alias) UpdateCnames(exCnames []string, newCnames []string) (err error) {
 }
 
 //UpdateNodes updates cnames
-func (a Alias) UpdateNodes(ex map[string]bool, new map[string]bool) (err error) {
+func (r Resource) UpdateNodes(ex map[string]bool, new map[string]bool) (err error) {
 	log.Info("Updating nodes")
 	for k, v := range ex {
-		log.Info("inside first for")
 		if _, ok := new[k]; !ok {
-			if err = a.DeleteNode(k, v); err != nil {
+			if err = r.DeleteNode(k, v); err != nil {
 				return err
 			}
 		}
@@ -249,12 +248,12 @@ func (a Alias) UpdateNodes(ex map[string]bool, new map[string]bool) (err error) 
 		}
 		if _, ok := ex[k]; !ok {
 			log.Info("Addit")
-			if err = a.AddNode(k, v); err != nil {
-				log.Error("we aar fucked")
+			if err = r.AddNode(k, v); err != nil {
+				log.Error("Error in node addition ")
 				return err
 			}
 		} else if value, ok := ex[k]; ok && value != v {
-			if err = a.UpdateNodePrivilege(k, v); err != nil {
+			if err = r.UpdateNodePrivilege(k, v); err != nil {
 				return err
 			}
 		}
@@ -263,7 +262,7 @@ func (a Alias) UpdateNodes(ex map[string]bool, new map[string]bool) (err error) 
 }
 
 //DeleteNode deletes  a Node from the database
-func (a Alias) DeleteNode(name string, p bool) (err error) {
+func (r Resource) DeleteNode(name string, p bool) (err error) {
 	var node Node
 
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
@@ -276,7 +275,7 @@ func (a Alias) DeleteNode(name string, p bool) (err error) {
 
 		//Delete relation
 		if err = tx.Set("gorm:association_autoupdate", false).
-			Where("alias_id = ? AND node_id = ?", a.ID, node.ID).
+			Where("alias_id = ? AND node_id = ?", r.ID, node.ID).
 			Delete(&AliasesNodes{}).Error; err != nil {
 			tx.Rollback()
 			log.Error("Error while delete in transaction node" + name)
@@ -300,7 +299,7 @@ func (a Alias) DeleteNode(name string, p bool) (err error) {
 }
 
 //AddNode adds a node in the DB
-func (a Alias) AddNode(name string, p bool) (err error) {
+func (r Resource) AddNode(name string, p bool) (err error) {
 	var node Node
 
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
@@ -314,10 +313,10 @@ func (a Alias) AddNode(name string, p bool) (err error) {
 			log.Error("Error while dealing with node ")
 			return err
 		}
-		if tx.Where("alias_id = ? AND node_id = ?", a.ID, node.ID).First(&AliasesNodes{}).RecordNotFound() {
+		if tx.Where("alias_id = ? AND node_id = ?", r.ID, node.ID).First(&AliasesNodes{}).RecordNotFound() {
 			log.Info("Righttt")
 			if err = tx.Model(&AliasesNodes{}).Create(
-				prepareRelation(node.ID, a.ID, p),
+				prepareRelation(node.ID, r.ID, p),
 			).Error; err != nil {
 				tx.Rollback()
 				return err
@@ -328,7 +327,7 @@ func (a Alias) AddNode(name string, p bool) (err error) {
 }
 
 //UpdateNodePrivilege updates the privilege of a node from allowed to forbidden and vice versa
-func (a Alias) UpdateNodePrivilege(name string, p bool) (err error) {
+func (r Resource) UpdateNodePrivilege(name string, p bool) (err error) {
 	var node Node
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
 
@@ -340,7 +339,7 @@ func (a Alias) UpdateNodePrivilege(name string, p bool) (err error) {
 		}
 
 		if err = tx.Model(&AliasesNodes{}).
-			Where("alias_id=? AND node_id = ?", a.ID, node.ID).
+			Where("alias_id=? AND node_id = ?", r.ID, node.ID).
 			Update("blacklist", p).Error; err != nil {
 			log.Error("Error while updating privileges")
 			tx.Rollback()
@@ -353,14 +352,14 @@ func (a Alias) UpdateNodePrivilege(name string, p bool) (err error) {
 }
 
 //AddCname appends a Cname
-func (a Alias) AddCname(cname string) error {
+func (r Resource) AddCname(cname string) error {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
 		if !cgorm.ManagerDB().NewRecord(&Cname{CName: cname}) {
 			log.Error("Cname" + cname + " already exists")
 			return err
 		}
 
-		if err = tx.Set("gorm:association_autoupdate", false).First(&Alias{}, "id=?", a.ID).Association("Cnames").Append(&Cname{CName: cname}).Error; err != nil {
+		if err = tx.Set("gorm:association_autoupdate", false).First(&Alias{}, "id=?", r.ID).Association("Cnames").Append(&Cname{CName: cname}).Error; err != nil {
 			log.Info("There was an error while adding cname " + string(cname))
 			tx.Rollback()
 			return err
@@ -372,9 +371,9 @@ func (a Alias) AddCname(cname string) error {
 
 //DeleteCname cname from db during modification
 //AutoUpdate is false, because otherwise we will be adding what we just deleted
-func (a Alias) DeleteCname(cname string) error {
+func (r Resource) DeleteCname(cname string) error {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
-		if err = tx.Set("gorm:association_autoupdate", false).Where("alias_id = ? AND c_name = ?", a.ID, cname).Delete(&Cname{}).Error; err != nil {
+		if err = tx.Set("gorm:association_autoupdate", false).Where("alias_id = ? AND c_name = ?", r.ID, cname).Delete(&Cname{}).Error; err != nil {
 			tx.Rollback()
 			log.Error("Error while delete in transaction cname" + cname)
 			return err
@@ -385,6 +384,8 @@ func (a Alias) DeleteCname(cname string) error {
 
 }
 
+//NOT USED FOR NOW
+/*
 //GetExistingData retrieves all the data for a certain alias, for internal use
 func GetExistingData(aliasName string) (a Alias, err error) {
 
@@ -394,7 +395,7 @@ func GetExistingData(aliasName string) (a Alias, err error) {
 
 	}
 	return a, nil
-}
+}*/
 
 // WithinTransaction  accept DBFunc as parameter call DBFunc function within transaction begin, and commit and return error from DBFunc
 func WithinTransaction(fn DBFunc) (err error) {

@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	"github.com/asaskevich/govalidator"
-	"github.com/davecgh/go-spew/spew"
 	schema "github.com/gorilla/Schema"
 
 	"github.com/labstack/echo/v4"
@@ -105,14 +104,15 @@ func NewAlias(c echo.Context) error {
 
 //DeleteAlias is a prototype
 func DeleteAlias(c echo.Context) error {
+	var r models.Resource
 	//Get the params from the form
 	aliasName := c.FormValue("alias_name")
 	defer c.Request().Body.Close()
-	alias, err := models.GetExistingData(aliasName)
+	alias, err := r.GetObjects(aliasName, "alias_name")
 	if err != nil {
 		log.Error("Error while getting existing data for alias " + aliasName + "with error : " + err.Error())
 	}
-	err = alias.DeleteObject()
+	err = alias[0].DeleteObject()
 	if err != nil {
 		log.Error("Failed to delete object")
 		return c.Render(http.StatusBadRequest, "home.html", map[string]interface{}{
@@ -124,7 +124,7 @@ func DeleteAlias(c echo.Context) error {
 	log.Info("Alias deleted successfully")
 	return c.Render(http.StatusOK, "home.html", map[string]interface{}{
 		"Auth":    true,
-		"Message": alias.AliasName + "  deleted Successfully",
+		"Message": alias[0].AliasName + "  deleted Successfully",
 	})
 
 }
@@ -142,13 +142,12 @@ func ModifyAlias(c echo.Context) error {
 	}
 
 	r, err := res.GetObjects(new.AliasName, "alias_name")
-	spew.Dump(r)
 	if err != nil {
 		log.Error("There was an error retrieving existing data for alias " + new.AliasName + "ERROR:" + err.Error())
 		return err
 	}
 	// Call the modifier
-	err = alias.ModifyObject(r[0], new)
+	err = r[0].ModifyObject(new)
 	if err != nil {
 		log.Error("There was an error updating the alias: " + new.AliasName + "Error: " + err.Error())
 
