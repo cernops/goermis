@@ -133,25 +133,56 @@ func (a *Alias) Prepare() {
 //DeleteObject deletes an alias and its Relations
 func (r Resource) DeleteObject() (err error) {
 
+	var relation []AliasesNodes
+
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
 
+		//Make sure alias exists
 		if tx.Where("alias_name = ?", r.AliasName).First(&Alias{}).RecordNotFound() {
 			log.Error("Alias " + r.AliasName + "doesn't exist ?! ")
 			return err
 
 		}
+		//Find and store all relations
+		if err := tx.Where("alias_id=?", r.ID).Find(&relation).Error; err != nil {
+			log.Error("Error while getting all relations for the alias")
+			return err
+		}
+
+		for _, v := range relation {
+			var node Node
+			//Find node itself and load
+			if err := tx.Where("id=?", v.NodeID).First(&node).Error; err != nil {
+				log.Error("Error while getting the node of a certain relation")
+				return err
+			}
+			// Delete relation first
+			err = tx.Where("node_id=? AND alias_id =? ", v.NodeID, r.ID).Delete(&AliasesNodes{}).Error
+			if err != nil {
+				log.Error("Failed to clear nodes during alias deletion")
+			}
+
+			//Delete node with no other relations
+			if tx.Model(&node).Association("Aliases").Count() == 0 {
+				log.Info("Node doesnt have other relation, delete it")
+				if err = con.Delete(&node).Error; err != nil {
+					log.Info("Error while deleting node with no relations")
+					//con.Rollback()
+					return err
+
+				}
+
+			}
+
+		}
+		//Delete cnames
 		err = tx.Where("alias_id= ?", r.ID).Delete(&Cname{}).Error
 		if err != nil {
 			log.Error("Cname deletion failed")
 			return err
 		}
-		///Clear Nodes
-		err = tx.Where("alias_id=? ", r.ID).Delete(&AliasesNodes{}).Error
-		if err != nil {
-			log.Error("Failed to clear nodes during alias deletion")
-		}
 
-		//con.Model(&Alias).Where("alias_name = ?", alias).Preload("Cnames").Delete(&Alias.Cnames)
+		//Finally delete alias
 		err = tx.Where("alias_name = ?", r.AliasName).Delete(&Alias{}).Error
 		if err != nil {
 			log.Error("Alias deletion failed.Aliasname :" + r.AliasName)
