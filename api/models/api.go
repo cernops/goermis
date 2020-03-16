@@ -30,7 +30,7 @@ func (r Resource) GetObjects(param string, tablerow string) (b []Resource, err e
 			"FROM alias a " +
 			"LEFT join cname c on ( a.id=c.alias_id) " +
 			"LEFT JOIN aliases_nodes r on (a.id=r.alias_id) " +
-			"LEFT JOIN node n on (n.id=r.node_id)" +
+			"LEFT JOIN node n on (n.id=r.node_id) " +
 			"GROUP BY a.id, alias_name, behaviour, best_hosts, clusters,  external, a.hostgroup, " +
 			"a.last_modification, metric, polling_interval, statistics, tenant, ttl, user ORDER BY alias_name"
 
@@ -43,7 +43,7 @@ func (r Resource) GetObjects(param string, tablerow string) (b []Resource, err e
 			"LEFT JOIN cname c on ( a.id=c.alias_id) " +
 			"LEFT JOIN aliases_nodes r on (a.id=r.alias_id) " +
 			"LEFT JOIN node n on (n.id=r.node_id) " +
-			"where a." + tablerow + " = " + "'" + param + "'" +
+			"where a." + tablerow + " = " + "'" + param + "' " +
 			"GROUP BY a.id, alias_name, behaviour, best_hosts, clusters,  external, a.hostgroup, " +
 			"a.last_modification, metric, polling_interval, statistics, tenant, ttl, user ORDER BY alias_name"
 	}

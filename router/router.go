@@ -18,6 +18,10 @@ func New() *echo.Echo {
 		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
 	}))
 
+	e.Use(middleware.CSRFWithConfig(middleware.CSRFConfig{
+		Skipper: middleware.DefaultSkipper, TokenLength: 32,
+		TokenLookup: "form:csrf", ContextKey: "csrf", CookieName: "_csrf", CookieMaxAge: 86400,
+	}))
 	//adminGroup := e.Group("/admin")
 	//jwtGroup := e.Group("/jwt")
 
