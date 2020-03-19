@@ -2,11 +2,12 @@ package models
 
 import (
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	schema "github.com/gorilla/Schema"
+	"github.com/jinzhu/copier"
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
@@ -22,6 +23,7 @@ var (
 
 //GetObjects return list of aliases if no parameters are passed or a single alias if parameters are given
 func (r Resource) GetObjects(param string, tablerow string) (b []Resource, err error) {
+
 	if param == "" && tablerow == "" {
 		q = "SELECT a.id, alias_name, behaviour, best_hosts, clusters, " +
 			"COALESCE(GROUP_CONCAT(distinct case when r.blacklist = 1 then n.node_name else null end),'') AS ForbiddenNodes, " +
@@ -73,17 +75,11 @@ func (r Resource) GetObjects(param string, tablerow string) (b []Resource, err e
 }
 
 //CreateObject creates an alias
-func (a Alias) CreateObject(params url.Values) (err error) {
-
-	decoder.IgnoreUnknownKeys(true)
-	err = decoder.Decode(&a, params)
-	if err != nil {
-		log.Error("Error while decoding parameters : " + err.Error())
-		//panic(err)
-
-	}
-	cnames := DeleteEmpty(strings.Split(params.Get("cnames"), ","))
-
+func (r Resource) CreateObject() (err error) {
+	var a Alias
+	copier.Copy(&a, &r)
+	cnames := DeleteEmpty(strings.Split(r.Cname, ","))
+	spew.Dump(a)
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
 
 		// check new object
@@ -116,18 +112,20 @@ func (a Alias) CreateObject(params url.Values) (err error) {
 	})
 }
 
-//Prepare prepares alias before creation with def values
-func (a *Alias) Prepare() {
+//AddDefaultValues prepares alias before creation with def values
+func (r *Resource) AddDefaultValues() {
 	//Populate the struct with the default values
-	log.Info("Preparing alias " + a.AliasName + "with default values")
-	a.User = "kkouros"
-	a.Behaviour = "mindless"
-	a.Metric = "cmsfrontier"
-	a.PollingInterval = 300
-	a.Statistics = "long"
-	a.Clusters = "none"
-	a.Tenant = "golang"
-	a.LastModification = time.Now()
+	log.Info("Preparing alias " + r.AliasName + "with default values")
+
+	//Passing default values
+	r.User = "kkouros"
+	r.Behaviour = "mindless"
+	r.Metric = "cmsfrontier"
+	r.PollingInterval = 300
+	r.Statistics = "long"
+	r.Clusters = "none"
+	r.Tenant = "golang"
+	r.LastModification = time.Now()
 }
 
 //DeleteObject deletes an alias and its Relations

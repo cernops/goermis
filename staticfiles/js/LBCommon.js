@@ -135,7 +135,7 @@ function visibilityChanged(string, clusterObject) {
   var external = false;
   var message = 'only inside the CERN network';
 
-  if (string === "Yes") {
+  if (string === "yes") {
     message = 'on the CERN internal network and on the internet'
     external = true;
   }

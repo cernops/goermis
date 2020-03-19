@@ -5,6 +5,8 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/asaskevich/govalidator"
+	"github.com/davecgh/go-spew/spew"
 	schema "github.com/gorilla/Schema"
 	"github.com/labstack/echo/v4"
 	log "github.com/sirupsen/logrus"
@@ -34,6 +36,8 @@ func init() {
 
 	// Only log the warning severity or above.
 	log.SetLevel(log.DebugLevel)
+
+	govalidator.SetFieldsRequiredByDefault(true)
 }
 
 //GetAliases handles requests of all aliases
@@ -54,10 +58,10 @@ func GetAliases(c echo.Context) error {
 func GetAlias(c echo.Context) error {
 	param := c.Param("alias")
 
-	/*if !c.Validate(IsAlphanumeric(param)) {
+	if !govalidator.IsAlphanumeric(param) {
 		log.Error("Wrong type of query parameter, expected Alphanumeric")
 		return echo.NewHTTPError(http.StatusUnprocessableEntity)
-	}*/
+	}
 
 	//Swap between name and ID query
 	if _, err := strconv.Atoi(c.Param("alias")); err == nil {
@@ -80,11 +84,20 @@ func GetAlias(c echo.Context) error {
 
 //NewAlias creates a new alias entry in the DB
 func NewAlias(c echo.Context) error {
+	var r models.Resource
 
 	//Get the params from the form
 	params, err := c.FormParams()
-	alias.Prepare()
-	err = alias.CreateObject(params)
+	decoder.IgnoreUnknownKeys(true)
+	err = decoder.Decode(&r, params)
+	spew.Dump(params)
+	if err != nil {
+		log.Error("Error while decoding parameters : " + err.Error())
+		//panic(err)
+
+	}
+	r.AddDefaultValues()
+	err = r.CreateObject()
 	if err != nil {
 		log.Error("Error while creating alias " + params.Get("alias_name") + "with error : " + err.Error())
 		return c.Render(http.StatusCreated, "home.html", map[string]interface{}{
