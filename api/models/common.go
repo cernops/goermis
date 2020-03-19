@@ -3,9 +3,7 @@ package models
 import (
 	"strconv"
 	"strings"
-	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/labstack/gommon/log"
 )
 
@@ -38,31 +36,6 @@ func getExistingCnames(a Alias) (s []string) {
 	return s
 }
 
-func getExistingNodesToMap(a Alias) (temp map[string]bool) {
-	temp = make(map[string]bool)
-	relation := []AliasesNodes{}
-	con.Where("alias_id=?", a.ID).Find(&relation)
-	if len(relation) > 0 {
-		for _, v := range relation {
-			if v.Blacklist {
-				temp[nodename(v.NodeID)] = true
-			} else {
-				temp[nodename(v.NodeID)] = false
-			}
-
-		}
-	}
-	spew.Dump(temp)
-	return temp
-}
-
-func nodename(id int) (name string) {
-	n := new(Node)
-	con.Where("id=?", id).First(n)
-	return n.NodeName
-
-}
-
 func stringToInt(s string) (i int) {
 	i, err := strconv.Atoi(s)
 	if err != nil {
@@ -90,16 +63,6 @@ func nodesToMap(p Resource) map[string]bool {
 	return temp
 }
 
-//PrepareNode creates a Node object
-func PrepareNode(a Alias, name string) (n Node) {
-
-	return Node{
-		NodeName:         name,
-		LastModification: time.Now(),
-		Hostgroup:        a.Hostgroup,
-	}
-
-}
 func prepareRelation(nodeID int, aliasID int, p bool) (r *AliasesNodes) {
 	r = &AliasesNodes{AliasID: aliasID, NodeID: nodeID, Blacklist: p}
 	return r

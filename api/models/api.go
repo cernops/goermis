@@ -415,19 +415,6 @@ func (r Resource) DeleteCname(cname string) error {
 
 }
 
-//NOT USED FOR NOW
-/*
-//GetExistingData retrieves all the data for a certain alias, for internal use
-func GetExistingData(aliasName string) (a Alias, err error) {
-
-	if con.Model(Alias{}).Preload("Cnames").Preload("Nodes").Where("alias_name = ?", aliasName).First(&a).RecordNotFound() {
-		log.Error("There was an error while getting existing data for alias " + aliasName + "Error: " + err.Error())
-		return a, err
-
-	}
-	return a, nil
-}*/
-
 // WithinTransaction  accept DBFunc as parameter call DBFunc function within transaction begin, and commit and return error from DBFunc
 func WithinTransaction(fn DBFunc) (err error) {
 	tx := cgorm.ManagerDB().Begin() // start db transaction

@@ -5,9 +5,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/asaskevich/govalidator"
 	schema "github.com/gorilla/Schema"
-
 	"github.com/labstack/echo/v4"
 	log "github.com/sirupsen/logrus"
 	"gitlab.cern.ch/lb-experts/goermis/api/models"
@@ -44,6 +42,7 @@ func GetAliases(c echo.Context) error {
 	obj.Objects, err = res.GetObjects("", "")
 
 	if err != nil {
+
 		log.Errorf("Error while getting list of aliases with error : " + err.Error())
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
@@ -55,10 +54,10 @@ func GetAliases(c echo.Context) error {
 func GetAlias(c echo.Context) error {
 	param := c.Param("alias")
 
-	if !govalidator.IsAlphanumeric(param) {
+	/*if !c.Validate(IsAlphanumeric(param)) {
 		log.Error("Wrong type of query parameter, expected Alphanumeric")
 		return echo.NewHTTPError(http.StatusUnprocessableEntity)
-	}
+	}*/
 
 	//Swap between name and ID query
 	if _, err := strconv.Atoi(c.Param("alias")); err == nil {
