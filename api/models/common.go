@@ -81,6 +81,7 @@ func CustomValidators() (err error) {
 		var allowed = regexp.MustCompile(`(?!-)[A-Z\\d-]{1,63}(?<!-)$`)
 		for _, p := range part {
 			if !allowed.MatchString(p) || !govalidator.InRange(len(p), 2, 40) {
+				log.Error("Not valid alias name: " + p)
 				return false
 			}
 		}
@@ -97,8 +98,39 @@ func CustomValidators() (err error) {
 		return stringInSlice(str, allowed)
 	})
 
-	govalidator.TagMap["best_hosts"] = govalidator.Validator(func(str string) bool {
+	govalidator.TagMap["nodes"] = govalidator.Validator(func(str string) bool {
+		split := strings.Split(str, ",")
+		var allowed = regexp.MustCompile(`(?!-)[A-Z\\d-]{1,63}(?<!-)$`)
+
+		for _, s := range split {
+			part := strings.Split(s, ".")
+			for _, p := range part {
+				if !allowed.MatchString(p) || !govalidator.InRange(len(p), 2, 40) {
+					log.Error("Not valid node name: " + s)
+					return false
+				}
+			}
+		}
 		return true
+	})
+
+	govalidator.TagMap["cnames"] = govalidator.Validator(func(str string) bool {
+		split := strings.Split(str, ",")
+		var allowed = regexp.MustCompile(`^[a-z][a-z0-9\-]*[a-z0-9]$`)
+
+		for _, s := range split {
+			if !allowed.MatchString(s) || !govalidator.InRange(len(s), 2, 40) {
+				log.Error("Not valid cname: " + s)
+				return false
+			}
+		}
+		return true
+	})
+
+	govalidator.TagMap["external"] = govalidator.Validator(func(str string) bool {
+		options := []string{"yes, no"}
+		return stringInSlice(str, options)
+
 	})
 
 	return nil
