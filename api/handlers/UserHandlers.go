@@ -38,7 +38,7 @@ func init() {
 	log.SetLevel(log.DebugLevel)
 
 	govalidator.SetFieldsRequiredByDefault(true)
-	models.CustomValidators()
+
 }
 
 //GetAliases handles requests of all aliases
@@ -98,30 +98,24 @@ func NewAlias(c echo.Context) error {
 
 	}
 	r.AddDefaultValues()
-	b, errs := govalidator.ValidateStruct(r)
+	ok, errs := govalidator.ValidateStruct(r)
 	if errs != nil {
-		log.Error("There was an error in data validation: " + err.Error())
-		return c.Render(http.StatusCreated, "home.html", map[string]interface{}{
+		return c.Render(http.StatusUnprocessableEntity, "home.html", map[string]interface{}{
 			"Auth":    true,
-			"Message": "Error while trying to validate alias data " + errs.Error(),
+			"Message": "There was an error while validating the alias " + params.Get("alias_name") + "Error: " + errs.Error(),
 		})
-	}
-	if b == false {
-		log.Error("Alias did not validate")
-		return c.Render(http.StatusCreated, "home.html", map[string]interface{}{
-			"Auth":    true,
-			"Message": "Alias not created , input data did not validate" + params.Get("alias_name") + "Error: " + errs.Error(),
-		})
+	} else if ok && errs == nil {
+		log.Info("Validation : ")
 
-	}
-	err = r.CreateObject()
-	if err != nil {
-		log.Error("Error while creating alias " + params.Get("alias_name") + "with error : " + err.Error())
-		return c.Render(http.StatusCreated, "home.html", map[string]interface{}{
-			"Auth":    true,
-			"Message": "There was an error while creating the alias " + params.Get("alias_name") + "Error: " + err.Error(),
-		})
+		err = r.CreateObject()
+		if err != nil {
+			log.Error("Error while creating alias " + params.Get("alias_name") + "with error : " + err.Error())
+			return c.Render(http.StatusUnprocessableEntity, "home.html", map[string]interface{}{
+				"Auth":    true,
+				"Message": "There was an error while creating the alias " + params.Get("alias_name") + "Error: " + err.Error(),
+			})
 
+		}
 	}
 	log.Info("Alias created successfully")
 	return c.Render(http.StatusCreated, "home.html", map[string]interface{}{

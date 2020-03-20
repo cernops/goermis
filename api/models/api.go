@@ -228,7 +228,7 @@ func (r Resource) UpdateCnames(exCnames []string, newCnames []string) (err error
 
 	if len(newCnames) > 0 {
 		for _, value := range exCnames {
-			if !stringInSlice(value, newCnames) {
+			if !StringInSlice(value, newCnames) {
 				log.Info("Deleting cname")
 				if err = r.DeleteCname(value); err != nil {
 					return err
@@ -240,7 +240,7 @@ func (r Resource) UpdateCnames(exCnames []string, newCnames []string) (err error
 			if value == "" {
 				continue
 			}
-			if !stringInSlice(value, exCnames) {
+			if !StringInSlice(value, exCnames) {
 				log.Info("Adding cname")
 				if err = r.AddCname(value); err != nil {
 					return err

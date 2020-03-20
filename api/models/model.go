@@ -58,20 +58,20 @@ type (
 	DBFunc func(tx *gorm.DB) error
 	//Resource deals with the output from the queries
 	Resource struct {
-		ID               int       `json:"alias_id" valid:"numeric, required"`
-		AliasName        string    `json:"alias_name" schema:"alias_name" valid:"required,alphanum, alias"`
+		ID               int       `json:"alias_id" valid:"required,numeric"`
+		AliasName        string    `json:"alias_name" schema:"alias_name" valid:"required,dns"`
 		Behaviour        string    `json:"behaviour" schema:"behaviour" valid:"-"`
-		BestHosts        int       `json:"best_hosts" schema:"best_hosts" valid:"required, int"`
-		Clusters         string    `json:"clusters" schema:"clusters" valid:"-"`
+		BestHosts        int       `json:"best_hosts" schema:"best_hosts" valid:"required,int"`
+		Clusters         string    `json:"clusters" schema:"clusters" valid:"alphanum"`
 		ForbiddenNodes   string    `json:"ForbiddenNodes"  schema:"ForbiddenNodes"  gorm:"not null" valid:"optional,nodes" `
 		AllowedNodes     string    `json:"AllowedNodes" schema:"AllowedNodes" gorm:"not null" valid:"optional,nodes"`
 		Cname            string    `json:"cnames"  schema:"cnames" gorm:"not null" valid:"optional,cnames"`
-		External         string    `json:"external" schema:"external" valid:"required, alpha, external"`
-		Hostgroup        string    `json:"hostgroup" schema:"hostgroup" valid:"required , alphanum"`
-		LastModification time.Time `json:"last_modification" schema:"last_modification" valid:"type: rfc3339"`
-		Metric           string    `json:"metric" schema:"metric" valid:"metric, alpha"`
-		PollingInterval  int       `json:"polling_interval" schema:"polling_interval" valid:"numeric "`
-		Tenant           string    `json:"tenant" schema:"tenant" valid:"optional , alphanum"`
+		External         string    `json:"external" schema:"external" valid:"required,external"`
+		Hostgroup        string    `json:"hostgroup" schema:"hostgroup" valid:"required,alphanum"`
+		LastModification time.Time `json:"last_modification" schema:"last_modification" valid:"-"`
+		Metric           string    `json:"metric" schema:"metric" valid:"metric"`
+		PollingInterval  int       `json:"polling_interval" schema:"polling_interval" valid:"numeric"`
+		Tenant           string    `json:"tenant" schema:"tenant" valid:"optional,alphanum"`
 		TTL              int       `json:"ttl" schema:"ttl" valid:"numeric"`
 		User             string    `json:"user" schema:"user" valid:"optional,alphanum"`
 		Statistics       string    `json:"statistics" schema:"statistics" valid:"alpha"`
@@ -81,3 +81,23 @@ type (
 		Objects []Resource `json:"objects"`
 	}
 )
+
+/*Resource struct {
+	ID               int       `json:"alias_id" valid:"numeric, required"`
+	AliasName        string    `json:"alias_name" schema:"alias_name" valid:""`
+	Behaviour        string    `json:"behaviour" schema:"behaviour" valid:"-"`
+	BestHosts        int       `json:"best_hosts" schema:"best_hosts" valid:"required,int"`
+	Clusters         string    `json:"clusters" schema:"clusters" valid:"-"`
+	ForbiddenNodes   string    `json:"ForbiddenNodes"  schema:"ForbiddenNodes"  gorm:"not null" valid:"optional,nodes" `
+	AllowedNodes     string    `json:"AllowedNodes" schema:"AllowedNodes" gorm:"not null" valid:"optional,nodes"`
+	Cname            string    `json:"cnames"  schema:"cnames" gorm:"not null" valid:"optional,cnames"`
+	External         string    `json:"external" schema:"external" valid:"required,alpha,external"`
+	Hostgroup        string    `json:"hostgroup" schema:"hostgroup" valid:"required,alphanum"`
+	LastModification time.Time `json:"last_modification" schema:"last_modification" valid:"rfc3339"`
+	Metric           string    `json:"metric" schema:"metric" valid:"metric,alpha"`
+	PollingInterval  int       `json:"polling_interval" schema:"polling_interval" valid:"numeric"`
+	Tenant           string    `json:"tenant" schema:"tenant" valid:"optional,alphanum"`
+	TTL              int       `json:"ttl" schema:"ttl" valid:"numeric"`
+	User             string    `json:"user" schema:"user" valid:"optional,alphanum"`
+	Statistics       string    `json:"statistics" schema:"statistics" valid:"alpha"`
+}*/
