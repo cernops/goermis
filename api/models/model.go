@@ -9,7 +9,7 @@ import (
 //Alias structure is a model for describing the alias
 type (
 	Alias struct {
-		ID               int       `json:"alias_id" schema:"alias_id" gorm:"unique;not null;auto_increment;primary_key" `
+		ID               int       `json:"alias_id" schema:"alias_id" `
 		AliasName        string    `json:"alias_name" schema:"alias_name" gorm:"not null;size:40;unique" `
 		Behaviour        string    `json:"behaviour" schema:"behaviour" gorm:"not null" `
 		BestHosts        int       `json:"best_hosts" schema:"best_hosts" gorm:"not null" `
@@ -23,17 +23,16 @@ type (
 		User             string    `json:"user" schema:"user" gorm:"not null" `
 		TTL              int       `json:"ttl" schema:"ttl" `
 		LastModification time.Time `json:"last_modification" schema:"last_modification"`
-		Nodes            []Node    `json:"nodes" gorm:"many2many:aliases_nodes;" `
 		Cnames           []Cname   `json:"cnames"  gorm:"foreignkey:AliasID" `
 	}
 
 	//AliasesNodes testing
 	AliasesNodes struct {
-		ID        int `gorm:"unique;not null;auto_increment;primary_key" `
+		ID        int
 		Node      *Node
-		NodeID    int
+		NodeID    int `gorm:"not null"`
 		Alias     *Alias
-		AliasID   int
+		AliasID   int `gorm:"not null"`
 		Blacklist bool
 	}
 
@@ -52,7 +51,6 @@ type (
 		Load             int       `json:"load" `
 		State            string    `json:"state"  gorm:"not null" `
 		Hostgroup        string    `json:"hostgroup"  gorm:"size:40;not null" `
-		Aliases          []Alias   `json:"aliases"  gorm:"many2many:aliases_nodes;" `
 	}
 	//DBFunc type which accept *gorm.DB and return error
 	DBFunc func(tx *gorm.DB) error
@@ -69,7 +67,7 @@ type (
 		External         string    `json:"external" schema:"external" valid:"required,in(yes|no)"`
 		Hostgroup        string    `json:"hostgroup" schema:"hostgroup" valid:"required,alphanum"`
 		LastModification time.Time `json:"last_modification" schema:"last_modification" valid:"-"`
-		Metric           string    `json:"metric" schema:"metric" valid:"metric"`
+		Metric           string    `json:"metric" schema:"metric" valid:"metric,optional"`
 		PollingInterval  int       `json:"polling_interval" schema:"polling_interval" valid:"numeric"`
 		Tenant           string    `json:"tenant" schema:"tenant" valid:"optional,alphanum"`
 		TTL              int       `json:"ttl" schema:"ttl" valid:"numeric"`

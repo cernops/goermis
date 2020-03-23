@@ -1,15 +1,12 @@
 package models
 
 import (
-	"net/http"
 	"strings"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	schema "github.com/gorilla/Schema"
 	"github.com/jinzhu/copier"
 	"github.com/jinzhu/gorm"
-	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
 	"gitlab.cern.ch/lb-experts/goermis/db"
 	cgorm "gitlab.cern.ch/lb-experts/goermis/db"
@@ -52,12 +49,12 @@ func (r Resource) GetObjects(param string, tablerow string) (b []Resource, err e
 
 	rows, err := con.Raw(q).Rows()
 
-	defer rows.Close()
 	if err != nil {
 		log.Error("Error while getting list of objects: " + err.Error())
-		return b, echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		return b, err
 
 	}
+	defer rows.Close()
 	for rows.Next() {
 		var result Resource
 		err := rows.Scan(&result.ID, &result.AliasName, &result.Behaviour, &result.BestHosts, &result.Clusters,
@@ -67,7 +64,7 @@ func (r Resource) GetObjects(param string, tablerow string) (b []Resource, err e
 		if err != nil {
 			log.Error("Error when scanning in GetObjectsList: " + err.Error())
 
-			return b, echo.NewHTTPError(http.StatusBadRequest, err.Error())
+			return b, err
 		}
 		b = append(b, result)
 	}
@@ -79,7 +76,6 @@ func (r Resource) CreateObject() (err error) {
 	var a Alias
 	copier.Copy(&a, &r)
 	cnames := DeleteEmpty(strings.Split(r.Cname, ","))
-	spew.Dump(a)
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
 
 		// check new object
@@ -115,7 +111,7 @@ func (r Resource) CreateObject() (err error) {
 //AddDefaultValues prepares alias before creation with def values
 func (r *Resource) AddDefaultValues() {
 	//Populate the struct with the default values
-	log.Info("Preparing alias " + r.AliasName + "with default values")
+	log.Info("Preparing alias " + r.AliasName + " with the default values")
 
 	//Passing default values
 	r.User = "kkouros"
@@ -126,6 +122,19 @@ func (r *Resource) AddDefaultValues() {
 	r.Clusters = "none"
 	r.Tenant = "golang"
 	r.LastModification = time.Now()
+}
+
+//Hydrate prepares a few input data before creation of new alias
+func (r *Resource) Hydrate() {
+	if !strings.HasSuffix(r.AliasName, ".cern.ch") {
+		r.AliasName = r.AliasName + ".cern.ch"
+	}
+	if StringInSlice(strings.ToLower(r.External), []string{"yes", "external"}) {
+		r.External = "yes"
+	}
+	if StringInSlice(strings.ToLower(r.External), []string{"no", "internal"}) {
+		r.External = "no"
+	}
 }
 
 //DeleteObject deletes an alias and its Relations
@@ -158,6 +167,7 @@ func (r Resource) DeleteObject() (err error) {
 			err = tx.Where("node_id=? AND alias_id =? ", v.NodeID, r.ID).Delete(&AliasesNodes{}).Error
 			if err != nil {
 				log.Error("Failed to clear nodes during alias deletion")
+				return err
 			}
 
 			//Delete node with no other relations
@@ -343,8 +353,7 @@ func (r Resource) AddNode(name string, p bool) (err error) {
 			return err
 		}
 		if tx.Where("alias_id = ? AND node_id = ?", r.ID, node.ID).First(&AliasesNodes{}).RecordNotFound() {
-			log.Info("Righttt")
-			if err = tx.Model(&AliasesNodes{}).Create(
+			if err = tx.First(&Alias{}, "id=?", r.ID).Create(
 				prepareRelation(node.ID, r.ID, p),
 			).Error; err != nil {
 				tx.Rollback()

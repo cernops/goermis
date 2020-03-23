@@ -77,7 +77,7 @@ func CustomValidators() {
 	// Metric validation
 	govalidator.TagMap["metric"] = govalidator.Validator(func(str string) bool {
 
-		allowed := []string{"minino", "minimum", "cmsfrontier"}
+		allowed := []string{"minino", "minimum", "cmsfrontier", ""}
 
 		return StringInSlice(str, allowed)
 	})
@@ -114,13 +114,6 @@ func CustomValidators() {
 			}
 		}
 		return true
-	})
-
-	govalidator.TagMap["external"] = govalidator.Validator(func(str string) bool {
-		options := []string{"yes", "no"}
-		log.Info("In External")
-		return StringInSlice(str, options)
-
 	})
 
 	govalidator.TagMap["best_hosts"] = govalidator.Validator(func(str string) bool {

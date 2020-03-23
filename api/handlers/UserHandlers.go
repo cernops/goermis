@@ -5,6 +5,8 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/davecgh/go-spew/spew"
+
 	"github.com/asaskevich/govalidator"
 	schema "github.com/gorilla/Schema"
 	"github.com/labstack/echo/v4"
@@ -52,6 +54,7 @@ func GetAliases(c echo.Context) error {
 		log.Errorf("Error while getting list of aliases with error : " + err.Error())
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
+	defer c.Request().Body.Close()
 	log.Info("Success while retrieving aliases")
 	return c.JSON(http.StatusOK, obj)
 }
@@ -72,13 +75,12 @@ func GetAlias(c echo.Context) error {
 		tablerow = "alias_name"
 	}
 
-	defer c.Request().Body.Close()
-
 	obj.Objects, err = res.GetObjects(string(param), tablerow)
 	if err != nil {
 		log.Error("Unable to get the alias " + param + "with error : " + err.Error())
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
+	defer c.Request().Body.Close()
 	log.Info("Alias retrieved successfully")
 	return c.JSON(http.StatusOK, obj)
 
@@ -90,7 +92,6 @@ func NewAlias(c echo.Context) error {
 
 	//Get the params from the form
 	params, err := c.FormParams()
-
 	err = decoder.Decode(&r, params)
 	if err != nil {
 		log.Error("Error while decoding parameters : " + err.Error())
@@ -99,7 +100,8 @@ func NewAlias(c echo.Context) error {
 	}
 
 	r.AddDefaultValues()
-
+	r.Hydrate()
+	defer c.Request().Body.Close()
 	ok, errs := govalidator.ValidateStruct(r)
 	if errs != nil || ok == false {
 		return c.Render(http.StatusUnprocessableEntity, "home.html", map[string]interface{}{
@@ -109,10 +111,11 @@ func NewAlias(c echo.Context) error {
 	}
 
 	err = r.CreateObject()
+
 	if err != nil {
 
 		log.Error("Error while creating alias " + params.Get("alias_name") + "with error : " + err.Error())
-		return c.Render(http.StatusUnprocessableEntity, "home.html", map[string]interface{}{
+		return c.Render(http.StatusBadRequest, "home.html", map[string]interface{}{
 			"Auth":    true,
 			"Message": "There was an error while creating the alias " + params.Get("alias_name") + "Error: " + err.Error(),
 		})
@@ -132,7 +135,6 @@ func DeleteAlias(c echo.Context) error {
 	var r models.Resource
 	//Get the params from the form
 	aliasName := c.FormValue("alias_name")
-	defer c.Request().Body.Close()
 
 	if !govalidator.IsDNSName(aliasName) {
 		log.Error("Wrong type of query parameter, expected Alias name")
@@ -143,6 +145,9 @@ func DeleteAlias(c echo.Context) error {
 	if err != nil {
 		log.Error("Error while getting existing data for alias " + aliasName + "with error : " + err.Error())
 	}
+
+	defer c.Request().Body.Close()
+
 	err = alias[0].DeleteObject()
 	if err != nil {
 		log.Error("Failed to delete object")
@@ -166,6 +171,7 @@ func ModifyAlias(c echo.Context) error {
 	//Retrieve the parameters from the form
 	params, err := c.FormParams()
 	decoder.Decode(&new, params)
+	spew.Dump(new)
 	if err != nil {
 		log.Error("There was an error reading the parameters:" + err.Error())
 		return err
@@ -185,6 +191,7 @@ func ModifyAlias(c echo.Context) error {
 		log.Error("There was an error retrieving existing data for alias " + new.AliasName + "ERROR:" + err.Error())
 		return err
 	}
+	defer c.Request().Body.Close()
 	// Call the modifier
 	err = r[0].ModifyObject(new)
 	if err != nil {
