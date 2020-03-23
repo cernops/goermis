@@ -61,12 +61,12 @@ type (
 		ID               int       `json:"alias_id" valid:"required,numeric"`
 		AliasName        string    `json:"alias_name" schema:"alias_name" valid:"required,dns"`
 		Behaviour        string    `json:"behaviour" schema:"behaviour" valid:"-"`
-		BestHosts        int       `json:"best_hosts" schema:"best_hosts" valid:"required,int"`
+		BestHosts        int       `json:"best_hosts" schema:"best_hosts" valid:"required,int,best_hosts"`
 		Clusters         string    `json:"clusters" schema:"clusters" valid:"alphanum"`
 		ForbiddenNodes   string    `json:"ForbiddenNodes"  schema:"ForbiddenNodes"  gorm:"not null" valid:"optional,nodes" `
 		AllowedNodes     string    `json:"AllowedNodes" schema:"AllowedNodes" gorm:"not null" valid:"optional,nodes"`
 		Cname            string    `json:"cnames"  schema:"cnames" gorm:"not null" valid:"optional,cnames"`
-		External         string    `json:"external" schema:"external" valid:"required,external"`
+		External         string    `json:"external" schema:"external" valid:"required,in(yes|no)"`
 		Hostgroup        string    `json:"hostgroup" schema:"hostgroup" valid:"required,alphanum"`
 		LastModification time.Time `json:"last_modification" schema:"last_modification" valid:"-"`
 		Metric           string    `json:"metric" schema:"metric" valid:"metric"`

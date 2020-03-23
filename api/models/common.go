@@ -1,9 +1,11 @@
 package models
 
 import (
+	"regexp"
 	"strconv"
 	"strings"
 
+	"github.com/asaskevich/govalidator"
 	"github.com/labstack/gommon/log"
 )
 
@@ -20,6 +22,7 @@ func DeleteEmpty(s []string) []string {
 
 //StringInSlice checks if a string is in a slice
 func StringInSlice(a string, list []string) bool {
+	log.Info("In StringinSlice")
 	for _, b := range list {
 		if b == a {
 			return true
@@ -70,22 +73,59 @@ func prepareRelation(nodeID int, aliasID int, p bool) (r *AliasesNodes) {
 }
 
 //CustomValidators adds our new tags in the govalidator
+func CustomValidators() {
+	// Metric validation
+	govalidator.TagMap["metric"] = govalidator.Validator(func(str string) bool {
 
-//Alias validation with domain allowance
-/*govalidator.TagMap["alias"] = govalidator.Validator(func(str string) bool {
-	if len(str) > 255 {
-		return false
-	}
-	str = strings.TrimSuffix(str, ".")
-	part := strings.Split(str, ".")
+		allowed := []string{"minino", "minimum", "cmsfrontier"}
 
-	for _, p := range part {
-		if !govalidator.IsDNSName || !govalidator.InRange(len(p), 2, 40) {
-			log.Error("Not valid alias name: " + p)
-			return false
+		return StringInSlice(str, allowed)
+	})
+
+	govalidator.TagMap["nodes"] = govalidator.Validator(func(str string) bool {
+		if len(str) > 0 {
+			split := strings.Split(str, ",")
+			var allowed = regexp.MustCompile(`^[a-z][a-z0-9\-]*[a-z0-9]$`)
+
+			for _, s := range split {
+				part := strings.Split(s, ".")
+				for _, p := range part {
+					if !allowed.MatchString(p) || !govalidator.InRange(len(p), 2, 40) {
+						log.Error("Not valid node name: " + s)
+						return false
+					}
+				}
+			}
 		}
-	}
+		return true
+	})
 
-	return true
+	govalidator.TagMap["cnames"] = govalidator.Validator(func(str string) bool {
 
-})*/
+		if len(str) > 0 {
+			split := strings.Split(str, ",")
+			var allowed = regexp.MustCompile(`^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$`)
+
+			for _, s := range split {
+				if !allowed.MatchString(s) || !govalidator.InRange(len(s), 2, 511) {
+					log.Error("Not valid cname: " + s)
+					return false
+				}
+			}
+		}
+		return true
+	})
+
+	govalidator.TagMap["external"] = govalidator.Validator(func(str string) bool {
+		options := []string{"yes", "no"}
+		log.Info("In External")
+		return StringInSlice(str, options)
+
+	})
+
+	govalidator.TagMap["best_hosts"] = govalidator.Validator(func(str string) bool {
+		return stringToInt(str) >= -1
+
+	})
+
+}

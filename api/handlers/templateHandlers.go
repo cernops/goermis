@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 )
 
 // TEMPLATE HANDLERS
@@ -13,7 +12,7 @@ import (
 func CreateHandler(c echo.Context) error {
 	return c.Render(http.StatusOK, "create.html", map[string]interface{}{
 		"Auth": true,
-		"csrf": c.Get("csrf"),
+		//	"csrf": c.Get("csrf"),
 	})
 }
 
@@ -21,7 +20,7 @@ func CreateHandler(c echo.Context) error {
 func DeleteHandler(c echo.Context) error {
 	return c.Render(http.StatusOK, "delete.html", map[string]interface{}{
 		"Auth": true,
-		"csrf": c.Get("csrf"),
+		//	"csrf": c.Get("csrf"),
 	})
 }
 
@@ -29,7 +28,7 @@ func DeleteHandler(c echo.Context) error {
 func DisplayHandler(c echo.Context) error {
 	return c.Render(http.StatusOK, "display.html", map[string]interface{}{
 		"Auth": true,
-		"csrf": c.Get("csrf"),
+		//	"csrf": c.Get("csrf"),
 	})
 }
 
@@ -44,7 +43,7 @@ func HomeHandler(c echo.Context) error {
 func LogsHandler(c echo.Context) error {
 	return c.Render(http.StatusOK, "logs.html", map[string]interface{}{
 		"Auth": true,
-		"csrf": c.Get(middleware.DefaultCSRFConfig.ContextKey),
+		//	"csrf": c.Get(middleware.DefaultCSRFConfig.ContextKey),
 	})
 }
 
@@ -52,7 +51,7 @@ func LogsHandler(c echo.Context) error {
 func ModifyHandler(c echo.Context) error {
 	return c.Render(http.StatusOK, "modify.html", map[string]interface{}{
 		"Auth": true,
-		"csrf": c.Get(middleware.DefaultCSRFConfig.ContextKey).(string),
+		//	"csrf": c.Get(middleware.DefaultCSRFConfig.ContextKey).(string),
 	})
 
 }

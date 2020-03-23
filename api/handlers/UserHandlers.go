@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	"github.com/asaskevich/govalidator"
-	"github.com/davecgh/go-spew/spew"
 	schema "github.com/gorilla/Schema"
 	"github.com/labstack/echo/v4"
 	log "github.com/sirupsen/logrus"
@@ -38,6 +37,8 @@ func init() {
 	log.SetLevel(log.DebugLevel)
 
 	govalidator.SetFieldsRequiredByDefault(true)
+	decoder.IgnoreUnknownKeys(true)
+	models.CustomValidators()
 
 }
 
@@ -59,7 +60,7 @@ func GetAliases(c echo.Context) error {
 func GetAlias(c echo.Context) error {
 	param := c.Param("alias")
 
-	if !govalidator.IsAlphanumeric(param) {
+	if !govalidator.IsDNSName(param) {
 		log.Error("Wrong type of query parameter, expected Alphanumeric")
 		return echo.NewHTTPError(http.StatusUnprocessableEntity)
 	}
@@ -89,34 +90,35 @@ func NewAlias(c echo.Context) error {
 
 	//Get the params from the form
 	params, err := c.FormParams()
-	decoder.IgnoreUnknownKeys(true)
+
 	err = decoder.Decode(&r, params)
-	spew.Dump(params)
 	if err != nil {
 		log.Error("Error while decoding parameters : " + err.Error())
 		//panic(err)
 
 	}
+
 	r.AddDefaultValues()
+
 	ok, errs := govalidator.ValidateStruct(r)
-	if errs != nil {
+	if errs != nil || ok == false {
 		return c.Render(http.StatusUnprocessableEntity, "home.html", map[string]interface{}{
 			"Auth":    true,
 			"Message": "There was an error while validating the alias " + params.Get("alias_name") + "Error: " + errs.Error(),
 		})
-	} else if ok && errs == nil {
-		log.Info("Validation : ")
-
-		err = r.CreateObject()
-		if err != nil {
-			log.Error("Error while creating alias " + params.Get("alias_name") + "with error : " + err.Error())
-			return c.Render(http.StatusUnprocessableEntity, "home.html", map[string]interface{}{
-				"Auth":    true,
-				"Message": "There was an error while creating the alias " + params.Get("alias_name") + "Error: " + err.Error(),
-			})
-
-		}
 	}
+
+	err = r.CreateObject()
+	if err != nil {
+
+		log.Error("Error while creating alias " + params.Get("alias_name") + "with error : " + err.Error())
+		return c.Render(http.StatusUnprocessableEntity, "home.html", map[string]interface{}{
+			"Auth":    true,
+			"Message": "There was an error while creating the alias " + params.Get("alias_name") + "Error: " + err.Error(),
+		})
+
+	}
+
 	log.Info("Alias created successfully")
 	return c.Render(http.StatusCreated, "home.html", map[string]interface{}{
 		"Auth":    true,
@@ -131,6 +133,12 @@ func DeleteAlias(c echo.Context) error {
 	//Get the params from the form
 	aliasName := c.FormValue("alias_name")
 	defer c.Request().Body.Close()
+
+	if !govalidator.IsDNSName(aliasName) {
+		log.Error("Wrong type of query parameter, expected Alias name")
+		return echo.NewHTTPError(http.StatusUnprocessableEntity)
+	}
+
 	alias, err := r.GetObjects(aliasName, "alias_name")
 	if err != nil {
 		log.Error("Error while getting existing data for alias " + aliasName + "with error : " + err.Error())
@@ -158,10 +166,18 @@ func ModifyAlias(c echo.Context) error {
 	//Retrieve the parameters from the form
 	params, err := c.FormParams()
 	decoder.Decode(&new, params)
-
 	if err != nil {
 		log.Error("There was an error reading the parameters:" + err.Error())
 		return err
+	}
+
+	//Validate
+	ok, errs := govalidator.ValidateStruct(new)
+	if errs != nil || ok == false {
+		return c.Render(http.StatusUnprocessableEntity, "home.html", map[string]interface{}{
+			"Auth":    true,
+			"Message": "There was an error while validating the alias " + params.Get("alias_name") + "Error: " + errs.Error(),
+		})
 	}
 
 	r, err := res.GetObjects(new.AliasName, "alias_name")
