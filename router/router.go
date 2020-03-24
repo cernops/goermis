@@ -3,6 +3,7 @@ package router
 import (
 	//"gitlab.cern.ch/lb-experts/goermis/api"
 	//"gitlab.cern.ch/lb-experts/goermis/api/middlewares"
+
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -16,6 +17,11 @@ func New() *echo.Echo {
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{"*"},
 		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
+	}))
+	//e.Use(middleware.Logger())
+	e.Use(middleware.CSRFWithConfig(middleware.CSRFConfig{
+		Skipper: middleware.DefaultSkipper, TokenLength: 32,
+		TokenLookup: "form:csrf", ContextKey: "csrf", CookieName: "_csrf", CookieMaxAge: 86400,
 	}))
 
 	//adminGroup := e.Group("/admin")

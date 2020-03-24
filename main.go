@@ -16,8 +16,9 @@ func main() {
 	views.InitViews(e)
 
 	db.Init()
-	autoCreateTables(&models.Alias{}, &models.Node{}, &models.Cname{}, &models.Relation{})
+	autoCreateTables(&models.Alias{}, &models.Node{}, &models.Cname{}, &models.AliasesNodes{})
 	autoMigrateTables()
+
 	//Seeding
 	/*db.ManagerDB().Debug().Save(&models.Alias{
 
@@ -88,7 +89,7 @@ func autoCreateTables(values ...interface{}) error {
 
 // autoMigrateTables: migrate table columns using GORM
 func autoMigrateTables() {
-	db.ManagerDB().AutoMigrate(&models.Alias{}, &models.Node{}, &models.Cname{}, &models.Relation{})
+	db.ManagerDB().AutoMigrate(&models.Alias{}, &models.Node{}, &models.Cname{}, &models.AliasesNodes{})
 }
 
 /*

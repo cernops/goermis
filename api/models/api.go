@@ -1,15 +1,12 @@
 package models
 
 import (
-	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	schema "github.com/gorilla/Schema"
+	"github.com/jinzhu/copier"
 	"github.com/jinzhu/gorm"
-	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
 	"gitlab.cern.ch/lb-experts/goermis/db"
 	cgorm "gitlab.cern.ch/lb-experts/goermis/db"
@@ -22,7 +19,8 @@ var (
 )
 
 //GetObjects return list of aliases if no parameters are passed or a single alias if parameters are given
-func (r Objects) GetObjects(param string, tablerow string) (b Objects, err error) {
+func (r Resource) GetObjects(param string, tablerow string) (b []Resource, err error) {
+
 	if param == "" && tablerow == "" {
 		q = "SELECT a.id, alias_name, behaviour, best_hosts, clusters, " +
 			"COALESCE(GROUP_CONCAT(distinct case when r.blacklist = 1 then n.node_name else null end),'') AS ForbiddenNodes, " +
@@ -30,8 +28,8 @@ func (r Objects) GetObjects(param string, tablerow string) (b Objects, err error
 			"COALESCE(GROUP_CONCAT(distinct c_name),'') AS cname, external,  a.hostgroup, a.last_modification, metric, polling_interval,tenant, ttl, user, statistics " +
 			"FROM alias a " +
 			"LEFT join cname c on ( a.id=c.alias_id) " +
-			"LEFT JOIN relation r on (a.id=r.alias_id) " +
-			"LEFT JOIN node n on (n.id=r.node_id)" +
+			"LEFT JOIN aliases_nodes r on (a.id=r.alias_id) " +
+			"LEFT JOIN node n on (n.id=r.node_id) " +
 			"GROUP BY a.id, alias_name, behaviour, best_hosts, clusters,  external, a.hostgroup, " +
 			"a.last_modification, metric, polling_interval, statistics, tenant, ttl, user ORDER BY alias_name"
 
@@ -39,27 +37,26 @@ func (r Objects) GetObjects(param string, tablerow string) (b Objects, err error
 		q = "SELECT a.id, alias_name, behaviour, best_hosts, clusters, " +
 			"COALESCE(GROUP_CONCAT(distinct case when r.blacklist = 1 then n.node_name else null end),'') AS ForbiddenNodes," +
 			"COALESCE(GROUP_CONCAT(distinct case when r.blacklist = 0 then n.node_name else null end),'') AS AllowedNodes, " +
-			"COALESCE(GROUP_CONCAT(distinct c_name),'') AS cname, external,  a.hostgroup, a.last_modification, metric, polling_interval,tenant, ttl, user, statistics" +
+			"COALESCE(GROUP_CONCAT(distinct c_name),'') AS cname, external,  a.hostgroup, a.last_modification, metric, polling_interval,tenant, ttl, user, statistics " +
 			"FROM alias a " +
 			"LEFT JOIN cname c on ( a.id=c.alias_id) " +
-			"LEFT JOIN relation r on (a.id=r.alias_id) " +
+			"LEFT JOIN aliases_nodes r on (a.id=r.alias_id) " +
 			"LEFT JOIN node n on (n.id=r.node_id) " +
-			"where a." + tablerow + " = " + "'" + param + "'" +
+			"where a." + tablerow + " = " + "'" + param + "' " +
 			"GROUP BY a.id, alias_name, behaviour, best_hosts, clusters,  external, a.hostgroup, " +
 			"a.last_modification, metric, polling_interval, statistics, tenant, ttl, user ORDER BY alias_name"
 	}
 
 	rows, err := con.Raw(q).Rows()
 
-	defer rows.Close()
 	if err != nil {
 		log.Error("Error while getting list of objects: " + err.Error())
-		return r, echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		return b, err
 
 	}
+	defer rows.Close()
 	for rows.Next() {
-		var result result
-
+		var result Resource
 		err := rows.Scan(&result.ID, &result.AliasName, &result.Behaviour, &result.BestHosts, &result.Clusters,
 			&result.ForbiddenNodes, &result.AllowedNodes, &result.Cname, &result.External, &result.Hostgroup,
 			&result.LastModification, &result.Metric, &result.PollingInterval,
@@ -67,25 +64,18 @@ func (r Objects) GetObjects(param string, tablerow string) (b Objects, err error
 		if err != nil {
 			log.Error("Error when scanning in GetObjectsList: " + err.Error())
 
-			return r, echo.NewHTTPError(http.StatusBadRequest, err.Error())
+			return b, err
 		}
-		r.Objects = append(r.Objects, result)
+		b = append(b, result)
 	}
-	return r, nil
+	return b, nil
 }
 
 //CreateObject creates an alias
-func (a Alias) CreateObject(params url.Values) (err error) {
-
-	decoder.IgnoreUnknownKeys(true)
-	err = decoder.Decode(&a, params)
-	if err != nil {
-		log.Error("Error while decoding parameters : " + err.Error())
-		//panic(err)
-
-	}
-	cnames := DeleteEmpty(strings.Split(params.Get("cnames"), ","))
-
+func (r Resource) CreateObject() (err error) {
+	var a Alias
+	copier.Copy(&a, &r)
+	cnames := DeleteEmpty(strings.Split(r.Cname, ","))
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
 
 		// check new object
@@ -118,39 +108,92 @@ func (a Alias) CreateObject(params url.Values) (err error) {
 	})
 }
 
-//Prepare prepares alias before creation with def values
-func (a *Alias) Prepare() {
+//AddDefaultValues prepares alias before creation with def values
+func (r *Resource) AddDefaultValues() {
 	//Populate the struct with the default values
-	log.Info("Preparing alias " + a.AliasName + "with default values")
-	a.User = "kkouros"
-	a.Behaviour = "mindless"
-	a.Metric = "cmsfrontier"
-	a.PollingInterval = 300
-	a.Statistics = "long"
-	a.Clusters = "none"
-	a.Tenant = "golang"
-	a.LastModification = time.Now()
+	log.Info("Preparing alias " + r.AliasName + " with the default values")
+
+	//Passing default values
+	r.User = "kkouros"
+	r.Behaviour = "mindless"
+	r.Metric = "cmsfrontier"
+	r.PollingInterval = 300
+	r.Statistics = "long"
+	r.Clusters = "none"
+	r.Tenant = "golang"
+	r.LastModification = time.Now()
+}
+
+//Hydrate prepares a few input data before creation of new alias
+func (r *Resource) Hydrate() {
+	if !strings.HasSuffix(r.AliasName, ".cern.ch") {
+		r.AliasName = r.AliasName + ".cern.ch"
+	}
+	if StringInSlice(strings.ToLower(r.External), []string{"yes", "external"}) {
+		r.External = "yes"
+	}
+	if StringInSlice(strings.ToLower(r.External), []string{"no", "internal"}) {
+		r.External = "no"
+	}
 }
 
 //DeleteObject deletes an alias and its Relations
-func (a Alias) DeleteObject() (err error) {
+func (r Resource) DeleteObject() (err error) {
+
+	var relation []AliasesNodes
 
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
 
-		if tx.Where("alias_name = ?", a.AliasName).First(&a).RecordNotFound() {
-			log.Error("Alias " + a.AliasName + "doesn't exist ?! ")
+		//Make sure alias exists
+		if tx.Where("alias_name = ?", r.AliasName).First(&Alias{}).RecordNotFound() {
+			log.Error("Alias " + r.AliasName + "doesn't exist ?! ")
 			return err
 
 		}
-		err = tx.Where("alias_id= ?", a.ID).Delete(&Cname{}).Error
+		//Find and store all relations
+		if err := tx.Where("alias_id=?", r.ID).Find(&relation).Error; err != nil {
+			log.Error("Error while getting all relations for the alias")
+			return err
+		}
+
+		for _, v := range relation {
+			var node Node
+			//Find node itself and load
+			if err := tx.Where("id=?", v.NodeID).First(&node).Error; err != nil {
+				log.Error("Error while getting the node of a certain relation")
+				return err
+			}
+			// Delete relation first
+			err = tx.Where("node_id=? AND alias_id =? ", v.NodeID, r.ID).Delete(&AliasesNodes{}).Error
+			if err != nil {
+				log.Error("Failed to clear nodes during alias deletion")
+				return err
+			}
+
+			//Delete node with no other relations
+			if tx.Model(&node).Association("Aliases").Count() == 0 {
+				log.Info("Node doesnt have other relation, delete it")
+				if err = con.Delete(&node).Error; err != nil {
+					log.Info("Error while deleting node with no relations")
+					//con.Rollback()
+					return err
+
+				}
+
+			}
+
+		}
+		//Delete cnames
+		err = tx.Where("alias_id= ?", r.ID).Delete(&Cname{}).Error
 		if err != nil {
 			log.Error("Cname deletion failed")
 			return err
 		}
-		//con.Model(&Alias).Where("alias_name = ?", alias).Preload("Cnames").Delete(&Alias.Cnames)
-		err = tx.Where("alias_name = ?", a.AliasName).Delete(&Alias{}).Error
+
+		//Finally delete alias
+		err = tx.Where("alias_name = ?", r.AliasName).Delete(&Alias{}).Error
 		if err != nil {
-			log.Error("Alias deletion failed.Aliasname :" + a.AliasName)
+			log.Error("Alias deletion failed.Aliasname :" + r.AliasName)
 			return err
 		}
 
@@ -159,23 +202,31 @@ func (a Alias) DeleteObject() (err error) {
 }
 
 //ModifyObject modifies aliases and its associations
-func (a Alias) ModifyObject(params url.Values) (err error) {
+func (r Resource) ModifyObject(new Resource) (err error) {
 	//Prepare cnames separately
-	cnames := DeleteEmpty(strings.Split(params.Get("cnames"), ","))
-	spew.Dump(params)
-	if err = con.Model(&a).UpdateColumns(
+	newCnames := DeleteEmpty(strings.Split(new.Cname, ","))
+	exCnames := DeleteEmpty(strings.Split(r.Cname, ","))
+
+	if err = con.Model(&Alias{}).UpdateColumns(
 		map[string]interface{}{
-			"external":   params.Get("external"),
-			"hostgroup":  params.Get("hostgroup"),
-			"best_hosts": stringToInt(params.Get("best_hosts")),
+			"external":   new.External,
+			"hostgroup":  new.Hostgroup,
+			"best_hosts": new.BestHosts,
 		}).Error; err != nil {
-		log.Error("Error while updating alias " + a.AliasName)
+		log.Error("Error while updating alias " + r.AliasName)
 
 	}
 	//err = a.UpdateNodes()
-	err = a.UpdateCnames(cnames)
+	err = r.UpdateCnames(exCnames, newCnames)
 	if err != nil {
 		log.Error("Unable to update cnames ,Error : " + err.Error())
+		return err
+	}
+	log.Info("Before node update")
+	err = r.UpdateNodes(nodesToMap(r), nodesToMap(new))
+	if err != nil {
+
+		log.Error("Unable to update nodes ,Error : " + err.Error())
 		return err
 	}
 
@@ -183,16 +234,13 @@ func (a Alias) ModifyObject(params url.Values) (err error) {
 }
 
 //UpdateCnames updates cnames
-func (a Alias) UpdateCnames(newCnames []string) (err error) {
-	// If there are no cnames from UI , delete them all, otherwise append them
-	existingCnames := getExistingCnames(a)
-	spew.Dump(existingCnames)
-	spew.Dump(newCnames)
+func (r Resource) UpdateCnames(exCnames []string, newCnames []string) (err error) {
+
 	if len(newCnames) > 0 {
-		for _, value := range existingCnames {
-			if !stringInSlice(value, newCnames) {
+		for _, value := range exCnames {
+			if !StringInSlice(value, newCnames) {
 				log.Info("Deleting cname")
-				if err = a.DeleteCname(value); err != nil {
+				if err = r.DeleteCname(value); err != nil {
 					return err
 				}
 			}
@@ -202,9 +250,9 @@ func (a Alias) UpdateCnames(newCnames []string) (err error) {
 			if value == "" {
 				continue
 			}
-			if !stringInSlice(value, existingCnames) {
+			if !StringInSlice(value, exCnames) {
 				log.Info("Adding cname")
-				if err = a.AddCname(value); err != nil {
+				if err = r.AddCname(value); err != nil {
 					return err
 				}
 			}
@@ -212,10 +260,10 @@ func (a Alias) UpdateCnames(newCnames []string) (err error) {
 		}
 
 	} else {
-		for _, value := range existingCnames {
+		for _, value := range exCnames {
 			log.Info("In cname deletion")
 
-			if err = a.DeleteCname(value); err != nil {
+			if err = r.DeleteCname(value); err != nil {
 				return err
 			}
 		}
@@ -223,22 +271,133 @@ func (a Alias) UpdateCnames(newCnames []string) (err error) {
 	return nil
 }
 
-/*//UpdateNodes updates cnames
-func (a Alias) UpdateNodes() (err error) {
-	// If there are no cnames from UI , delete them all, otherwise append them
-	return err
+//UpdateNodes updates cnames
+func (r Resource) UpdateNodes(ex map[string]bool, new map[string]bool) (err error) {
+	log.Info("Updating nodes")
+	for k, v := range ex {
+		if _, ok := new[k]; !ok {
+			if err = r.DeleteNode(k, v); err != nil {
+				return err
+			}
+		}
+	}
+	for k, v := range new {
+		if k == "" {
+			continue
+		}
+		if _, ok := ex[k]; !ok {
+			log.Info("Addit")
+			if err = r.AddNode(k, v); err != nil {
+				log.Error("Error in node addition ")
+				return err
+			}
+		} else if value, ok := ex[k]; ok && value != v {
+			if err = r.UpdateNodePrivilege(k, v); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
 
-}*/
+//DeleteNode deletes  a Node from the database
+func (r Resource) DeleteNode(name string, p bool) (err error) {
+	var node Node
+
+	return WithinTransaction(func(tx *gorm.DB) (err error) {
+		//find node
+		if err := tx.First(&node, "node_name=?", name).Error; err != nil {
+			log.Error("Coouldnt find the ID of the node for deletion")
+			tx.Rollback()
+			return err
+		}
+
+		//Delete relation
+		if err = tx.Set("gorm:association_autoupdate", false).
+			Where("alias_id = ? AND node_id = ?", r.ID, node.ID).
+			Delete(&AliasesNodes{}).Error; err != nil {
+			tx.Rollback()
+			log.Error("Error while delete in transaction node" + name)
+			return err
+		}
+		//Delete node with no other relations
+		if tx.Model(&node).Association("Aliases").Count() == 0 {
+			log.Info("Node doesnt have other relation, delete it")
+			if err = tx.Delete(&node).Error; err != nil {
+				log.Info("Error while deleting node with no relations")
+				tx.Rollback()
+				return err
+
+			}
+
+		}
+
+		return nil
+
+	})
+}
+
+//AddNode adds a node in the DB
+func (r Resource) AddNode(name string, p bool) (err error) {
+	var node Node
+
+	return WithinTransaction(func(tx *gorm.DB) (err error) {
+		err = tx.Where("node_name = ?", name).
+			Assign(Node{NodeName: name,
+				LastModification: time.Now()}).
+			FirstOrCreate(&node).Error
+
+		if err != nil {
+			tx.Rollback()
+			log.Error("Error while dealing with node ")
+			return err
+		}
+		if tx.Where("alias_id = ? AND node_id = ?", r.ID, node.ID).First(&AliasesNodes{}).RecordNotFound() {
+			if err = tx.First(&Alias{}, "id=?", r.ID).Create(
+				prepareRelation(node.ID, r.ID, p),
+			).Error; err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+//UpdateNodePrivilege updates the privilege of a node from allowed to forbidden and vice versa
+func (r Resource) UpdateNodePrivilege(name string, p bool) (err error) {
+	var node Node
+	return WithinTransaction(func(tx *gorm.DB) (err error) {
+
+		//find node
+		if err := tx.First(&node, "node_name=?", name).Error; err != nil {
+			log.Error("Coouldnt find the ID of the node for deletion")
+			tx.Rollback()
+			return err
+		}
+
+		if err = tx.Model(&AliasesNodes{}).
+			Where("alias_id=? AND node_id = ?", r.ID, node.ID).
+			Update("blacklist", p).Error; err != nil {
+			log.Error("Error while updating privileges")
+			tx.Rollback()
+			return err
+		}
+
+		return nil
+	})
+
+}
 
 //AddCname appends a Cname
-func (a Alias) AddCname(cname string) error {
+func (r Resource) AddCname(cname string) error {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
 		if !cgorm.ManagerDB().NewRecord(&Cname{CName: cname}) {
 			log.Error("Cname" + cname + " already exists")
 			return err
 		}
 
-		if err = tx.Set("gorm:association_autoupdate", false).Model(&a).Association("Cnames").Append(&Cname{CName: cname}).Error; err != nil {
+		if err = tx.Set("gorm:association_autoupdate", false).First(&Alias{}, "id=?", r.ID).Association("Cnames").Append(&Cname{CName: cname}).Error; err != nil {
 			log.Info("There was an error while adding cname " + string(cname))
 			tx.Rollback()
 			return err
@@ -250,28 +409,17 @@ func (a Alias) AddCname(cname string) error {
 
 //DeleteCname cname from db during modification
 //AutoUpdate is false, because otherwise we will be adding what we just deleted
-func (a Alias) DeleteCname(cname string) error {
+func (r Resource) DeleteCname(cname string) error {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
-		if err = tx.Set("gorm:association_autoupdate", false).Where("alias_id = ? AND c_name = ?", a.ID, cname).Delete(&Cname{}).Error; err != nil {
+		if err = tx.Set("gorm:association_autoupdate", false).Where("alias_id = ? AND c_name = ?", r.ID, cname).Delete(&Cname{}).Error; err != nil {
 			tx.Rollback()
 			log.Error("Error while delete in transaction cname" + cname)
 			return err
 		}
-		return err
+		return nil
 
 	})
 
-}
-
-//GetExistingData retrieves all the data for a certain alias, for internal use
-func GetExistingData(aliasName string) (a Alias, err error) {
-
-	if con.Model(Alias{}).Preload("Cnames").Preload("Relations").Where("alias_name = ?", aliasName).First(&a).RecordNotFound() {
-		log.Error("There was an error while getting existing data for alias " + aliasName + "Error: " + err.Error())
-		return a, err
-
-	}
-	return a, nil
 }
 
 // WithinTransaction  accept DBFunc as parameter call DBFunc function within transaction begin, and commit and return error from DBFunc
