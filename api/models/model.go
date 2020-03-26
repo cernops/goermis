@@ -24,6 +24,7 @@ type (
 		TTL              int       `json:"ttl" schema:"ttl" `
 		LastModification time.Time `json:"last_modification" schema:"last_modification"`
 		Cnames           []Cname   `json:"cnames"  gorm:"foreignkey:AliasID" `
+		Nodes            []*AliasesNodes
 	}
 
 	//AliasesNodes testing
@@ -51,6 +52,7 @@ type (
 		Load             int       `json:"load" `
 		State            string    `json:"state"  gorm:"not null" `
 		Hostgroup        string    `json:"hostgroup"  gorm:"size:40;not null" `
+		Aliases          []*AliasesNodes
 	}
 	//DBFunc type which accept *gorm.DB and return error
 	DBFunc func(tx *gorm.DB) error
