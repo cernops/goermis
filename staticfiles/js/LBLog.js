@@ -12,8 +12,8 @@ var SelectInitVal = "Please_select";
 $(document).ready(function(){
 	loaderWindow();
 
-  //getData('https://it-lcs-01.cern.ch/p/api/v1/alias/');
-  getData('http://localhost:8080/aliases');
+ 
+  getData('http://137.138.158.76:80/aliases');
 
 	$('#clusterList').change(function(){
 		location = $('#clusterList').val();

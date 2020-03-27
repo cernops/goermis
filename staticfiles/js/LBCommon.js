@@ -42,7 +42,7 @@ function initialize_form(retrieveData, action) {
   //reset the form, some browser have a nasty habit of leaving stuff behind
   //clearForm();
   if (retrieveData) {
-    getData('http://localhost:8080/aliases');
+    getData('http://137.138.158.76:80/aliases');
 
   } else {
     loaderWindow('close');

@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-
+    "net"
 	"github.com/davecgh/go-spew/spew"
 
 	"github.com/asaskevich/govalidator"
@@ -211,5 +211,21 @@ func ModifyAlias(c echo.Context) error {
 
 //CheckNameDNS for now is a prototype function that enables frontend to work
 func CheckNameDNS(c echo.Context) error {
-	return c.JSON(http.StatusOK, 0)
+	aliasToResolve := c.QueryParam("hostname")
+	var result int
+	log.Info("Checking if the object exists " + aliasToResolve)
+	con.Model(&models.Cname{}).Where("c_name=?", aliasToResolve).Count(&result)
+	if result == 0 {
+		con.Model(&models.Alias{}).Where("alias_name=?", aliasToResolve +".cern.ch").Count(&result)
+	}
+	 if result == 0 {
+		if r, err := net.LookupHost(aliasToResolve); err != nil{
+			  log.Info("Checking name in DNS for alias " + aliasToResolve + "Exception: " + err.Error())
+			  result = 0
+		}else { 
+			log.Info("Alias with the same name exists in the DNS")
+			result = len(r)
+		}
+	}
+	return c.JSON(http.StatusOK, result)
 }
