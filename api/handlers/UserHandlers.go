@@ -1,10 +1,10 @@
 package handlers
 
 import (
+	"net"
 	"net/http"
-	"os"
 	"strconv"
-    "net"
+
 	"github.com/davecgh/go-spew/spew"
 
 	"github.com/asaskevich/govalidator"
@@ -33,7 +33,7 @@ func init() {
 
 	// Output to stdout instead of the default stderr
 	// Can be any io.Writer, see below for File example
-	log.SetOutput(os.Stdout)
+	//log.SetOutput(os.Stdout)
 
 	// Only log the warning severity or above.
 	log.SetLevel(log.DebugLevel)
@@ -216,13 +216,13 @@ func CheckNameDNS(c echo.Context) error {
 	log.Info("Checking if the object exists " + aliasToResolve)
 	con.Model(&models.Cname{}).Where("c_name=?", aliasToResolve).Count(&result)
 	if result == 0 {
-		con.Model(&models.Alias{}).Where("alias_name=?", aliasToResolve +".cern.ch").Count(&result)
+		con.Model(&models.Alias{}).Where("alias_name=?", aliasToResolve+".cern.ch").Count(&result)
 	}
-	 if result == 0 {
-		if r, err := net.LookupHost(aliasToResolve); err != nil{
-			  log.Info("Checking name in DNS for alias " + aliasToResolve + "Exception: " + err.Error())
-			  result = 0
-		}else { 
+	if result == 0 {
+		if r, err := net.LookupHost(aliasToResolve); err != nil {
+			log.Info("Checking name in DNS for alias " + aliasToResolve + "Exception: " + err.Error())
+			result = 0
+		} else {
 			log.Info("Alias with the same name exists in the DNS")
 			result = len(r)
 		}

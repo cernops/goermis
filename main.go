@@ -1,7 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"os"
+	"os/signal"
+	"time"
 
 	"gitlab.cern.ch/lb-experts/goermis/api/models"
 	"gitlab.cern.ch/lb-experts/goermis/db"
@@ -19,55 +23,24 @@ func main() {
 	autoCreateTables(&models.Alias{}, &models.Node{}, &models.Cname{}, &models.AliasesNodes{})
 	autoMigrateTables()
 
-	//Seeding
-	/*db.ManagerDB().Debug().Save(&models.Alias{
+	//e.Logger.Fatal(e.Start("137.138.158.76:8080"))
+	// Start server
+	go func() {
+		if err := e.Start("137.138.158.76:80"); err != nil {
+			e.Logger.Info("shutting down the server")
+		}
+	}()
 
-		AliasName:        "seeder",
-		Behaviour:        "rogue",
-		BestHosts:        1,
-		External:         "yes",
-		Metric:           "yes",
-		PollingInterval:  5,
-		Statistics:       "cmsfrontier",
-		Clusters:         "none",
-		LastModification: time.Now(),
-		Tenant:           "kkouros",
-		Hostgroup:        "ailbd",
-		User:             "kkouros",
-		TTL:              7,
-		Relations: []*models.Relation{
-			{
-				Node: &models.Node{
-
-					NodeName:         "node",
-					Hostgroup:        "ailbd",
-					LastModification: time.Now(),
-				},
-
-				Blacklist: true,
-			},
-
-			{
-				Node: &models.Node{
-
-					NodeName:         "node2",
-					Hostgroup:        "ailbd",
-					LastModification: time.Now(),
-				},
-
-				Blacklist: true,
-			},
-		},
-
-		Cnames: []models.Cname{
-			{
-				CName: "seed",
-			},
-		},
-	})*/
-
-	e.Logger.Fatal(e.Start("137.138.158.76:80"))
-
+	// Wait for interrupt signal to gracefully shutdown the server with
+	// a timeout of 10 seconds.
+	quit := make(chan os.Signal)
+	signal.Notify(quit, os.Interrupt)
+	<-quit
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := e.Shutdown(ctx); err != nil {
+		e.Logger.Fatal(err)
+	}
 }
 
 func autoCreateTables(values ...interface{}) error {

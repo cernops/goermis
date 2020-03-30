@@ -4,17 +4,27 @@ import (
 	"errors"
 	"html/template"
 	"io"
-	"log"
 	"os"
+	"path/filepath"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/labstack/echo/v4"
 )
 
-const ( 
- baseDir = "templates/base.html"
- layoutsDir = "templates/layouts/"
- formsDir = "templates/forms/" 
- )
+func filepa() (s string) {
+	p, err := os.Getwd()
+	if err != nil {
+		log.Info("Error while getting working direcroy filepath")
+	}
+	return p
+}
+
+var (
+	baseDir    = filepath.Join(filepa(), "/templates/base.html")
+	layoutsDir = filepath.Join(filepa(), "/templates/layouts")
+	formsDir   = filepath.Join(filepa(), "/templates/forms")
+)
 
 // TemplateRegistry defines the template registry struct
 type TemplateRegistry struct {
@@ -48,8 +58,8 @@ func InitViews(e *echo.Echo) {
 	e.Static("/staticfiles", "staticfiles")
 	templates := make(map[string]*template.Template)
 	for _, file := range readCurrentDir(layoutsDir) {
-		templates[file] = template.Must(template.ParseFiles(baseDir, layoutsDir+file))
-		templates[file].ParseGlob(formsDir + "*.html")
+		templates[file] = template.Must(template.ParseFiles(baseDir, layoutsDir+"/"+file))
+		templates[file].ParseGlob(formsDir + "/" + "*.html")
 
 	}
 
