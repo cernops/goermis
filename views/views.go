@@ -8,22 +8,15 @@ import (
 	"path/filepath"
 
 	log "github.com/sirupsen/logrus"
+	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 
 	"github.com/labstack/echo/v4"
 )
 
-func filepa() (s string) {
-	p, err := os.Getwd()
-	if err != nil {
-		log.Info("Error while getting working direcroy filepath")
-	}
-	return p
-}
-
 var (
-	baseDir    = filepath.Join(filepa(), "/templates/base.html")
-	layoutsDir = filepath.Join(filepa(), "/templates/layouts")
-	formsDir   = filepath.Join(filepa(), "/templates/forms")
+	baseDir    = filepath.Join(bootstrap.HomeFlag, "/templates/base.html")
+	layoutsDir = filepath.Join(bootstrap.HomeFlag, "/templates/layouts")
+	formsDir   = filepath.Join(bootstrap.HomeFlag, "/templates/forms")
 )
 
 // TemplateRegistry defines the template registry struct
@@ -54,8 +47,8 @@ func readCurrentDir(dir string) []string {
 
 //InitViews initializes the GUI
 func InitViews(e *echo.Echo) {
-
-	e.Static("/staticfiles", "staticfiles")
+	staticfiles := filepath.Join(bootstrap.HomeFlag, "/staticfiles")
+	e.Static("/staticfiles", staticfiles)
 	templates := make(map[string]*template.Template)
 	for _, file := range readCurrentDir(layoutsDir) {
 		templates[file] = template.Must(template.ParseFiles(baseDir, layoutsDir+"/"+file))

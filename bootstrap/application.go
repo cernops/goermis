@@ -1,12 +1,17 @@
 package bootstrap
 
 import (
+	"flag"
 	"fmt"
 	"strings"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/labstack/gommon/log"
 	"github.com/spf13/viper"
 )
+
+var configFileFlag = flag.String("config", "config.yaml", "specify configuration file path")
+var HomeFlag string
 
 //App prototype
 var App *Application
@@ -24,6 +29,8 @@ type Application struct {
 }
 
 func init() {
+	flag.StringVar(&HomeFlag, "home", "/goermis", "specify statics path")
+	flag.Parse()
 	App = &Application{}
 	App.Name = "APP_NAME"
 	App.Version = "APP_VERSION"
@@ -43,7 +50,8 @@ func (app *Application) loadAppConfig() {
 	appConfig.SetEnvPrefix("APP_")
 	appConfig.AutomaticEnv()
 	appConfig.SetConfigName("config")
-	appConfig.AddConfigPath(".")
+	appConfig.AddConfigPath(*configFileFlag)
+	log.Info(configFileFlag)
 	appConfig.SetConfigType("yaml")
 	if err = appConfig.ReadInConfig(); err != nil {
 		panic(err)
@@ -66,7 +74,7 @@ func (app *Application) loadDBConfig() {
 	dbConfig.SetEnvPrefix("DB_")
 	dbConfig.AutomaticEnv()
 	dbConfig.SetConfigName("config")
-	dbConfig.AddConfigPath(".")
+	dbConfig.AddConfigPath(*configFileFlag)
 	dbConfig.SetConfigType("yaml")
 	if err = dbConfig.ReadInConfig(); err != nil {
 		panic(err)
