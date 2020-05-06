@@ -6,11 +6,12 @@ import (
 	"strings"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/labstack/gommon/log"
 	"github.com/spf13/viper"
 )
 
 var configFileFlag = flag.String("config", "config.yaml", "specify configuration file path")
+
+//HomeFlag grabs the location of staticfiles & templates
 var HomeFlag string
 
 //App prototype
@@ -25,7 +26,7 @@ type Application struct {
 	Version   string `json:"version"`
 	ENV       string `json:"env"`
 	AppConfig Config `json:"application_config"`
-	DBConfig  Config `json:"database_config"`
+	IFConfig  Config `json:"interface_config"`
 }
 
 func init() {
@@ -36,7 +37,7 @@ func init() {
 	App.Version = "APP_VERSION"
 	App.loadENV()
 	App.loadAppConfig()
-	App.loadDBConfig()
+	App.loadIFConfig()
 }
 
 // loadAppConfig: read application config and build viper object
@@ -51,7 +52,6 @@ func (app *Application) loadAppConfig() {
 	appConfig.AutomaticEnv()
 	appConfig.SetConfigName("config")
 	appConfig.AddConfigPath(*configFileFlag)
-	log.Info(configFileFlag)
 	appConfig.SetConfigType("yaml")
 	if err = appConfig.ReadInConfig(); err != nil {
 		panic(err)
@@ -64,26 +64,26 @@ func (app *Application) loadAppConfig() {
 }
 
 // loadDBConfig: read application config and build viper object
-func (app *Application) loadDBConfig() {
+func (app *Application) loadIFConfig() {
 	var (
-		dbConfig *viper.Viper
+		ifConfig *viper.Viper
 		err      error
 	)
-	dbConfig = viper.New()
-	dbConfig.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
-	dbConfig.SetEnvPrefix("DB_")
-	dbConfig.AutomaticEnv()
-	dbConfig.SetConfigName("config")
-	dbConfig.AddConfigPath(*configFileFlag)
-	dbConfig.SetConfigType("yaml")
-	if err = dbConfig.ReadInConfig(); err != nil {
+	ifConfig = viper.New()
+	ifConfig.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
+	ifConfig.SetEnvPrefix("IF_")
+	ifConfig.AutomaticEnv()
+	ifConfig.SetConfigName("config")
+	ifConfig.AddConfigPath(*configFileFlag)
+	ifConfig.SetConfigType("yaml")
+	if err = ifConfig.ReadInConfig(); err != nil {
 		panic(err)
 	}
-	dbConfig.WatchConfig()
-	dbConfig.OnConfigChange(func(e fsnotify.Event) {
+	ifConfig.WatchConfig()
+	ifConfig.OnConfigChange(func(e fsnotify.Event) {
 		//	glog.Info("App Config file changed %s:", e.Name)
 	})
-	app.DBConfig = Config(*dbConfig)
+	app.IFConfig = Config(*ifConfig)
 }
 
 // loadENV

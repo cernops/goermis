@@ -26,7 +26,7 @@ func main() {
 	//e.Logger.Fatal(e.Start("137.138.158.76:8080"))
 	// Start server
 	go func() {
-		if err := e.Start("137.138.158.76:80"); err != nil {
+		if err := e.StartTLS(":8080", "/etc/ssl/certs/goermiscert.pem", "/etc/ssl/certs/goermiskey.pem"); err != nil {
 			e.Logger.Info("shutting down the server")
 		}
 	}()

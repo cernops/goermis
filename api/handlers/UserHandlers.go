@@ -92,6 +92,7 @@ func NewAlias(c echo.Context) error {
 
 	//Get the params from the form
 	params, err := c.FormParams()
+	spew.Dump(params)
 	err = decoder.Decode(&r, params)
 	if err != nil {
 		log.Error("Error while decoding parameters : " + err.Error())
@@ -147,7 +148,7 @@ func DeleteAlias(c echo.Context) error {
 	}
 
 	defer c.Request().Body.Close()
-
+	spew.Dump(alias)
 	err = alias[0].DeleteObject()
 	if err != nil {
 		log.Error("Failed to delete object")
