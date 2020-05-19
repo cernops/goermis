@@ -64,10 +64,3 @@ func autoCreateTables(values ...interface{}) error {
 func autoMigrateTables() {
 	db.ManagerDB().AutoMigrate(&models.Alias{}, &models.Node{}, &models.Cname{}, &models.AliasesNodes{})
 }
-
-/*
-// auto drop tables on dev mode
-func autoDropTables() {
-	if bootstrap.App.ENV == "dev" {
-		gorm.DBManager().DropTableIfExists(&models.User{}, &models.User{})
-	}*/

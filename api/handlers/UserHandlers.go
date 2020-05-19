@@ -3,6 +3,7 @@ package handlers
 import (
 	"net"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/davecgh/go-spew/spew"
@@ -28,12 +29,14 @@ var (
 )
 
 func init() {
-	// Log as JSON instead of the default ASCII formatter.
 	log.SetFormatter(&log.JSONFormatter{})
-
-	// Output to stdout instead of the default stderr
-	// Can be any io.Writer, see below for File example
-	//log.SetOutput(os.Stdout)
+	
+	file, err := os.OpenFile("/var/log/logrus.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err == nil {
+		log.SetOutput(file)
+	} else {
+		log.Info("Failed to log to file, using default stderr")
+	}
 
 	// Only log the warning severity or above.
 	log.SetLevel(log.DebugLevel)
