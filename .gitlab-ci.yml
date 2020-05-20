@@ -1,0 +1,52 @@
+---
+image: gitlab-registry.cern.ch/linuxsupport/cc7-base:latest
+
+include: 
+  - project: lb-experts/golbclient
+    file: .gitlab-ci_koji.yml
+  - project: lb-experts/golbclient
+    file: .gitlab-ci_go.yml
+    ref: psaiz_devel
+
+before_script:
+  - yum -y install rpm-build rpmdevtools
+  - mkdir -p /go/src/gitlab.cern.ch/lb-experts
+  - if [ -d /builds ] ;  then  export PREFIX=/builds  ;  fi
+  - ln -s $PREFIX/lb-experts/goermis /go/src/gitlab.cern.ch/lb-experts/goermis
+  - cd /go/src/gitlab.cern.ch/lb-experts/goermis
+  - export SPEC=$(ls *spec)
+  - RELEASE=`grep 'Release = "' main.go | awk -F \" '{print $2}'`
+  - VERSION=`grep 'Version = "' main.go | awk -F \" '{print $2}'`
+  - cat $SPEC | sed "s/#REPLACE_BY_VERSION#/$VERSION/" > $SPEC.tmp
+  - cat $SPEC.tmp | sed "s/#REPLACE_BY_RELEASE#/$RELEASE/" > $SPEC
+  - export PKG=$(rpm -q --specfile $SPEC --queryformat "%{name}-%{version}\n" | head -n 1)
+  - export PKG_REL7=$(rpm -q --define "dist .ai7" --specfile $SPEC --queryformat "%{name}-%{version}-%{release}\n" | head -n 1)
+  - export PKG_REL8=$(rpm -q --define "dist .el8" --specfile $SPEC --queryformat "%{name}-%{version}-%{release}\n" | head -n 1)
+
+.installGo12: &installGo12 |
+  mkdir /go12
+  yum -y install git gcc
+  curl https://dl.google.com/go/go1.12.17.linux-amd64.tar.gz  | tar -zxC /go12
+  ln -s /go12/go/bin/go /usr/bin/go12
+  export GOPATH=/go
+  go12 get ./...
+
+
+build_rpm:
+  stage: build_rpm
+  script:
+    - *installGo12
+    - cd $PREFIX/lb-experts/goermis
+    - go12 mod vendor
+    - mkdir SOURCES version
+    - tar cvf SOURCES/$PKG.tg  --exclude SOURCES --exclude .git --exclude .koji --exclude .gitlab-ci.yml --exclude go.mod --exclude go.sum --transform "s||$PKG/|" .
+    - gzip -c SOURCES/$PKG.tg > SOURCES/$PKG.tgz
+    - rm -rf SOURCES/$PKG.tg
+    - rpmbuild -bs --define "_topdir $(pwd)" -D "dist .ai7" $SPEC
+    - rpmbuild -bs --define "_topdir $(pwd)" -D "dist .el8" $SPEC
+  artifacts:
+    paths:
+      - SRPMS/
+    expire_in: 1 week
+
+

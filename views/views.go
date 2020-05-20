@@ -10,11 +10,11 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-const ( 
- baseDir = "templates/base.html"
- layoutsDir = "templates/layouts/"
- formsDir = "templates/forms/" 
- )
+const (
+	baseDir    = "templates/base.html"
+	layoutsDir = "templates/layouts/"
+	formsDir   = "templates/forms/"
+)
 
 // TemplateRegistry defines the template registry struct
 type TemplateRegistry struct {
