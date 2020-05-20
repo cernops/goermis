@@ -9,6 +9,13 @@ import (
 	"gitlab.cern.ch/lb-experts/goermis/views"
 )
 
+const (
+	// Version number
+	Version = "0.0.1"
+	// Release number
+	Release = "1"
+)
+
 func main() {
 	// Echo instance
 	e := router.New()
