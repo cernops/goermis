@@ -14,7 +14,12 @@ import (
 	"gitlab.cern.ch/lb-experts/goermis/views"
 )
 
-//Init initiates logging
+const (
+	// Version number
+	Version = "0.0.1"
+	// Release number
+	Release = "1"
+)
 
 func main() {
 	logger.Log.Info("Service Started...")
