@@ -24,7 +24,7 @@ func main() {
 	router.InitRoutes(e)
 	views.InitViews(e)
 
-    logger.Log.Info("Initializing database")
+	logger.Log.Info("Initializing database")
 	db.Init()
 	autoCreateTables(&models.Alias{}, &models.Node{}, &models.Cname{}, &models.AliasesNodes{})
 	autoMigrateTables()
@@ -68,7 +68,7 @@ func autoCreateTables(values ...interface{}) error {
 // autoMigrateTables: migrate table columns using GORM
 func autoMigrateTables() {
 	err := db.ManagerDB().AutoMigrate(&models.Alias{}, &models.Node{}, &models.Cname{}, &models.AliasesNodes{})
-    if err != nil {
+	if err != nil {
 		logger.Log.Error("An error occured while migrating the tables")
 	}
 
