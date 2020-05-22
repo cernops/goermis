@@ -19,38 +19,14 @@ var (
 // Init initialize database
 func Init() {
 	var adapter string
-	adapter = bootstrap.App.DBConfig.String("adapter")
+	adapter = bootstrap.App.IFConfig.String("adapter")
 	switch adapter {
 	case "mysql":
 		mysqlConn()
 		break
-	case "postgre":
-		postgresConn()
-		break
 	default:
 		panic("Undefined connection on config.yaml")
 	}
-}
-
-// setupPostgresConn: setup postgres database connection using the configuration from database.yaml
-func postgresConn() {
-	var (
-		connectionString string
-		err              error
-	)
-	connectionString = fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=%s", bootstrap.App.DBConfig.String("username"), bootstrap.App.DBConfig.String("password"), bootstrap.App.DBConfig.String("host"), bootstrap.App.DBConfig.String("port"), bootstrap.App.DBConfig.String("database"), bootstrap.App.DBConfig.String("sslmode"))
-	if db, err = gorm.Open("postgres", connectionString); err != nil {
-		panic(err)
-	}
-	if err = db.DB().Ping(); err != nil {
-		panic(err)
-	}
-
-	db.LogMode(true)
-	db.Exec("CREATE EXTENSION postgis")
-
-	db.DB().SetMaxIdleConns(bootstrap.App.DBConfig.Int("idle_conns"))
-	db.DB().SetMaxOpenConns(bootstrap.App.DBConfig.Int("open_conns"))
 }
 
 // mysqlConn: setup mysql database connection using the configuration from database.yaml
@@ -60,7 +36,7 @@ func mysqlConn() {
 		err              error
 	)
 
-	connectionString = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true", bootstrap.App.DBConfig.String("username"), bootstrap.App.DBConfig.String("password"), bootstrap.App.DBConfig.String("host"), bootstrap.App.DBConfig.String("port"), bootstrap.App.DBConfig.String("database"))
+	connectionString = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true", bootstrap.App.IFConfig.String("username"), bootstrap.App.IFConfig.String("password"), bootstrap.App.IFConfig.String("host"), bootstrap.App.IFConfig.String("port"), bootstrap.App.IFConfig.String("database"))
 
 	if db, err = gorm.Open("mysql", connectionString); err != nil {
 		panic(err)
@@ -70,20 +46,17 @@ func mysqlConn() {
 	}
 	db.SingularTable(true)
 	db.LogMode(true)
-	db.DB().SetMaxIdleConns(bootstrap.App.DBConfig.Int("idle_conns"))
-	db.DB().SetMaxOpenConns(bootstrap.App.DBConfig.Int("open_conns"))
+	db.DB().SetMaxIdleConns(bootstrap.App.IFConfig.Int("idle_conns"))
+	db.DB().SetMaxOpenConns(bootstrap.App.IFConfig.Int("open_conns"))
 }
 
 //ManagerDB return GORM's database connection instance.
 func ManagerDB() *gorm.DB {
 	var adapter string
-	adapter = bootstrap.App.DBConfig.String("adapter")
+	adapter = bootstrap.App.IFConfig.String("adapter")
 	switch adapter {
 	case "mysql":
 		mysqlConn()
-		break
-	case "postgre":
-		postgresConn()
 		break
 	default:
 		panic("Undefined connection on config.yaml")

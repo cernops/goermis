@@ -4,16 +4,19 @@ import (
 	"errors"
 	"html/template"
 	"io"
-	"log"
 	"os"
+	"path/filepath"
+
+	log "github.com/sirupsen/logrus"
+	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 
 	"github.com/labstack/echo/v4"
 )
 
-const (
-	baseDir    = "templates/base.html"
-	layoutsDir = "templates/layouts/"
-	formsDir   = "templates/forms/"
+var (
+	baseDir    = filepath.Join(bootstrap.HomeFlag, "/templates/base.html")
+	layoutsDir = filepath.Join(bootstrap.HomeFlag, "/templates/layouts")
+	formsDir   = filepath.Join(bootstrap.HomeFlag, "/templates/forms")
 )
 
 // TemplateRegistry defines the template registry struct
@@ -44,12 +47,12 @@ func readCurrentDir(dir string) []string {
 
 //InitViews initializes the GUI
 func InitViews(e *echo.Echo) {
-
-	e.Static("/staticfiles", "staticfiles")
+	staticfiles := filepath.Join(bootstrap.HomeFlag, "/staticfiles")
+	e.Static("/staticfiles", staticfiles)
 	templates := make(map[string]*template.Template)
 	for _, file := range readCurrentDir(layoutsDir) {
-		templates[file] = template.Must(template.ParseFiles(baseDir, layoutsDir+file))
-		templates[file].ParseGlob(formsDir + "*.html")
+		templates[file] = template.Must(template.ParseFiles(baseDir, layoutsDir+"/"+file))
+		templates[file].ParseGlob(formsDir + "/" + "*.html")
 
 	}
 
