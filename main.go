@@ -9,25 +9,30 @@ import (
 
 	"gitlab.cern.ch/lb-experts/goermis/api/models"
 	"gitlab.cern.ch/lb-experts/goermis/db"
+	"gitlab.cern.ch/lb-experts/goermis/logger"
 	"gitlab.cern.ch/lb-experts/goermis/router"
 	"gitlab.cern.ch/lb-experts/goermis/views"
 )
 
+//Init initiates logging
+
 func main() {
+	logger.Log.Info("Service Started...")
 	// Echo instance
 	e := router.New()
+	logger.Log.Info("Initializing routes")
 	router.InitRoutes(e)
 	views.InitViews(e)
 
+    logger.Log.Info("Initializing database")
 	db.Init()
 	autoCreateTables(&models.Alias{}, &models.Node{}, &models.Cname{}, &models.AliasesNodes{})
 	autoMigrateTables()
 
-	//e.Logger.Fatal(e.Start("137.138.158.76:8080"))
 	// Start server
 	go func() {
 		if err := e.StartTLS(":8080", "/etc/ssl/certs/goermiscert.pem", "/etc/ssl/certs/goermiskey.pem"); err != nil {
-			e.Logger.Info("shutting down the server")
+			logger.Log.Info("shutting down the server")
 		}
 	}()
 
@@ -39,7 +44,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := e.Shutdown(ctx); err != nil {
-		e.Logger.Fatal(err)
+		logger.Log.Fatal(err)
 	}
 }
 
@@ -62,5 +67,9 @@ func autoCreateTables(values ...interface{}) error {
 
 // autoMigrateTables: migrate table columns using GORM
 func autoMigrateTables() {
-	db.ManagerDB().AutoMigrate(&models.Alias{}, &models.Node{}, &models.Cname{}, &models.AliasesNodes{})
+	err := db.ManagerDB().AutoMigrate(&models.Alias{}, &models.Node{}, &models.Cname{}, &models.AliasesNodes{})
+    if err != nil {
+		logger.Log.Error("An error occured while migrating the tables")
+	}
+
 }

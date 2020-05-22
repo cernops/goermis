@@ -3,17 +3,14 @@ package handlers
 import (
 	"net"
 	"net/http"
-	"os"
 	"strconv"
-
-	"github.com/davecgh/go-spew/spew"
 
 	"github.com/asaskevich/govalidator"
 	schema "github.com/gorilla/Schema"
 	"github.com/labstack/echo/v4"
-	log "github.com/sirupsen/logrus"
 	"gitlab.cern.ch/lb-experts/goermis/api/models"
 	"gitlab.cern.ch/lb-experts/goermis/db"
+	"gitlab.cern.ch/lb-experts/goermis/logger"
 )
 
 //CRUD HANDLERS
@@ -26,30 +23,18 @@ var (
 	tablerow string
 	err      error
 	decoder  = schema.NewDecoder()
+	log      = logger.Log
 )
 
 func init() {
-	log.SetFormatter(&log.JSONFormatter{})
-	
-	file, err := os.OpenFile("/var/log/logrus.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err == nil {
-		log.SetOutput(file)
-	} else {
-		log.Info("Failed to log to file, using default stderr")
-	}
-
-	// Only log the warning severity or above.
-	log.SetLevel(log.DebugLevel)
-
 	govalidator.SetFieldsRequiredByDefault(true)
 	decoder.IgnoreUnknownKeys(true)
 	models.CustomValidators()
-
 }
 
 //GetAliases handles requests of all aliases
 func GetAliases(c echo.Context) error {
-
+	log.Info("Preparing to get all aliases")
 	obj.Objects, err = res.GetObjects("", "")
 
 	if err != nil {
@@ -58,13 +43,14 @@ func GetAliases(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	defer c.Request().Body.Close()
-	log.Info("Success while retrieving aliases")
+	log.Info("Alias retrieval succeeded")
 	return c.JSON(http.StatusOK, obj)
 }
 
 //GetAlias queries for a specific alias
 func GetAlias(c echo.Context) error {
 	param := c.Param("alias")
+	log.Info("Preparing to get alias " + param)
 
 	if !govalidator.IsDNSName(param) {
 		log.Error("Wrong type of query parameter, expected Alphanumeric")
@@ -92,20 +78,21 @@ func GetAlias(c echo.Context) error {
 //NewAlias creates a new alias entry in the DB
 func NewAlias(c echo.Context) error {
 	var r models.Resource
-
 	//Get the params from the form
 	params, err := c.FormParams()
-	spew.Dump(params)
+	//Decode them into the resource model for validation
 	err = decoder.Decode(&r, params)
 	if err != nil {
 		log.Error("Error while decoding parameters : " + err.Error())
 		//panic(err)
 
 	}
-
+	//Default values and domain
 	r.AddDefaultValues()
 	r.Hydrate()
+
 	defer c.Request().Body.Close()
+	//Validate structure
 	ok, errs := govalidator.ValidateStruct(r)
 	if errs != nil || ok == false {
 		return c.Render(http.StatusUnprocessableEntity, "home.html", map[string]interface{}{
@@ -113,7 +100,7 @@ func NewAlias(c echo.Context) error {
 			"Message": "There was an error while validating the alias " + params.Get("alias_name") + "Error: " + errs.Error(),
 		})
 	}
-
+	//Create object
 	err = r.CreateObject()
 
 	if err != nil {
@@ -134,12 +121,12 @@ func NewAlias(c echo.Context) error {
 
 }
 
-//DeleteAlias is a prototype
+//DeleteAlias deletes the requested alias from the DB
 func DeleteAlias(c echo.Context) error {
 	var r models.Resource
 	//Get the params from the form
 	aliasName := c.FormValue("alias_name")
-
+	//Validate structure with user defined input values
 	if !govalidator.IsDNSName(aliasName) {
 		log.Error("Wrong type of query parameter, expected Alias name")
 		return echo.NewHTTPError(http.StatusUnprocessableEntity)
@@ -151,7 +138,7 @@ func DeleteAlias(c echo.Context) error {
 	}
 
 	defer c.Request().Body.Close()
-	spew.Dump(alias)
+
 	err = alias[0].DeleteObject()
 	if err != nil {
 		log.Error("Failed to delete object")
@@ -169,13 +156,13 @@ func DeleteAlias(c echo.Context) error {
 
 }
 
-//ModifyAlias is a prototype
+//ModifyAlias modifes cnames, nodes, hostgroup and best_hosts parameters
 func ModifyAlias(c echo.Context) error {
 	var new models.Resource
 	//Retrieve the parameters from the form
 	params, err := c.FormParams()
+	//Pass the values from the form to our structure
 	decoder.Decode(&new, params)
-	spew.Dump(new)
 	if err != nil {
 		log.Error("There was an error reading the parameters:" + err.Error())
 		return err
@@ -213,7 +200,7 @@ func ModifyAlias(c echo.Context) error {
 	})
 }
 
-//CheckNameDNS for now is a prototype function that enables frontend to work
+//CheckNameDNS checks if an alias or cname already exist in DB or DNS server
 func CheckNameDNS(c echo.Context) error {
 	aliasToResolve := c.QueryParam("hostname")
 	var result int
