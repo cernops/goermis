@@ -42,7 +42,7 @@ function initialize_form(retrieveData, action) {
   //reset the form, some browser have a nasty habit of leaving stuff behind
   //clearForm();
   if (retrieveData) {
-    getData('http://localhost:8080/aliases');
+    getData('https://goermis.cern.ch/lbweb/aliases');
 
   } else {
     loaderWindow('close');
@@ -52,7 +52,7 @@ function initialize_form(retrieveData, action) {
 
   //Initialize table
   initialize_nodes("", mode)
- 
+
 
   //make the user aware that he has to select a cluster to edit before entering any details
   toggleEditing(!retrieveData, action);
@@ -206,20 +206,21 @@ function isNodeRFC952Compliant(Node) {
   return check;
 }
 
-function isNodeRFC952Compliant(Node){
+function isNodeRFC952Compliant(Node) {
   var check = true;
   var segmented = Node.split(".");
-  if (segmented.length < 3 || segmented.length >10){
+  if (segmented.length < 3 || segmented.length > 10) {
     check = false;
   }
   var RFCRegex = new RegExp("^[a-z][a-z0-9\-]*[a-z0-9]$");
-  segmented.forEach(function(segment){
-    if (segment.length < 2 || segment.length >32){
+  segmented.forEach(function (segment) {
+    if (segment.length < 2 || segment.length > 32) {
       check = false;
     }
-  else if (!RFCRegex.test(segment)){
-        check = false;
-  }});
+    else if (!RFCRegex.test(segment)) {
+      check = false;
+    }
+  });
   return check;
 }
 
@@ -267,7 +268,7 @@ function populateClass(name, clusterObject) {
   //alert(JSON.stringify(cluster));
   clusterObject.setCluster(name, visibility, replies, hostgroup, cnames);
   DisplayReceivedNodes(cluster.AllowedNodes, cluster.ForbiddenNodes);
-  
+
   return;
 }
 
@@ -320,7 +321,7 @@ function writeFields(clusterObject) {
   //Write on the hidden forms the node names, prepare for submission
   $("#AllowedNodes").val(clusterObject.getAllowedNodes());
   $("#ForbiddenNodes").val(clusterObject.getForbiddenNodes());
- 
+
 
 }
 function nameChanged(name, clusterObject) {
@@ -435,7 +436,15 @@ function clearForm(clusterObject) {
   writeFields(clusterObject);
   initialize_nodes("", mode)
   //fix up what was left behind
-  
+
+}
+
+
+async function AsyncSubmit(newCluster) {
+  writeFields(newCluster);
+  await new Promise(resolve => setTimeout(resolve, 500));
+  $("#webform-client-form-3").submit();
+  $submitDialog.dialog("close");
 }
 
 
@@ -457,7 +466,7 @@ function submitForm(action, newCluster) {
   if (newCluster.getForbiddenNodes() != "") {
     textHTML += "Forbidden Hosts:" + newCluster.getForbiddenNodes() + "<br/>";
   }
-  
+
 
   var $submitDialog = $('<div></div>')
     .html(textHTML)
@@ -468,9 +477,10 @@ function submitForm(action, newCluster) {
       resizable: true,
       buttons: {
         "Cancel": function () { $(this).dialog("close"); },
-        "Send": function () { writeFields(newCluster); $("#webform-client-form-3").submit(); $(this).dialog("close"); }
+        "Send": function () { AsyncSubmit(newCluster); }
       }
     });
+
   $submitDialog.dialog('open');
 }
 

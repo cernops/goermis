@@ -139,7 +139,7 @@ func (r *Resource) Hydrate() {
 
 //DeleteObject deletes an alias and its Relations
 func (r Resource) DeleteObject() (err error) {
-
+	log.Info("Inside delete")
 	var relation []AliasesNodes
 
 	return WithinTransaction(func(tx *gorm.DB) (err error) {

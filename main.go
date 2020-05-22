@@ -1,10 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"os"
+	"os/signal"
+	"time"
 
 	"gitlab.cern.ch/lb-experts/goermis/api/models"
 	"gitlab.cern.ch/lb-experts/goermis/db"
+	"gitlab.cern.ch/lb-experts/goermis/logger"
 	"gitlab.cern.ch/lb-experts/goermis/router"
 	"gitlab.cern.ch/lb-experts/goermis/views"
 )
@@ -17,64 +22,35 @@ const (
 )
 
 func main() {
+	logger.Log.Info("Service Started...")
 	// Echo instance
 	e := router.New()
+	logger.Log.Info("Initializing routes")
 	router.InitRoutes(e)
 	views.InitViews(e)
 
+	logger.Log.Info("Initializing database")
 	db.Init()
 	autoCreateTables(&models.Alias{}, &models.Node{}, &models.Cname{}, &models.AliasesNodes{})
 	autoMigrateTables()
 
-	//Seeding
-	/*db.ManagerDB().Debug().Save(&models.Alias{
+	// Start server
+	go func() {
+		if err := e.StartTLS(":8080", "/etc/ssl/certs/goermiscert.pem", "/etc/ssl/certs/goermiskey.pem"); err != nil {
+			logger.Log.Info("shutting down the server")
+		}
+	}()
 
-		AliasName:        "seeder",
-		Behaviour:        "rogue",
-		BestHosts:        1,
-		External:         "yes",
-		Metric:           "yes",
-		PollingInterval:  5,
-		Statistics:       "cmsfrontier",
-		Clusters:         "none",
-		LastModification: time.Now(),
-		Tenant:           "kkouros",
-		Hostgroup:        "ailbd",
-		User:             "kkouros",
-		TTL:              7,
-		Relations: []*models.Relation{
-			{
-				Node: &models.Node{
-
-					NodeName:         "node",
-					Hostgroup:        "ailbd",
-					LastModification: time.Now(),
-				},
-
-				Blacklist: true,
-			},
-
-			{
-				Node: &models.Node{
-
-					NodeName:         "node2",
-					Hostgroup:        "ailbd",
-					LastModification: time.Now(),
-				},
-
-				Blacklist: true,
-			},
-		},
-
-		Cnames: []models.Cname{
-			{
-				CName: "seed",
-			},
-		},
-	})*/
-
-	e.Logger.Fatal(e.Start(":8080"))
-
+	// Wait for interrupt signal to gracefully shutdown the server with
+	// a timeout of 10 seconds.
+	quit := make(chan os.Signal)
+	signal.Notify(quit, os.Interrupt)
+	<-quit
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := e.Shutdown(ctx); err != nil {
+		logger.Log.Fatal(err)
+	}
 }
 
 func autoCreateTables(values ...interface{}) error {
@@ -96,12 +72,9 @@ func autoCreateTables(values ...interface{}) error {
 
 // autoMigrateTables: migrate table columns using GORM
 func autoMigrateTables() {
-	db.ManagerDB().AutoMigrate(&models.Alias{}, &models.Node{}, &models.Cname{}, &models.AliasesNodes{})
-}
+	err := db.ManagerDB().AutoMigrate(&models.Alias{}, &models.Node{}, &models.Cname{}, &models.AliasesNodes{})
+	if err != nil {
+		logger.Log.Error("An error occured while migrating the tables")
+	}
 
-/*
-// auto drop tables on dev mode
-func autoDropTables() {
-	if bootstrap.App.ENV == "dev" {
-		gorm.DBManager().DropTableIfExists(&models.User{}, &models.User{})
-	}*/
+}
