@@ -23,7 +23,7 @@ var (
 	tablerow string
 	err      error
 	decoder  = schema.NewDecoder()
-	log      = logger.Log
+	log      = *logger.GetLogger()
 )
 
 func init() {

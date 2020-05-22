@@ -4,20 +4,27 @@ import (
 	"os"
 
 	log "github.com/sirupsen/logrus"
+	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 )
 
-//Log global
-var Log *log.Logger
+var (
+	l        *log.Logger
+	filePath = bootstrap.App.IFConfig.String("logging_file")
+)
 
-func init() {
-	Log = log.New()
-	file, err := os.OpenFile("/var/log/logrus.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+//GetLogger gives access to the centralised loging instance
+func GetLogger() *log.Logger {
+
+	l = log.New()
+	l.SetFormatter(&log.JSONFormatter{})
+	l.SetLevel(log.DebugLevel)
+
+	file, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err == nil {
-		Log.SetOutput(file)
+		l.SetOutput(file)
 	} else {
-		Log.Info("Failed to log to file, using default stderr")
+		l.Info("Failed to log to file, using default stderr")
 	}
-	Log.SetFormatter(&log.JSONFormatter{})
-	Log.SetLevel(log.DebugLevel)
 
+	return l
 }

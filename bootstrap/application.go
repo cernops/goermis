@@ -58,7 +58,7 @@ func (app *Application) loadAppConfig() {
 	}
 	appConfig.WatchConfig()
 	appConfig.OnConfigChange(func(e fsnotify.Event) {
-		//	glog.Info("App Config file changed %s:", e.Name)
+		//glog.Info("App Config file changed %s:", e.Name)
 	})
 	app.AppConfig = Config(*appConfig)
 }

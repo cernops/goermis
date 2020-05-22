@@ -21,15 +21,19 @@ const (
 	Release = "1"
 )
 
+var (
+	log = logger.GetLogger()
+)
+
 func main() {
-	logger.Log.Info("Service Started...")
+	log.Info("Service Started...")
 	// Echo instance
 	e := router.New()
-	logger.Log.Info("Initializing routes")
+	log.Info("Initializing routes")
 	router.InitRoutes(e)
 	views.InitViews(e)
 
-	logger.Log.Info("Initializing database")
+	log.Info("Initializing database")
 	db.Init()
 	autoCreateTables(&models.Alias{}, &models.Node{}, &models.Cname{}, &models.AliasesNodes{})
 	autoMigrateTables()
@@ -37,7 +41,7 @@ func main() {
 	// Start server
 	go func() {
 		if err := e.StartTLS(":8080", "/etc/ssl/certs/goermiscert.pem", "/etc/ssl/certs/goermiskey.pem"); err != nil {
-			logger.Log.Info("shutting down the server")
+			log.Info("shutting down the server")
 		}
 	}()
 
@@ -49,7 +53,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := e.Shutdown(ctx); err != nil {
-		logger.Log.Fatal(err)
+		log.Fatal(err)
 	}
 }
 
@@ -72,9 +76,6 @@ func autoCreateTables(values ...interface{}) error {
 
 // autoMigrateTables: migrate table columns using GORM
 func autoMigrateTables() {
-	err := db.ManagerDB().AutoMigrate(&models.Alias{}, &models.Node{}, &models.Cname{}, &models.AliasesNodes{})
-	if err != nil {
-		logger.Log.Error("An error occured while migrating the tables")
-	}
+	db.ManagerDB().AutoMigrate(&models.Alias{}, &models.Node{}, &models.Cname{}, &models.AliasesNodes{})
 
 }
