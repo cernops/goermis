@@ -1,0 +1,33 @@
+app_name: Goermis
+app_version: 0.0.1
+app_env: dev
+
+dev:
+  adapter: --change--
+  database:--change--
+  username: --change--
+  password: --change--
+  host: 127.0.0.1    #defaults to 127.0.0.1
+  port: 3306  #Default for MariaDB only
+  idle_conns: 10
+  open_conns: 100
+  sslmode: disable
+
+staging:
+  adapter: ---CHANGE---
+  database: ---CHANGE---
+  username: ---CHANGE---
+  password: ---CHANGE---
+  host: ---CHANGE---   #defaults to 127.0.0.1
+  port: ---CHANGE---
+  idle_conns: 10
+  open_conns: 100
+  sslmode: disable
+
+production:
+  adapter: ---CHANGE---
+  database: ---CHANGE---
+  username: ---CHANGE---
+  password: ---CHANGE---
+  host: ---CHANGE---   #defaults to 127.0.0.1
+  port: ---CHANGE---
