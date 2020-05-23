@@ -283,3 +283,81 @@ func (self *LandbSoap) DnsDelegatedAliasRemove(domain, view, alias string) bool 
 
 	return self.doSoap(dnsDelegatedAliasRemovePayload, dnsDelegatedAliasRemoveSoapAction, dnsDelegatedAliasRemoveHttpMethod)
 }
+
+type SearchResult struct {
+	XMLName xml.Name
+	Body    struct {
+		XMLName                    xml.Name
+		DnsDelegatedSearchResponse struct {
+			XMLName             xml.Name
+			DNSDelegatedEntries []DNSDelegatedEntry `xml:"DNSDelegatedEntries>DNSDelegatedEntry"`
+		} `xml:"dnsDelegatedSearchResponse"`
+	}
+}
+
+type DNSDelegatedEntry struct {
+	XMLName         xml.Name
+	ID              int
+	Domain          string
+	View            string
+	KeyName         string
+	Description     string
+	UserDescription string
+	Aliases         []string `xml:"Aliases>item"`
+}
+
+func (self *LandbSoap) DnsDelegatedSearch(search string) []DNSDelegatedEntry {
+	dnsDelegatedSearchPayload := []byte(strings.TrimSpace(fmt.Sprintf(`
+<Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/">
+    <Header>
+        <Auth><token>%s</token></Auth>
+    </Header>
+    <Body>
+        <dnsDelegatedSearch xmlns="urn:NetworkService">
+            <Search>%s</Search>
+        </dnsDelegatedSearch>
+    </Body>
+</Envelope>`, self.AuthToken, search)))
+	dnsDelegatedSearchSoapAction := "dnsDelegatedSearch"
+	dnsDelegatedSearchHttpMethod := "POST"
+
+	req, err := http.NewRequest(dnsDelegatedSearchHttpMethod, self.Url, bytes.NewReader(dnsDelegatedSearchPayload))
+	if err != nil {
+		log.Fatal("Error on creating request object. ", err.Error())
+		return []DNSDelegatedEntry{}
+	}
+	req.Header.Set("Content-type", "text/xml")
+	req.Header.Set("SOAPAction", "urn:"+dnsDelegatedSearchSoapAction)
+	resp, err := self.Client.Do(req)
+	if err != nil {
+		log.Fatal("Error on dispatching request. ", err.Error())
+		return []DNSDelegatedEntry{}
+	}
+
+	htmlData, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println(err)
+		return []DNSDelegatedEntry{}
+	}
+	defer resp.Body.Close()
+	fmt.Printf("Status is %v\n", resp.Status)
+	//fmt.Printf(string(htmlData) + "\n")
+
+	result := new(SearchResult)
+	err = xml.NewDecoder(bytes.NewReader(htmlData)).Decode(result)
+	if err != nil {
+		log.Fatal("Error on unmarshaling xml. ", err.Error())
+		return []DNSDelegatedEntry{}
+	}
+
+	return result.Body.DnsDelegatedSearchResponse.DNSDelegatedEntries
+}
+
+func (self *LandbSoap) GimeCnamesOf(domain string) []string {
+	entries := self.DnsDelegatedSearch(domain)
+	if len(entries) != 0 {
+		return entries[0].Aliases
+	} else {
+		return []string{}
+	}
+}
