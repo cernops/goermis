@@ -1,0 +1,17 @@
+[Unit]
+Description=Goermis
+After=network.target
+ConditionPathExists=/usr/bin/goermis
+ConditionPathExists=/var/lib/goermis/templates
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/goermis  -config=/usr/local/etc/  -home=/var/lib/goermis/
+Restart=always
+RestartSec=10
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target
+

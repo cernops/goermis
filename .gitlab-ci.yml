@@ -39,9 +39,7 @@ build_rpm:
     - cd $PREFIX/lb-experts/goermis
     - go12 mod vendor
     - mkdir SOURCES version
-    - tar cvf SOURCES/$PKG.tg  --exclude SOURCES --exclude .git --exclude .koji --exclude .gitlab-ci.yml --exclude go.mod --exclude go.sum --transform "s||$PKG/|" .
-    - gzip -c SOURCES/$PKG.tg > SOURCES/$PKG.tgz
-    - rm -rf SOURCES/$PKG.tg
+    - tar zcvf SOURCES/$PKG.tgz  --exclude SOURCES --exclude .git --exclude .koji --exclude .gitlab-ci.yml --exclude go.mod --exclude go.sum --transform "s||$PKG/|" .
     - rpmbuild -bs --define "_topdir $(pwd)" -D "dist .ai7" $SPEC
     - rpmbuild -bs --define "_topdir $(pwd)" -D "dist .el8" $SPEC
   artifacts:
