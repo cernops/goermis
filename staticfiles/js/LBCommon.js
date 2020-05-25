@@ -262,11 +262,13 @@ function populateClass(name, clusterObject) {
   var hostgroup = cluster.hostgroup;
   var cnames = cluster.cnames;
 
+  var allowed = cluster.AllowedNodes;
+  var forbidden = cluster.ForbiddenNodes;
 
   if (visibility == "yes") { visibility = true; }
   else { visibility = false; }
   //alert(JSON.stringify(cluster));
-  clusterObject.setCluster(name, visibility, replies, hostgroup, cnames);
+  clusterObject.setCluster(name, visibility, replies, hostgroup, cnames, allowed, forbidden);
   DisplayReceivedNodes(cluster.AllowedNodes, cluster.ForbiddenNodes);
 
   return;

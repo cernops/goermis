@@ -6,7 +6,11 @@ import (
 	"strings"
 
 	"github.com/asaskevich/govalidator"
-	"github.com/labstack/gommon/log"
+	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
+)
+
+var (
+	log = bootstrap.Log
 )
 
 //DeleteEmpty filters an array for empty string values
@@ -22,7 +26,6 @@ func DeleteEmpty(s []string) []string {
 
 //StringInSlice checks if a string is in a slice
 func StringInSlice(a string, list []string) bool {
-	log.Info("In StringinSlice")
 	for _, b := range list {
 		if b == a {
 			return true

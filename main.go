@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"gitlab.cern.ch/lb-experts/goermis/api/models"
+	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 	"gitlab.cern.ch/lb-experts/goermis/db"
-	"gitlab.cern.ch/lb-experts/goermis/logger"
 	"gitlab.cern.ch/lb-experts/goermis/router"
 	"gitlab.cern.ch/lb-experts/goermis/views"
 )
@@ -22,7 +22,7 @@ const (
 )
 
 var (
-	log = logger.GetLogger()
+	log = bootstrap.Log
 )
 
 func main() {
