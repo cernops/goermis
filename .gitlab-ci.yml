@@ -42,6 +42,7 @@ build_rpm:
     - tar zcvf SOURCES/$PKG.tgz  --exclude SOURCES --exclude .git --exclude .koji --exclude .gitlab-ci.yml --exclude go.mod --exclude go.sum --transform "s||$PKG/|" .
     - rpmbuild -bs --define "_topdir $(pwd)" -D "dist .ai7" $SPEC
     - rpmbuild -bs --define "_topdir $(pwd)" -D "dist .el8" $SPEC
+    - yum install -y golang
     - rpmbuild -bb --define "_topdir $(pwd)" -D "dist .ai7" $SPEC
   artifacts:
     paths:

@@ -17,14 +17,7 @@ License: ASL 2.0
 URL: https://%{import_path}
 Source: %{name}-%{version}.tgz
 BuildRequires: golang >= 1.5
-BuildRequires: checkpolicy
-%if 0%{?el6}%{?el7}
-BuildRequires: policycoreutils-python
-%else
-BuildRequires: policycoreutils-python-utils
-%endif
 ExclusiveArch: x86_64
-Requires: net-snmp
 
 %description
 %{summary}
