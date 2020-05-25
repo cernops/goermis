@@ -42,14 +42,16 @@ GOPATH=$(pwd):%{gopath} go build -o ermis %{import_path}
 
 %install
 # main package binary
-install -d -p %{buildroot}/usr/sbin/ %{buildroot}/usr/share/selinux/targeted/ %{buildroot}/usr/local/etc %{buildroot}/usr/local/sbin/
+install -d -p %{buildroot}/usr/sbin/ %{buildroot}/var/lib/ermis/ %{buildroot}/usr/local/sbin/
 install -p -m0755 ermis %{buildroot}/usr/sbin/ermis
-
+install -p  templates  %{buildroot}/var/lib/ermis/
+install -p -m0644 config/systemd/ermis.service  %{buildroot}/lib/systemd/system
 
 %files
 %doc LICENSE COPYING README.md
 /usr/sbin/ermis
-
+/var/lib/ermis
+/lib/systemd/system/ermis.service
 
 %changelog
 * Wed May 20 2020 Pablo Saiz <pablo.saiz@cern.ch>           - 0.0.1
