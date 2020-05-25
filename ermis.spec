@@ -44,13 +44,13 @@ GOPATH=$(pwd):%{gopath} go build -o ermis %{import_path}
 # main package binary
 install -d -p %{buildroot}/usr/sbin/ %{buildroot}/var/lib/ermis/ %{buildroot}/usr/local/sbin/
 install -p -m0755 ermis %{buildroot}/usr/sbin/ermis
-install -p  templates  %{buildroot}/var/lib/ermis/
-install -p config/systemd/goermis.service  %{buildroot}/lib/system.d/system
+cp -r templates %{buildroot}/var/lib/ermis/
+install -p config/systemd/goermis.service %{buildroot}/lib/system.d/system
 
 %files
 %doc LICENSE COPYING README.md
 /usr/sbin/ermis
-/var/lib/ermis
+/var/lib/ermis/
 /lib/system.d/system/goermis.service
 
 %changelog
