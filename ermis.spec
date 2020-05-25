@@ -17,14 +17,7 @@ License: ASL 2.0
 URL: https://%{import_path}
 Source: %{name}-%{version}.tgz
 BuildRequires: golang >= 1.5
-BuildRequires: checkpolicy
-%if 0%{?el6}%{?el7}
-BuildRequires: policycoreutils-python
-%else
-BuildRequires: policycoreutils-python-utils
-%endif
 ExclusiveArch: x86_64
-Requires: net-snmp
 
 %description
 %{summary}
@@ -42,17 +35,19 @@ GOPATH=$(pwd):%{gopath} go build -o ermis %{import_path}
 
 %install
 # main package binary
-install -d -p %{buildroot}/usr/sbin/ %{buildroot}/var/lib/ermis/ %{buildroot}/usr/local/sbin/
+install -d -p %{buildroot}/usr/sbin/ %{buildroot}/var/lib/ermis/ %{buildroot}/lib/systemd/system/
 install -p -m0755 ermis %{buildroot}/usr/sbin/ermis
-install -p  templates  %{buildroot}/var/lib/ermis/
+cp -r templates %{buildroot}/var/lib/ermis/
 install -p -m0644 config/systemd/ermis.service  %{buildroot}/lib/systemd/system
 
 %files
 %doc LICENSE COPYING README.md
 /usr/sbin/ermis
-/var/lib/ermis
+/var/lib/ermis/
 /lib/systemd/system/ermis.service
 
 %changelog
+* Mon May 25 2020 Pablo Saiz <pablo.saiz@cern.ch>           - 0.0.2
+- Include the service startup  
 * Wed May 20 2020 Pablo Saiz <pablo.saiz@cern.ch>           - 0.0.1
 - First version
