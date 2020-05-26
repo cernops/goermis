@@ -6,7 +6,7 @@ ConditionPathExists=/var/lib/ermis/templates
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/ermis -config=/usr/local/etc/ -home=/var/lib/ermis/
+ExecStart=/usr/sbin/ermis -config=/usr/local/etc/ -home=/var/lib/ermis/
 Restart=always
 RestartSec=10
 User=root
