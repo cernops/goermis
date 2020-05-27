@@ -1,12 +1,12 @@
 [Unit]
 Description=Goermis
 After=network.target
-ConditionPathExists=/root/go/bin/goermis
-ConditionPathExists=/root/go/src/gitlab.cern.ch/lb-experts/goermis/templates	
+ConditionPathExists=/usr/sbin/ermis
+ConditionPathExists=/var/lib/ermis/templates
 
 [Service]
 Type=simple
-ExecStart=/root/go/bin/goermis  -config=/usr/local/etc/  -home=/root/go/src/gitlab.cern.ch/lb-experts/goermis/   
+ExecStart=/usr/sbin/ermis  -config=/usr/local/etc/  -home=/var/lib/ermis/
 Restart=always
 RestartSec=10
 User=root
@@ -14,4 +14,5 @@ Group= root
 
 [Install]
 WantedBy=multi-user.target
+
 
