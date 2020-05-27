@@ -14,7 +14,7 @@ var (
 //GetLogger gives access to the centralised loging instance
 func init() {
 	Log.SetFormatter(&log.JSONFormatter{})
-	Log.SetLevel(log.DebugLevel)
+	Log.SetLevel(log.InfoLevel)
 	file, err := os.OpenFile(App.IFConfig.String("logging_file"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err == nil {
 		Log.SetOutput(file)

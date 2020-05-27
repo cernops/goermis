@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"gitlab.cern.ch/lb-experts/goermis/api/models"
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 	"gitlab.cern.ch/lb-experts/goermis/db"
@@ -29,11 +30,9 @@ func main() {
 	log.Info("Service Started...")
 	// Echo instance
 	e := router.New()
-	log.Info("Initializing routes")
 	router.InitRoutes(e)
 	views.InitViews(e)
 
-	log.Info("Initializing database")
 	db.Init()
 	autoCreateTables(&models.Alias{}, &models.Node{}, &models.Cname{}, &models.AliasesNodes{})
 	autoMigrateTables()
@@ -41,7 +40,11 @@ func main() {
 	// Start server
 	go func() {
 		if err := e.StartTLS(":8080", "/etc/ssl/certs/goermiscert.pem", "/etc/ssl/certs/goermiskey.pem"); err != nil {
-			log.Info("shutting down the server")
+			log.WithFields(logrus.Fields{
+				"package":  "main",
+				"function": "StartTLS",
+				"error":    err,
+			}).Debug("Ignore if error is Port Binding")
 		}
 	}()
 
