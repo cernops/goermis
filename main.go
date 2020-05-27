@@ -16,9 +16,9 @@ import (
 
 const (
 	// Version number
-	Version = "0.0.1"
+	Version = "0.0.2"
 	// Release number
-	Release = "1"
+	Release = "2"
 )
 
 var (
