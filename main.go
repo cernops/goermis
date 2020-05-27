@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"time"
@@ -56,7 +55,11 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := e.Shutdown(ctx); err != nil {
-		log.Fatal(err)
+		log.WithFields(logrus.Fields{
+			"package":  "main",
+			"function": "graceful Shutdown",
+			"error":    err,
+		}).Fatal("Fatal error while shutting server down")
 	}
 }
 
@@ -67,7 +70,12 @@ func autoCreateTables(values ...interface{}) error {
 			if err != nil {
 				errClose := db.ManagerDB().Close()
 				if errClose != nil {
-					fmt.Printf("%s", errClose)
+					log.WithFields(logrus.Fields{
+						"package":  "main",
+						"function": "autoCreateTables",
+						"error":    errClose,
+					}).Error("Error while trying to close DB conn.")
+
 				}
 				return err
 
