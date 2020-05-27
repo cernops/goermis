@@ -1,0 +1,17 @@
+[Unit]
+Description=ermis
+After=network.target
+ConditionPathExists=/usr/sbin/ermis
+ConditionPathExists=/var/lib/ermis/templates	
+
+[Service]
+Type=simple
+ExecStart=/usr/sbin/ermis -config=/usr/local/etc/ -home=/var/lib/ermis/
+Restart=always
+RestartSec=10
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target
+
