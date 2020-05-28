@@ -1,0 +1,12 @@
+/var/log/ermis/ermis* {
+           daily
+           rotate 31
+           olddir /var/log/ermis/old
+           missingok
+           postrotate
+                     /usr/bin/systemctl restart ermis > /dev/null
+           endscript
+           sharedscripts
+           compress
+}
+
