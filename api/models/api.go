@@ -74,7 +74,7 @@ func (r Resource) CreateObject() (err error) {
 	cnames := DeleteEmpty(strings.Split(r.Cname, ","))
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
 
-		// check new object
+		// check new object's primary key
 		if !cgorm.ManagerDB().NewRecord(&a) {
 			return err
 		}
