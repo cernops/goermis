@@ -37,9 +37,9 @@ func init() {
 func main() {
 	log.Info("Service Started...")
 	// Echo instance
-	e := router.New()
-	router.InitRoutes(e)
-	views.InitViews(e)
+	echo := router.New()
+	router.InitRoutes(echo)
+	views.InitViews(echo)
 
 	db.Init()
 	autoCreateTables(&models.Alias{}, &models.Node{}, &models.Cname{}, &models.AliasesNodes{})
@@ -47,7 +47,9 @@ func main() {
 
 	// Start server
 	go func() {
-		if err := e.StartTLS(":8080", "/etc/ssl/certs/goermiscert.pem", "/etc/ssl/certs/goermiskey.pem"); err != nil {
+		if err := echo.StartTLS(":8080",
+			bootstrap.App.IFConfig.String("hostcert"),
+			bootstrap.App.IFConfig.String("hostkey")); err != nil {
 			log.Debug("Ignore if error is Port Binding")
 		}
 	}()
@@ -59,7 +61,7 @@ func main() {
 	<-quit
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	if err := e.Shutdown(ctx); err != nil {
+	if err := echo.Shutdown(ctx); err != nil {
 		log.Fatal("Fatal error while shutting server down")
 	}
 }

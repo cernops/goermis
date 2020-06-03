@@ -54,8 +54,9 @@ type (
 		Hostgroup        string    `json:"hostgroup"  gorm:"size:40;not null" `
 		Aliases          []*AliasesNodes
 	}
-	//DBFunc type which accept *gorm.DB and return error
+	//DBFunc type which accept *gorm.DB and return error, used for transactions
 	DBFunc func(tx *gorm.DB) error
+
 	//Resource deals with the output from the queries
 	Resource struct {
 		ID               int       `json:"alias_id" valid:"required,numeric"`
