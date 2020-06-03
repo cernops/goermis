@@ -6,7 +6,7 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	"github.com/labstack/gommon/log"
 	"gitlab.cern.ch/lb-experts/goermis/api/models"
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 	"gitlab.cern.ch/lb-experts/goermis/db"
@@ -21,9 +21,18 @@ const (
 	Release = "2"
 )
 
-var (
-	log = bootstrap.Log
-)
+func init() {
+	log.EnableColor()
+	log.SetLevel(1)
+	log.SetHeader("${time_rfc3339} ${level} ${short_file} ${line} ")
+	file, err := os.OpenFile(bootstrap.App.IFConfig.String("logging_file"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err == nil {
+		log.SetOutput(file)
+		log.Info("File set as logger output")
+	} else {
+		log.Info("Failed to log to file, using default stderr")
+	}
+}
 
 func main() {
 	log.Info("Service Started...")
@@ -39,11 +48,7 @@ func main() {
 	// Start server
 	go func() {
 		if err := e.StartTLS(":8080", "/etc/ssl/certs/goermiscert.pem", "/etc/ssl/certs/goermiskey.pem"); err != nil {
-			log.WithFields(logrus.Fields{
-				"package":  "main",
-				"function": "StartTLS",
-				"error":    err,
-			}).Debug("Ignore if error is Port Binding")
+			log.Debug("Ignore if error is Port Binding")
 		}
 	}()
 
@@ -55,11 +60,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := e.Shutdown(ctx); err != nil {
-		log.WithFields(logrus.Fields{
-			"package":  "main",
-			"function": "graceful Shutdown",
-			"error":    err,
-		}).Fatal("Fatal error while shutting server down")
+		log.Fatal("Fatal error while shutting server down")
 	}
 }
 
@@ -70,11 +71,7 @@ func autoCreateTables(values ...interface{}) error {
 			if err != nil {
 				errClose := db.ManagerDB().Close()
 				if errClose != nil {
-					log.WithFields(logrus.Fields{
-						"package":  "main",
-						"function": "autoCreateTables",
-						"error":    errClose,
-					}).Error("Error while trying to close DB conn.")
+					log.Error("Error while trying to close DB conn.")
 
 				}
 				return err

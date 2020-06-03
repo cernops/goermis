@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/labstack/gommon/log"
 	"github.com/spf13/viper"
 )
 
@@ -60,7 +61,7 @@ func (app *Application) loadAppConfig() {
 	}
 	appConfig.WatchConfig()
 	appConfig.OnConfigChange(func(e fsnotify.Event) {
-		Log.Info("App Config file changed %s:", e.Name)
+		log.Info("App Config file changed %s:", e.Name)
 	})
 	app.AppConfig = Config(*appConfig)
 }
@@ -83,7 +84,7 @@ func (app *Application) loadIFConfig() {
 	}
 	ifConfig.WatchConfig()
 	ifConfig.OnConfigChange(func(e fsnotify.Event) {
-		Log.Info("App Config file changed %s:", e.Name)
+		log.Info("App Config file changed %s:", e.Name)
 	})
 	app.IFConfig = Config(*ifConfig)
 }

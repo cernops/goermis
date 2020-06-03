@@ -10,8 +10,8 @@ require (
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
 	github.com/jinzhu/gorm v1.9.12
 	github.com/labstack/echo/v4 v4.1.16
+	github.com/labstack/gommon v0.3.0
 	github.com/lib/pq v1.5.2
-	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/viper v1.6.3
 	golang.org/x/sys v0.0.0-20200523222454-059865788121 // indirect
 

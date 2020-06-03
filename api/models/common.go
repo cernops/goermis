@@ -6,11 +6,7 @@ import (
 	"strings"
 
 	"github.com/asaskevich/govalidator"
-	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
-)
-
-var (
-	log = bootstrap.Log
+	"github.com/labstack/gommon/log"
 )
 
 //DeleteEmpty filters an array for empty string values
