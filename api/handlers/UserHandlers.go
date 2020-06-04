@@ -34,7 +34,7 @@ func init() {
 
 //GetAliases handles requests of all aliases
 func GetAliases(c echo.Context) error {
-    
+
 	log.Info("Ready do get all aliases")
 	if all.Objects, e = models.GetObjects("", ""); e != nil {
 		log.Error("Failed to get the list of aliases with error: " + e.Error())
