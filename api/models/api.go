@@ -1,14 +1,19 @@
 package models
 
 import (
+	"errors"
+	"strconv"
 	"strings"
 	"time"
 
 	schema "github.com/gorilla/Schema"
 	"github.com/jinzhu/copier"
 	"github.com/jinzhu/gorm"
+	"github.com/labstack/gommon/log"
+	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 	"gitlab.cern.ch/lb-experts/goermis/db"
 	cgorm "gitlab.cern.ch/lb-experts/goermis/db"
+	landbsoap "gitlab.cern.ch/lb-experts/goermis/landb"
 )
 
 var (
@@ -49,7 +54,7 @@ func GetObjects(param string, tablerow string) (b []Resource, err error) {
 	rows, err := con.Raw(q).Rows()
 
 	if err != nil {
-		return b, err
+		return b, errors.New("Failed in query: " + err.Error())
 
 	}
 	defer rows.Close()
@@ -60,38 +65,42 @@ func GetObjects(param string, tablerow string) (b []Resource, err error) {
 			&result.LastModification, &result.Metric, &result.PollingInterval,
 			&result.Tenant, &result.TTL, &result.User, &result.Statistics)
 		if err != nil {
-			return b, err
+			return b, errors.New("Failed in scanning query results with err: " +
+				err.Error())
 		}
 		b = append(b, result)
 	}
 	return b, nil
 }
 
-//CreateObject creates an alias
-func (r Resource) CreateObject() (err error) {
+//CreateObjectInDB creates an alias
+func (r Resource) CreateObjectInDB() (err error) {
 	var a Alias
 	copier.Copy(&a, &r)
 	cnames := DeleteEmpty(strings.Split(r.Cname, ","))
+	
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
 
 		// check new object's primary key
 		if !cgorm.ManagerDB().NewRecord(&a) {
-			return err
+			return errors.New("Blank primary key for alias")
 		}
 		if err = tx.Create(&a).Error; err != nil {
 			tx.Rollback() // rollback
-			return err
+			return errors.New(a.AliasName + " creation in DB failed with error: " +
+				err.Error())
 		}
 
 		if len(cnames) > 0 {
 			for _, cname := range cnames {
 				if !cgorm.ManagerDB().NewRecord(&Cname{CName: cname}) {
-					return err
+					return errors.New("Blank priamry key for cname")
 				}
 
 				if err = tx.Model(&a).Association("Cnames").Append(&Cname{CName: cname}).Error; err != nil {
 					tx.Rollback()
-					return err
+					return errors.New(cname + " creation in DB failed with error: " +
+						err.Error())
 				}
 			}
 		}
@@ -134,31 +143,35 @@ func (r Resource) DeleteObject() (err error) {
 
 		//Make sure alias exists
 		if tx.Where("alias_name = ?", r.AliasName).First(&Alias{}).RecordNotFound() {
-			return err
+			return errors.New("RecordNotFound Error while trying to delete alias ")
 
 		}
 
 		//Find and store all relations
 		if err := tx.Where("alias_id=?", r.ID).Find(&relation).Error; err != nil {
-			return err
+			return errors.New("Failed to find node relations with error: " + err.Error())
 		}
 
 		for _, v := range relation {
 			var node Node
-			//Find node itself and load
+			//Find node itself with reverse looking and load
 			if err := tx.Where("id=?", v.NodeID).First(&node).Error; err != nil {
-				return err
+				return errors.New("Failed to reverse look node with ID " + strconv.Itoa(v.NodeID))
 			}
 			// Delete relation first
 			err = tx.Where("node_id=? AND alias_id =? ", v.NodeID, r.ID).Delete(&AliasesNodes{}).Error
 			if err != nil {
-				return err
+				return errors.New("Failed to delete the relation with nodeID " +
+					strconv.Itoa(v.NodeID) +
+					"Error: " + err.Error())
 			}
 
 			//Delete node with no other relations
 			if tx.Model(&node).Association("Aliases").Count() == 0 {
 				if err = con.Delete(&node).Error; err != nil {
-					return err
+					return errors.New("Failed to delete unrelated node " +
+						node.NodeName +
+						"Error: " + err.Error())
 
 				}
 
@@ -168,13 +181,13 @@ func (r Resource) DeleteObject() (err error) {
 		//Delete cnames
 		err = tx.Where("alias_id= ?", r.ID).Delete(&Cname{}).Error
 		if err != nil {
-			return err
+			return errors.New("Failed to delete cnames with error: " + err.Error())
 		}
 
 		//Finally delete alias
 		err = tx.Where("alias_name = ?", r.AliasName).Delete(&Alias{}).Error
 		if err != nil {
-			return err
+			return errors.New("Failed to delete alias with error: " + err.Error())
 		}
 
 		return nil
@@ -187,19 +200,23 @@ func (r Resource) ModifyObject(new Resource) (err error) {
 	newCnames := DeleteEmpty(strings.Split(new.Cname, ","))
 	exCnames := DeleteEmpty(strings.Split(r.Cname, ","))
 
+	//Let's update the single-valued fields first
 	if err = con.Model(&Alias{}).Where("id = ?", r.ID).UpdateColumns(
 		map[string]interface{}{
 			"external":   new.External,
 			"hostgroup":  new.Hostgroup,
 			"best_hosts": new.BestHosts,
 		}).Error; err != nil {
-		return err
+		return errors.New("Failed to update the single-valued fields with error: " + err.Error())
 
 	}
+	//Update cnames for object r with new cnames
 	err = r.UpdateCnames(exCnames, newCnames)
 	if err != nil {
 		return err
 	}
+	/*Update nodes for r object with new nodes(nodesToMap converts string to map,
+	  where value indicates privilege allowed/forbidden)*/
 	err = r.UpdateNodes(nodesToMap(r), nodesToMap(new))
 	if err != nil {
 		return err
@@ -215,7 +232,8 @@ func (r Resource) UpdateCnames(exCnames []string, newCnames []string) (err error
 		for _, value := range exCnames {
 			if !StringInSlice(value, newCnames) {
 				if err = r.DeleteCname(value); err != nil {
-					return err
+					return errors.New("Failed to delete existing cname " +
+						value + " while updating, with error: " + err.Error())
 				}
 			}
 		}
@@ -226,7 +244,8 @@ func (r Resource) UpdateCnames(exCnames []string, newCnames []string) (err error
 			}
 			if !StringInSlice(value, exCnames) {
 				if err = r.AddCname(value); err != nil {
-					return err
+					return errors.New("Failed to add new cname " +
+						value + " while updating, with error: " + err.Error())
 				}
 			}
 
@@ -234,21 +253,22 @@ func (r Resource) UpdateCnames(exCnames []string, newCnames []string) (err error
 
 	} else {
 		for _, value := range exCnames {
-
 			if err = r.DeleteCname(value); err != nil {
-				return err
+				return errors.New("Failed to delete cname " +
+					value + " while purging all, with error: " + err.Error())
 			}
 		}
 	}
 	return nil
 }
 
-//UpdateNodes updates cnames
+//UpdateNodes updates alias with new nodes
 func (r Resource) UpdateNodes(ex map[string]bool, new map[string]bool) (err error) {
 	for k, v := range ex {
 		if _, ok := new[k]; !ok {
 			if err = r.DeleteNode(k, v); err != nil {
-				return err
+				return errors.New("Failed to delete existing node " +
+					k + " while updating, with error: " + err.Error())
 			}
 		}
 	}
@@ -258,11 +278,13 @@ func (r Resource) UpdateNodes(ex map[string]bool, new map[string]bool) (err erro
 		}
 		if _, ok := ex[k]; !ok {
 			if err = r.AddNode(k, v); err != nil {
-				return err
+				return errors.New("Failed to add new node " +
+					k + " while updating, with error: " + err.Error())
 			}
 		} else if value, ok := ex[k]; ok && value != v {
 			if err = r.UpdateNodePrivilege(k, v); err != nil {
-				return err
+				return errors.New("Failed to update privilege for node " +
+					k + " while updating, with error: " + err.Error())
 			}
 		}
 	}
@@ -390,5 +412,24 @@ func WithinTransaction(fn DBFunc) (err error) {
 	if err != nil {
 	}
 	return err
+
+}
+
+//DNS
+
+//CreateObjectInDNS manages the creation of DNS entries
+func (r Resource) CreateObjectInDNS() bool {
+	log.Info("Before SOAP ")
+	view := "internal"
+	keyname := bootstrap.App.IFConfig.String("soap_keyname_i")
+	if r.External == "yes" {
+		view = "external"
+		keyname = bootstrap.App.IFConfig.String("soap_keyname_e")
+	}
+	if landbsoap.Soap.DNSDelegatedAdd(r.AliasName, view, keyname, "Created by: kkouros", "testing go") {
+		log.Info(r.AliasName + "/" + view + "has been created")
+		return true
+	}
+	return false
 
 }

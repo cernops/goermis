@@ -37,7 +37,7 @@ func GetAliases(c echo.Context) error {
 
 	log.Info("Ready do get all aliases")
 	if all.Objects, e = models.GetObjects("", ""); e != nil {
-		log.Error("Failed to get the list of aliases with error: " + e.Error())
+		log.Error(e.Error())
 		return echo.NewHTTPError(http.StatusBadRequest, e.Error())
 	}
 	defer c.Request().Body.Close()
@@ -101,20 +101,26 @@ func NewAlias(c echo.Context) error {
 				"Error: " + err.Error(),
 		})
 	}
-	//Create object
-	if err := r.CreateObject(); err != nil {
-		log.Error("Failed to create the new alias with error: " + err.Error())
-
+	//Create object in DB
+	if err := r.CreateObjectInDB(); err != nil {
+		log.Error(err.Error())
 		return c.Render(http.StatusBadRequest, "home.html", map[string]interface{}{
 			"Auth": true,
-			"Message": "There was an error while creating the alias " +
+			"Message": "There was an error while creating the alias in DB " +
 				params.Get("alias_name") +
 				"Error: " + err.Error(),
 		})
 
 	}
-	log.Info("Alias created successfully")
+	if !r.CreateObjectInDNS() {
+		log.Error("Failed to create the new alias in DNS")
+		return c.Render(http.StatusBadRequest, "home.html", map[string]interface{}{
+			"Auth": true,
+			"Message": "There was an error while creating the alias in DNS " +
+				params.Get("alias_name")})
 
+	}
+	log.Info("Alias created successfully")
 	return c.Render(http.StatusCreated, "home.html", map[string]interface{}{
 		"Auth":    true,
 		"Message": params.Get("alias_name") + "  created Successfully",
@@ -143,7 +149,8 @@ func DeleteAlias(c echo.Context) error {
 	defer c.Request().Body.Close()
 
 	if err := alias[0].DeleteObject(); err != nil {
-		log.Error("Failed to delete alias with error: " + err.Error())
+		log.Error("Failed to delete alias" + alias[0].AliasName +
+			"with error: " + err.Error())
 
 		return c.Render(http.StatusBadRequest, "home.html", map[string]interface{}{
 			"Auth":    true,
@@ -194,9 +201,11 @@ func ModifyAlias(c echo.Context) error {
 		return err
 	}
 	defer c.Request().Body.Close()
+
 	// Call the modifier
 	if err := existingObj[0].ModifyObject(newObj); err != nil {
-		log.Error("Failed to update alias with error: " + err.Error())
+		log.Error("Failed to update alias" + existingObj[0].AliasName +
+			"with error: " + err.Error())
 		return c.Render(http.StatusOK, "home.html", map[string]interface{}{
 			"Auth":    true,
 			"Message": "There was an error while updating the alias" + err.Error(),
@@ -224,6 +233,11 @@ func CheckNameDNS(c echo.Context) error {
 		} else {
 			log.Warn("Alias with the same name exists in the DNS")
 			result = len(r)
+			return c.Render(http.StatusConflict, "home.html", map[string]interface{}{
+				"Auth":    true,
+				"Message": "Alias with the same name exists in the DNS",
+			})
+
 		}
 	}
 	return c.JSON(http.StatusOK, result)

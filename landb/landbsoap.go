@@ -31,7 +31,8 @@ var (
 )
 
 func init() {
-	Soap = LandbSoap{Username: "ermis",
+	Soap = LandbSoap{
+		Username: "ermis",
 		Password:  "Gemuxe89",
 		Ca:        "/etc/ssl/certs/ca-bundle.crt",
 		HostCert:  "/etc/ssl/certs/goermiscert.pem",
@@ -42,11 +43,7 @@ func init() {
 
 	err := Soap.InitConnection()
 	if err != nil {
-		/*log.WithFields(logrus.Fields{
-			"package":  "main",
-			"function": "init",
-			"error":    err,
-		}).Fatal("Error initiating SOAP interface")*/
+		log.Fatal("Error initiating SOAP interface")
 		//os.Exit(1)
 	}
 }
