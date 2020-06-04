@@ -32,7 +32,7 @@ var (
 
 func init() {
 	Soap = LandbSoap{
-		Username: "ermis",
+		Username:  "ermis",
 		Password:  "Gemuxe89",
 		Ca:        "/etc/ssl/certs/ca-bundle.crt",
 		HostCert:  "/etc/ssl/certs/goermiscert.pem",

@@ -78,7 +78,7 @@ func (r Resource) CreateObjectInDB() (err error) {
 	var a Alias
 	copier.Copy(&a, &r)
 	cnames := DeleteEmpty(strings.Split(r.Cname, ","))
-	
+
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
 
 		// check new object's primary key
