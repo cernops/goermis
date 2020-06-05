@@ -13,8 +13,8 @@ dev:
   open_conns: 100
   sslmode: disable
 
-  hostcert: --change--
-  hostkey: --change--
+  goermiscert: --change--
+  goermiskey: --change--
   
 
   soap_user: --change--

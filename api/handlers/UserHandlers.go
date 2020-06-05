@@ -85,10 +85,10 @@ func NewAlias(c echo.Context) error {
 		log.Warn("Failed to decode form parameters to structure with error: " +
 			err.Error())
 	}
+
+	//Default values and domain 
+	r.DefaultAndHydrate()
 	
-	//Default values and domain
-	r.AddDefaultValues()
-	r.Hydrate()
 
 	defer c.Request().Body.Close()
 	//Validate structure
@@ -103,24 +103,17 @@ func NewAlias(c echo.Context) error {
 		})
 	}
 	//Create object in DB
-	if err := r.CreateObjectInDB(); err != nil {
+	if err := r.CreateObject(); err != nil {
 		log.Error(err.Error())
 		return c.Render(http.StatusBadRequest, "home.html", map[string]interface{}{
 			"Auth": true,
-			"Message": "There was an error while creating the alias in DB " +
+			"Message": "There was an error while creating the alias" +
 				params.Get("alias_name") +
 				"Error: " + err.Error(),
 		})
 
 	}
-	if !r.CreateObjectInDNS() {
-		log.Error("Failed to create the new alias in DNS")
-		return c.Render(http.StatusBadRequest, "home.html", map[string]interface{}{
-			"Auth": true,
-			"Message": "There was an error while creating the alias in DNS " +
-				params.Get("alias_name")})
 
-	}
 	log.Info("Alias created successfully")
 	return c.Render(http.StatusCreated, "home.html", map[string]interface{}{
 		"Auth":    true,
