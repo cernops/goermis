@@ -50,11 +50,7 @@ func main() {
 		if err := echo.StartTLS(":8080",
 			bootstrap.App.IFConfig.String("goermiscert"),
 			bootstrap.App.IFConfig.String("goermiskey")); err != nil {
-<<<<<<< HEAD
 			log.Debug("Ignore if error is Port Binding" + err.Error())
-=======
-			log.Debug("Ignore if error is Port Binding")
->>>>>>> 244e9fa... Update config.yaml.example, main.go files
 		}
 	}()
 

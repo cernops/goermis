@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
@@ -11,6 +12,8 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+
+	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 )
 
 //LandbSoap defines the structure
@@ -31,17 +34,21 @@ var (
 )
 
 func init() {
+	password := bootstrap.App.IFConfig.String("soap_password")
+	decodedPass, err := base64.StdEncoding.DecodeString(password)
+
 	Soap = LandbSoap{
-		Username:  "",
-		Password:  "",
+		Username:  bootstrap.App.IFConfig.String("soap_user"),
+		Password:  string(decodedPass),
 		Ca:        "/etc/ssl/certs/ca-bundle.crt",
-		HostCert:  "/etc/ssl/certs/goermiscert.pem",
-		HostKey:   "/etc/ssl/certs/goermiskey.pem",
-		URL:       "https://network.cern.ch/sc/soap/soap.fcgi?v=6",
+		HostCert:  bootstrap.App.IFConfig.String("goermiscert"),
+		HostKey:   bootstrap.App.IFConfig.String("goermiskey"),
+		URL:       bootstrap.App.IFConfig.String("soap_url"),
 		AuthToken: "",
 		Client:    &http.Client{}}
 
-	err := Soap.InitConnection()
+	err = Soap.InitConnection()
+
 	if err != nil {
 		log.Fatal("Error initiating SOAP interface")
 		//os.Exit(1)
