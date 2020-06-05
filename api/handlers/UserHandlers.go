@@ -85,6 +85,7 @@ func NewAlias(c echo.Context) error {
 		log.Warn("Failed to decode form parameters to structure with error: " +
 			err.Error())
 	}
+	
 	//Default values and domain
 	r.AddDefaultValues()
 	r.Hydrate()
@@ -204,8 +205,10 @@ func ModifyAlias(c echo.Context) error {
 
 	// Call the modifier
 	if err := existingObj[0].ModifyObject(newObj); err != nil {
+
 		log.Error("Failed to update alias" + existingObj[0].AliasName +
 			"with error: " + err.Error())
+
 		return c.Render(http.StatusOK, "home.html", map[string]interface{}{
 			"Auth":    true,
 			"Message": "There was an error while updating the alias" + err.Error(),

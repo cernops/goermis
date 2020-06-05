@@ -419,17 +419,29 @@ func WithinTransaction(fn DBFunc) (err error) {
 
 //CreateObjectInDNS manages the creation of DNS entries
 func (r Resource) CreateObjectInDNS() bool {
-	log.Info("Before SOAP ")
+	log.Info("Preparing to add in DNS")
 	view := "internal"
 	keyname := bootstrap.App.IFConfig.String("soap_keyname_i")
+	cnames := DeleteEmpty(strings.Split(r.Cname, ","))
+	log.Info(cnames)
 	if r.External == "yes" {
 		view = "external"
 		keyname = bootstrap.App.IFConfig.String("soap_keyname_e")
 	}
 	if landbsoap.Soap.DNSDelegatedAdd(r.AliasName, view, keyname, "Created by: kkouros", "testing go") {
 		log.Info(r.AliasName + "/" + view + "has been created")
+		if len(cnames) > 0 {
+			for _, cname := range cnames {
+				log.Info("Adding in DNS the cname " + cname)
+				if landbsoap.Soap.DNSDelegatedAliasAdd(r.AliasName, view, cname) {
+					log.Info("Alias " + cname + " has been created for " + r.AliasName + "/" + view)
+				}
+
+			}
+		}
 		return true
 	}
+
 	return false
 
 }

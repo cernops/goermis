@@ -48,9 +48,9 @@ func main() {
 	// Start server
 	go func() {
 		if err := echo.StartTLS(":8080",
-			bootstrap.App.IFConfig.String("hostcert"),
-			bootstrap.App.IFConfig.String("hostkey")); err != nil {
-			log.Debug("Ignore if error is Port Binding")
+			bootstrap.App.IFConfig.String("goermiscert"),
+			bootstrap.App.IFConfig.String("goermiskey")); err != nil {
+			log.Debug("Ignore if error is Port Binding" + err.Error())
 		}
 	}()
 
