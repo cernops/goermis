@@ -86,9 +86,8 @@ func NewAlias(c echo.Context) error {
 			err.Error())
 	}
 
-	//Default values and domain 
+	//Default values and domain
 	r.DefaultAndHydrate()
-	
 
 	defer c.Request().Body.Close()
 	//Validate structure
