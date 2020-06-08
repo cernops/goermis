@@ -392,8 +392,8 @@ func (landbself *LandbSoap) DNSDelegatedSearch(search string) []DNSDelegatedEntr
 	return result.Body.DNSDelegatedSearchResponse.DNSDelegatedEntries
 }
 
-//GiveMeCnamesOf returns an array of all aliases for a certain domain
-func (landbself *LandbSoap) GiveMeCnamesOf(domain string) []string {
+//GimeCnamesOf returns an array of all aliases for a certain domain
+func (landbself *LandbSoap) GimeCnamesOf(domain string) []string {
 	entries := landbself.DNSDelegatedSearch(domain)
 	if len(entries) != 0 {
 		return entries[0].Aliases

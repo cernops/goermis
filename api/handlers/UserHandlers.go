@@ -198,12 +198,12 @@ func ModifyAlias(c echo.Context) error {
 	// Call the modifier
 	if err := existingObj[0].ModifyObject(newObj); err != nil {
 
-		log.Error("Failed to update alias" + existingObj[0].AliasName +
+		log.Error("Failed to update alias " + existingObj[0].AliasName +
 			"with error: " + err.Error())
 
 		return c.Render(http.StatusOK, "home.html", map[string]interface{}{
 			"Auth":    true,
-			"Message": "There was an error while updating the alias" + err.Error(),
+			"Message": "There was an error while updating the alias in DB: " + err.Error(),
 		})
 	}
 

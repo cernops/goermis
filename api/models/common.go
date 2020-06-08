@@ -47,7 +47,7 @@ func stringToInt(s string) (i int) {
 	return i
 }
 
-func nodesToMap(p Resource) map[string]bool {
+func nodesInMap(p Resource) map[string]bool {
 
 	temp := make(map[string]bool)
 

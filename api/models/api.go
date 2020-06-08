@@ -80,40 +80,43 @@ func (r Resource) CreateObject() (err error) {
 		return err
 	}
 	//DNS
-	log.Info("Preparing to add " + r.AliasName + " in DNS")
-	view := "internal"
-	keyname := bootstrap.App.IFConfig.String("soap_keyname_i")
-	if r.External == "yes" {
-		view = "external"
-		keyname = bootstrap.App.IFConfig.String("soap_keyname_e")
-	}
-
-	if landbsoap.Soap.DNSDelegatedAdd(r.AliasName, view, keyname, "Created by: kkouros", "testing go") {
-		log.Info(r.AliasName + "/" + view + "has been created")
-		if len(cnames) > 0 {
-			for _, cname := range cnames {
-				log.Info("Adding in DNS the cname " + cname)
-				if landbsoap.Soap.DNSDelegatedAliasAdd(r.AliasName, view, cname) {
-					log.Info("Alias " + cname + " has been created for " +
-						r.AliasName + "/" + view)
-				} else {
-					//Clear the mess, since smth went south
-					//First from DNS
-					if landbsoap.Soap.DNSDelegatedRemove(r.AliasName, view) {
-						log.Info("Cleared DNS from the failed addition")
-					}
-					//Then from DB
-					DeleteTransactions(r.AliasName, r.ID)
-					return errors.New("Failed to add cname " +
-						cname + "for alias " + r.AliasName + " in DNS. Rolling back ")
-				}
-			}
-
+	entries := landbsoap.Soap.DNSDelegatedSearch(r.AliasName)
+	if len(entries) == 0 {
+		log.Info("Preparing to add " + r.AliasName + " in DNS")
+		view := "internal"
+		keyname := bootstrap.App.IFConfig.String("soap_keyname_i")
+		if StringInSlice(r.External, []string{"external", "yes"}) {
+			view = "external"
+			keyname = bootstrap.App.IFConfig.String("soap_keyname_e")
 		}
-		return nil
-	}
-	return errors.New("Failed to add alias " + r.AliasName + "in DNS")
 
+		if landbsoap.Soap.DNSDelegatedAdd(r.AliasName, view, keyname, "Created by: gouser", "testing go") {
+			log.Info(r.AliasName + "/" + view + "has been created")
+			if len(cnames) > 0 {
+				for _, cname := range cnames {
+					log.Info("Adding in DNS the cname " + cname)
+					if landbsoap.Soap.DNSDelegatedAliasAdd(r.AliasName, view, cname) {
+						log.Info("Alias " + cname + " has been created for " +
+							r.AliasName + "/" + view)
+					} else {
+						//Clear the mess, since smth went south
+						//First from DNS
+						if landbsoap.Soap.DNSDelegatedRemove(r.AliasName, view) {
+							log.Info("Cleared DNS from the failed addition")
+						}
+						//Then from DB
+						DeleteTransactions(r.AliasName, r.ID)
+						return errors.New("Failed to add cname " +
+							cname + "for alias " + r.AliasName + " in DNS. Rolling back ")
+					}
+				}
+
+			}
+			return nil
+		}
+		return errors.New("Failed to add alias " + r.AliasName + "in DNS")
+	}
+	return errors.New("Alias entry with the same name exist in DNS, skipping creation")
 }
 
 //DefaultAndHydrate prepares the object with default values and domain
@@ -147,18 +150,24 @@ func (r Resource) DeleteObject() (err error) {
 	}
 
 	//DNS
+	entries := landbsoap.Soap.DNSDelegatedSearch(r.AliasName)
+	if len(entries) != 0 {
+		log.Info("Preparing to delete " + r.AliasName + " from DNS")
+		view := "internal"
+		if StringInSlice(r.External, []string{"external", "yes"}) {
+			view = "external"
+		}
+		if landbsoap.Soap.DNSDelegatedRemove(r.AliasName, view) {
+			log.Info(r.AliasName + "/" + view + "and all its cnames have been deleted ")
+			return nil
+		}
+		log.Info("Failed to delete " + r.AliasName + " from DNS. Rolling Back")
+		//Recreate it in DB
+		r.CreateObject()
 
-	log.Info("Preparing to delete " + r.AliasName + " from DNS")
-	view := "internal"
-	if r.External == "yes" {
-		view = "external"
+		return errors.New("Failed to delete alias " + r.AliasName + "from DNS")
 	}
-	if landbsoap.Soap.DNSDelegatedRemove(r.AliasName, view) {
-		log.Info(r.AliasName + "/" + view + "and all its cnames have been deleted ")
-		return nil
-	}
-	return errors.New("Failed to delete alias " + r.AliasName + "from DNS")
-
+	return errors.New("The requested alias for deletion doesn't exist in DNS.Skipping deletion there")
 }
 
 //ModifyObject modifies aliases and its associations
@@ -178,27 +187,134 @@ func (r Resource) ModifyObject(new Resource) (err error) {
 
 	}
 	//Update cnames for object r with new cnames
-	err = r.UpdateCnames(exCnames, newCnames)
-	if err != nil {
+	if err = UpdateCnames(r.ID, exCnames, newCnames); err != nil {
 		return err
 	}
 	/*Update nodes for r object with new nodes(nodesToMap converts string to map,
 	  where value indicates privilege allowed/forbidden)*/
-	err = r.UpdateNodes(nodesToMap(r), nodesToMap(new))
-	if err != nil {
+	if err = UpdateNodes(r.ID, nodesInMap(r), nodesInMap(new)); err != nil {
 		return err
 	}
 
+	if err = UpdateDNS(r.AliasName, r.External, new.External, newCnames); err != nil {
+		return err
+	}
 	return nil
 }
 
+//UpdateDNS updates the cname or visibility changes in DNS
+func UpdateDNS(name string, oldView string, newView string, newCnames []string) (err error) {
+	oview := "internal"
+	nview := "internal"
+	keyname := bootstrap.App.IFConfig.String("soap_keyname_i")
+	existingCnames := landbsoap.Soap.GimeCnamesOf(strings.Split(name, ".")[0])
+	log.Info(existingCnames)
+	log.Info(strings.Split(name, ".")[0])
+
+	if StringInSlice(oldView, []string{"yes", "external"}) {
+		oview = "external"
+	}
+	if StringInSlice(newView, []string{"yes", "external"}) {
+		nview = "external"
+		keyname = bootstrap.App.IFConfig.String("soap_keyname_e")
+	}
+
+	//View has changed so we delete and recreate alias with the new visibility
+	if oview != nview {
+		log.Info("Visibility has changed from " + oview + " to " + nview)
+		//Delete alias
+		if landbsoap.Soap.DNSDelegatedRemove(name, oview) {
+			log.Info("Deleting existing entry for " + name)
+			//Add again with the new view
+			if landbsoap.Soap.DNSDelegatedAdd(name, nview, keyname, "createdby:GO", "gotest") {
+				log.Info("The new entry with updated visibility created successfully for " + name + "/" + nview)
+				for _, cname := range newCnames {
+					if !landbsoap.Soap.DNSDelegatedAliasAdd(name, nview, cname) {
+						return errors.New("Failed to update DNS ,couldn't recreate cnames for alias " + name)
+					}
+				}
+				log.Info("Successful DNS update for alias " + name)
+				return nil
+			}
+			return errors.New("Failed to update DNS, couldn't recreate alias with new visibility")
+
+		}
+		return errors.New("Failed to update DNS, couldn't delete existing alias")
+
+	}
+
+	if len(newCnames) > 0 {
+		for _, existingCname := range existingCnames {
+			if !StringInSlice(existingCname, newCnames) {
+				if !landbsoap.Soap.DNSDelegatedAliasRemove(name, oview, existingCname) {
+					return errors.New("Failed to delete existing cname " +
+						existingCname + " while updating DNS")
+				}
+			}
+		}
+
+		for _, newCname := range newCnames {
+			if newCname == "" {
+				continue
+			}
+			if !StringInSlice(newCname, existingCnames) {
+				if !landbsoap.Soap.DNSDelegatedAliasAdd(name, oview, newCname) {
+					return errors.New("Failed to add new cname in DNS " +
+						newCname + " while updating alias " + name)
+				}
+			}
+
+		}
+
+	} else {
+		for _, cname := range existingCnames {
+			if !landbsoap.Soap.DNSDelegatedAliasRemove(name, oview, cname) {
+				return errors.New("Failed to delete cname from DNS" +
+					cname + " while purging all")
+			}
+		}
+	}
+	return nil
+}
+
+//UpdateNodes updates alias with new nodes
+func UpdateNodes(aliasID int, ex map[string]bool, new map[string]bool) (err error) {
+	for name := range ex {
+		if _, ok := new[name]; !ok {
+			if err = DeleteNodeTransactions(aliasID, name); err != nil {
+				return errors.New("Failed to delete existing node " +
+					name + " while updating, with error: " + err.Error())
+			}
+		}
+	}
+	for name, privilege := range new {
+		if name == "" {
+			continue
+		}
+		if _, ok := ex[name]; !ok {
+			if err = AddNodeTransactions(aliasID, name, privilege); err != nil {
+				return errors.New("Failed to add new node " +
+					name + " while updating, with error: " + err.Error())
+			}
+		} else if value, ok := ex[name]; ok && value != privilege {
+			if err = UpdatePrivilegeTransactions(aliasID, name, privilege); err != nil {
+				return errors.New("Failed to update privilege for node " +
+					name + " while updating, with error: " + err.Error())
+			}
+		}
+	}
+
+	return nil
+
+}
+
 //UpdateCnames updates cnames
-func (r Resource) UpdateCnames(exCnames []string, newCnames []string) (err error) {
+func UpdateCnames(aliasID int, exCnames []string, newCnames []string) (err error) {
 
 	if len(newCnames) > 0 {
 		for _, value := range exCnames {
 			if !StringInSlice(value, newCnames) {
-				if err = DeleteCname(r.ID, value); err != nil {
+				if err = DeleteCnameTransactions(aliasID, value); err != nil {
 					return errors.New("Failed to delete existing cname " +
 						value + " while updating, with error: " + err.Error())
 				}
@@ -210,7 +326,7 @@ func (r Resource) UpdateCnames(exCnames []string, newCnames []string) (err error
 				continue
 			}
 			if !StringInSlice(value, exCnames) {
-				if err = AddCname(r.ID, value); err != nil {
+				if err = AddCnameTransactions(aliasID, value); err != nil {
 					return errors.New("Failed to add new cname " +
 						value + " while updating, with error: " + err.Error())
 				}
@@ -220,38 +336,9 @@ func (r Resource) UpdateCnames(exCnames []string, newCnames []string) (err error
 
 	} else {
 		for _, value := range exCnames {
-			if err = DeleteCname(r.ID, value); err != nil {
+			if err = DeleteCnameTransactions(aliasID, value); err != nil {
 				return errors.New("Failed to delete cname " +
 					value + " while purging all, with error: " + err.Error())
-			}
-		}
-	}
-	return nil
-}
-
-//UpdateNodes updates alias with new nodes
-func (r Resource) UpdateNodes(ex map[string]bool, new map[string]bool) (err error) {
-	for name := range ex {
-		if _, ok := new[name]; !ok {
-			if err = DeleteNode(r.ID, name); err != nil {
-				return errors.New("Failed to delete existing node " +
-					name + " while updating, with error: " + err.Error())
-			}
-		}
-	}
-	for name, privilege := range new {
-		if name == "" {
-			continue
-		}
-		if _, ok := ex[name]; !ok {
-			if err = AddNode(r.ID, name, privilege); err != nil {
-				return errors.New("Failed to add new node " +
-					name + " while updating, with error: " + err.Error())
-			}
-		} else if value, ok := ex[name]; ok && value != privilege {
-			if err = UpdateNodePrivilege(r.ID, name, privilege); err != nil {
-				return errors.New("Failed to update privilege for node " +
-					name + " while updating, with error: " + err.Error())
 			}
 		}
 	}

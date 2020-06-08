@@ -102,8 +102,8 @@ func DeleteTransactions(name string, ID int) (err error) {
 
 }
 
-//DeleteNode deletes  a Node from the database
-func DeleteNode(aliasID int, name string) (err error) {
+//DeleteNodeTransactions deletes  a Node from the database
+func DeleteNodeTransactions(aliasID int, name string) (err error) {
 	var node Node
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
 		//find node
@@ -134,8 +134,8 @@ func DeleteNode(aliasID int, name string) (err error) {
 	})
 }
 
-//AddNode adds a node in the DB
-func AddNode(aliasID int, name string, privilege bool) (err error) {
+//AddNodeTransactions adds a node in the DB
+func AddNodeTransactions(aliasID int, name string, privilege bool) (err error) {
 	var node Node
 
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
@@ -160,8 +160,8 @@ func AddNode(aliasID int, name string, privilege bool) (err error) {
 	})
 }
 
-//UpdateNodePrivilege updates the privilege of a node from allowed to forbidden and vice versa
-func UpdateNodePrivilege(aliasID int, name string, p bool) (err error) {
+//UpdatePrivilegeTransactions updates the privilege of a node from allowed to forbidden and vice versa
+func UpdatePrivilegeTransactions(aliasID int, name string, p bool) (err error) {
 	var node Node
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
 
@@ -183,8 +183,8 @@ func UpdateNodePrivilege(aliasID int, name string, p bool) (err error) {
 
 }
 
-//AddCname appends a Cname
-func AddCname(aliasID int, cname string) error {
+//AddCnameTransactions appends a Cname
+func AddCnameTransactions(aliasID int, cname string) error {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
 		if !cgorm.ManagerDB().NewRecord(&Cname{CName: cname}) {
 			return err
@@ -199,9 +199,9 @@ func AddCname(aliasID int, cname string) error {
 
 }
 
-//DeleteCname cname from db during modification
+//DeleteCnameTransactions cname from db during modification
 //AutoUpdate is false, because otherwise we will be adding what we just deleted
-func DeleteCname(aliasID int, cname string) error {
+func DeleteCnameTransactions(aliasID int, cname string) error {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
 		if err = tx.Set("gorm:association_autoupdate", false).Where("alias_id = ? AND c_name = ?", aliasID, cname).Delete(&Cname{}).Error; err != nil {
 			tx.Rollback()
