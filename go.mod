@@ -5,6 +5,7 @@ go 1.13
 require (
 	github.com/asaskevich/govalidator v0.0.0-20200428143746-21a406dcc535
 	github.com/fsnotify/fsnotify v1.4.9
+	github.com/go-ldap/ldap v3.0.3+incompatible
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/gorilla/Schema v1.1.0
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
