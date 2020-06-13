@@ -80,7 +80,7 @@ func (r Resource) CreateObject() (err error) {
 		return err
 	}
 	//DNS
-	entries := landbsoap.Soap.DNSDelegatedSearch(r.AliasName)
+	entries := landbsoap.Soap.DNSDelegatedSearch(strings.Split(r.AliasName, ".")[0])
 	if len(entries) == 0 {
 		log.Info("Preparing to add " + r.AliasName + " in DNS")
 		view := "internal"
@@ -150,7 +150,7 @@ func (r Resource) DeleteObject() (err error) {
 	}
 
 	//DNS
-	entries := landbsoap.Soap.DNSDelegatedSearch(r.AliasName)
+	entries := landbsoap.Soap.DNSDelegatedSearch(strings.Split(r.AliasName, ".")[0])
 	if len(entries) != 0 {
 		log.Info("Preparing to delete " + r.AliasName + " from DNS")
 		view := "internal"

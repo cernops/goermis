@@ -4,18 +4,18 @@
  * LBDis - Javascript side code for the DISPLAY module of LBWeb
  */
 
-(function($){
+(function ($) {
 
-var newCluster = new LBCluster();
+	var newCluster = new LBCluster();
 
-$(document).ready(function(){
-	initialize_form(true, 'display');
+	$(document).ready(function () {
+		initialize_form(true, 'display');
 
 
-	$('#clusterList').change(function(){
-		loadCluster($('#clusterList').val(), newCluster, false);
+		$('#clusterList').change(function () {
+			loadCluster($('#clusterList').val(), newCluster, false);
+		});
 	});
-});
 
 
 })(jQuery)

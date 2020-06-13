@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
 )
 
@@ -31,6 +32,33 @@ type message struct {
 	Authorized bool
 	Hostgroup  string
 	Requestor  string
+}
+
+//CheckAuthorization checks if user is in the egroup and if he is allowed to create in the hostgroup
+func CheckAuthorization(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		username := "kkouros"
+		hostgroup := c.FormValue("hostgroup")
+		teigi := true
+		ldap := false
+
+		log.Info(hostgroup)
+		conn := GetConn()
+		var d Group
+		if err := conn.InitConnection(); err != nil {
+			return c.JSON(http.StatusBadRequest, err)
+		}
+		if hostgroup != "" && c.Request().Method == "POST" {
+			teigi = conn.CheckWithForeman(username, hostgroup)
+		}
+		if username != "" {
+			ldap = d.CheckCrud(username)
+		}
+		if teigi && ldap {
+			return next(c)
+		}
+		return c.JSON(http.StatusUnauthorized, "Unauthorized")
+	}
 }
 
 //CheckCrud checks a user if he is member of egroup
@@ -109,8 +137,10 @@ func (l *UserAuth) CheckWithForeman(username string, group string) bool {
 		log.Fatal("["+username+"]User not authorized.Status Code: ", resp.StatusCode)
 		return false
 	}
+	log.Info(data)
 	if err = json.Unmarshal(data, &m); err != nil {
 		log.Fatal("["+username+"]Error on unmarshalling response from teigi ", err.Error())
+		return false
 	}
 	if m.Authorized {
 		fmt.Println("[" + username + "]Foreman authorized user with hostgroup " + m.Hostgroup)

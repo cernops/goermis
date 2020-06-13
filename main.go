@@ -22,7 +22,6 @@ const (
 )
 
 func init() {
-	log.EnableColor()
 	log.SetLevel(1)
 	log.SetHeader("${time_rfc3339} ${level} ${short_file} ${line} ")
 	file, err := os.OpenFile(bootstrap.App.IFConfig.String("logging_file"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
