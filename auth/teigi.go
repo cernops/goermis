@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
 )
 
@@ -34,37 +33,10 @@ type message struct {
 	Requestor  string
 }
 
-//CheckAuthorization checks if user is in the egroup and if he is allowed to create in the hostgroup
-func CheckAuthorization(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		username := "kkouros"
-		hostgroup := c.FormValue("hostgroup")
-		teigi := true
-		ldap := false
-
-		log.Info(hostgroup)
-		conn := GetConn()
-		var d Group
-		if err := conn.InitConnection(); err != nil {
-			return c.JSON(http.StatusBadRequest, err)
-		}
-		if hostgroup != "" && c.Request().Method == "POST" {
-			teigi = conn.CheckWithForeman(username, hostgroup)
-		}
-		if username != "" {
-			ldap = d.CheckCrud(username)
-		}
-		if teigi && ldap {
-			return next(c)
-		}
-		return c.JSON(http.StatusUnauthorized, "Unauthorized")
-	}
-}
-
 //CheckCrud checks a user if he is member of egroup
 func (l *Group) CheckCrud(username string) bool {
 
-	if IsMemberOf(username, "ermis-lbaas-admins") {
+	if isMemberOf(username, "ermis-lbaas-admins") {
 		return true
 	}
 	return false
@@ -117,29 +89,29 @@ func (l *UserAuth) CheckWithForeman(username string, group string) bool {
 	log.Info("[" + username + "] Querying teigi for authorization. url = " + URL)
 	req, err := http.NewRequest("GET", URL, nil)
 	if err != nil {
-		log.Fatal("Error on creating request object. ", err.Error())
+		log.Error("Error on creating request object. ", err.Error())
 		return false
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 	resp, err := l.Client.Do(req)
 	if err != nil {
-		log.Fatal("["+username+"] Error on dispatching authorization request to teigi ", err.Error())
+		log.Error("["+username+"] Error on dispatching authorization request to teigi ", err.Error())
 		return false
 	}
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatal("["+username+"]Error reading Body of Request ", err.Error())
+		log.Error("["+username+"]Error reading Body of Request ", err.Error())
 		return false
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusUnauthorized {
-		log.Fatal("["+username+"]User not authorized.Status Code: ", resp.StatusCode)
+		log.Error("["+username+"]User not authorized.Status Code: ", resp.StatusCode)
 		return false
 	}
 	log.Info(data)
 	if err = json.Unmarshal(data, &m); err != nil {
-		log.Fatal("["+username+"]Error on unmarshalling response from teigi ", err.Error())
+		log.Error("["+username+"]Error on unmarshalling response from teigi ", err.Error())
 		return false
 	}
 	if m.Authorized {

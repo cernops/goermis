@@ -25,7 +25,7 @@ func initconnection() *ldap.Conn {
 }
 
 //IsMemberOf checks if a user is subscribed to a certain egroup
-func IsMemberOf(username string, group string) bool {
+func isMemberOf(username string, group string) bool {
 	conn := initconnection()
 	defer conn.Close()
 	fmt.Println(group)

@@ -3,13 +3,13 @@ package router
 import (
 	"github.com/labstack/echo/v4"
 	"gitlab.cern.ch/lb-experts/goermis/api/handlers"
-	"gitlab.cern.ch/lb-experts/goermis/auth"
+	"gitlab.cern.ch/lb-experts/goermis/api/middleware.go"
 )
 
 //InitRoutes initializes the routes
 func InitRoutes(e *echo.Echo) {
 	lbweb := e.Group("/lbweb")
-	lbweb.Use(auth.CheckAuthorization)
+	lbweb.Use(middleware.CheckAuthorization)
 
 	lbweb.GET("/", handlers.HomeHandler)
 	lbweb.GET("/create/", handlers.CreateHandler)
