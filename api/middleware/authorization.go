@@ -22,43 +22,39 @@ func CheckAuthorization(nextHandler echo.HandlerFunc) echo.HandlerFunc {
 		var d auth.Group
 		if err := conn.InitConnection(); err != nil {
 
-			return c.Render(http.StatusBadRequest, "home.html", map[string]interface{}{
-				"Auth":    true,
-				"User":    username,
-				"Message": "Failed to initiate teigi connection",
-			})
+			return messageToUser(c, http.StatusBadRequest, "Failed to initiate teigi connection")
 
 		}
 		if username != "" {
 			if d.CheckCrud(username) {
 				if hostgroup != "" && c.Request().Method == "POST" {
 					if conn.CheckWithForeman(username, hostgroup) {
+
 						return nextHandler(c)
 					}
-					return c.Render(http.StatusUnauthorized, "home.html", map[string]interface{}{
-						"Auth": true,
-						"User": username,
-						"Message": "Authorization from Teigi failed. User " + username +
-							" is not allowed in hostgroup " + hostgroup,
-					})
+					return messageToUser(c, http.StatusUnauthorized,
+						"Authorization from Teigi failed. User "+username+
+							" is not allowed in hostgroup "+hostgroup)
 
 				}
 				return nextHandler(c)
 			}
 
-			return c.Render(http.StatusUnauthorized, "home.html", map[string]interface{}{
-				"Auth":    true,
-				"User":    username,
-				"Message": "Authorization from LDAP failed. User " + username + " is not part of the e-group",
-			})
+			return messageToUser(c, http.StatusUnauthorized,
+				"Authorization from LDAP failed. User "+username+
+					" is not part of the e-group")
 
 		}
 
-		return c.Render(http.StatusUnauthorized, "home.html", map[string]interface{}{
-			"Auth":    true,
-			"User":    username,
-			"Message": "Authorization failed. No username provided",
-		})
+		return messageToUser(c, http.StatusUnauthorized, "Authorization failed. No username provided")
 
 	}
+}
+func messageToUser(c echo.Context, status int, message string) error {
+	return c.Render(status, "home.html", map[string]interface{}{
+		"Auth":    true,
+		"User":    username,
+		"Message": message,
+	})
+
 }
