@@ -16,7 +16,7 @@ var (
 //CheckAuthorization checks if user is in the egroup and if he is allowed to create in the hostgroup
 func CheckAuthorization(nextHandler echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		username := "kkouros"
+		username := c.Request().Header.Get("username")
 		hostgroup := c.FormValue("hostgroup")
 		conn := auth.GetConn()
 		var d auth.Group
@@ -53,7 +53,7 @@ func CheckAuthorization(nextHandler echo.HandlerFunc) echo.HandlerFunc {
 func messageToUser(c echo.Context, status int, message string) error {
 	return c.Render(status, "home.html", map[string]interface{}{
 		"Auth":    true,
-		"User":    username,
+		"User":    c.Request().Header.Get("username"),
 		"Message": message,
 	})
 
