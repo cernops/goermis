@@ -3,7 +3,7 @@ package router
 import (
 	"github.com/labstack/echo/v4"
 	"gitlab.cern.ch/lb-experts/goermis/api/handlers"
-	"gitlab.cern.ch/lb-experts/goermis/api/middleware.go"
+	"gitlab.cern.ch/lb-experts/goermis/api/middleware"
 )
 
 //InitRoutes initializes the routes
