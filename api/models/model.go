@@ -76,6 +76,7 @@ type (
 		TTL              int       `json:"ttl" schema:"ttl" valid:"numeric"`
 		User             string    `json:"user" schema:"user" valid:"optional,alphanum"`
 		Statistics       string    `json:"statistics" schema:"statistics" valid:"alpha"`
+		URI              string    `valid:"-"`
 	}
 	//Objects holds multiple result structs
 	Objects struct {

@@ -2,6 +2,7 @@ package models
 
 import (
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 
@@ -57,10 +58,15 @@ func GetObjects(param string, tablerow string) (b []Resource, err error) {
 	defer rows.Close()
 	for rows.Next() {
 		var result Resource
+		//Fill the struct with the results of the DB query
 		err := rows.Scan(&result.ID, &result.AliasName, &result.Behaviour, &result.BestHosts, &result.Clusters,
 			&result.ForbiddenNodes, &result.AllowedNodes, &result.Cname, &result.External, &result.Hostgroup,
 			&result.LastModification, &result.Metric, &result.PollingInterval,
 			&result.Tenant, &result.TTL, &result.User, &result.Statistics)
+
+		//Infer the URI value
+		result.URI = "api/v1/" + strconv.Itoa(result.ID)
+
 		if err != nil {
 			return b, errors.New("Failed in scanning query results with err: " +
 				err.Error())

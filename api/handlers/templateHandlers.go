@@ -13,6 +13,7 @@ func CreateHandler(c echo.Context) error {
 	return c.Render(http.StatusOK, "create.html", map[string]interface{}{
 		"Auth": true,
 		"csrf": c.Get("csrf"),
+		"User": c.Request().Header.Get("X-Forwarded-User"),
 	})
 }
 
@@ -21,6 +22,7 @@ func DeleteHandler(c echo.Context) error {
 	return c.Render(http.StatusOK, "delete.html", map[string]interface{}{
 		"Auth": true,
 		"csrf": c.Get("csrf"),
+		"User": c.Request().Header.Get("X-Forwarded-User"),
 	})
 }
 
@@ -29,6 +31,7 @@ func DisplayHandler(c echo.Context) error {
 	return c.Render(http.StatusOK, "display.html", map[string]interface{}{
 		"Auth": true,
 		"csrf": c.Get("csrf"),
+		"User": c.Request().Header.Get("X-Forwarded-User"),
 	})
 }
 
@@ -36,6 +39,7 @@ func DisplayHandler(c echo.Context) error {
 func HomeHandler(c echo.Context) error {
 	return c.Render(http.StatusOK, "home.html", map[string]interface{}{
 		"Auth": true,
+		"User": c.Request().Header.Get("X-Forwarded-User"),
 	})
 }
 
@@ -44,6 +48,7 @@ func LogsHandler(c echo.Context) error {
 	return c.Render(http.StatusOK, "logs.html", map[string]interface{}{
 		"Auth": true,
 		"csrf": c.Get("csrf"),
+		"User": c.Request().Header.Get("X-Forwarded-User"),
 	})
 }
 
@@ -52,6 +57,7 @@ func ModifyHandler(c echo.Context) error {
 	return c.Render(http.StatusOK, "modify.html", map[string]interface{}{
 		"Auth": true,
 		"csrf": c.Get("csrf"),
+		"User": c.Request().Header.Get("X-Forwarded-User"),
 	})
 
 }
