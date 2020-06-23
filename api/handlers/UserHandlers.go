@@ -8,22 +8,20 @@ import (
 	"github.com/asaskevich/govalidator"
 	schema "github.com/gorilla/Schema"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/gommon/log"
 	"gitlab.cern.ch/lb-experts/goermis/api/models"
 	"gitlab.cern.ch/lb-experts/goermis/db"
-	"gitlab.cern.ch/lb-experts/goermis/logger"
 )
 
 //CRUD HANDLERS
 
 var (
 	con      = db.ManagerDB()
-	alias    models.Alias
-	obj      models.Objects
+	all      models.Objects
 	res      models.Resource
 	tablerow string
-	err      error
 	decoder  = schema.NewDecoder()
-	log      = logger.Log
+	e        error
 )
 
 func init() {
@@ -32,46 +30,44 @@ func init() {
 	models.CustomValidators()
 }
 
+//Objects holds multiple result structs
+
 //GetAliases handles requests of all aliases
 func GetAliases(c echo.Context) error {
-	log.Info("Preparing to get all aliases")
-	obj.Objects, err = res.GetObjects("", "")
 
-	if err != nil {
-
-		log.Errorf("Error while getting list of aliases with error : " + err.Error())
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	log.Info("Ready do get all aliases")
+	if all.Objects, e = models.GetObjects("", ""); e != nil {
+		log.Error(e.Error())
+		return echo.NewHTTPError(http.StatusBadRequest, e.Error())
 	}
 	defer c.Request().Body.Close()
-	log.Info("Alias retrieval succeeded")
-	return c.JSON(http.StatusOK, obj)
+	log.Info("List of aliases retrieved successfully")
+	return c.JSON(http.StatusOK, all)
 }
 
 //GetAlias queries for a specific alias
 func GetAlias(c echo.Context) error {
 	param := c.Param("alias")
-	log.Info("Preparing to get alias " + param)
-
 	if !govalidator.IsDNSName(param) {
-		log.Error("Wrong type of query parameter, expected Alphanumeric")
+		log.Error("Wrong type of query parameter.Expected alphanum, received " + param)
 		return echo.NewHTTPError(http.StatusUnprocessableEntity)
 	}
 
-	//Swap between name and ID query
+	//Swap between name and ID query(enables user to ask by name or id)
 	if _, err := strconv.Atoi(c.Param("alias")); err == nil {
 		tablerow = "id"
 	} else {
 		tablerow = "alias_name"
 	}
 
-	obj.Objects, err = res.GetObjects(string(param), tablerow)
-	if err != nil {
-		log.Error("Unable to get the alias " + param + "with error : " + err.Error())
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	if all.Objects, e = models.GetObjects(string(param), tablerow); e != nil {
+		log.Error("Unable to get the alias with error message: " + e.Error())
+
+		return echo.NewHTTPError(http.StatusBadRequest, e.Error())
 	}
 	defer c.Request().Body.Close()
 	log.Info("Alias retrieved successfully")
-	return c.JSON(http.StatusOK, obj)
+	return c.JSON(http.StatusOK, all)
 
 }
 
@@ -80,35 +76,39 @@ func NewAlias(c echo.Context) error {
 	var r models.Resource
 	//Get the params from the form
 	params, err := c.FormParams()
-	//Decode them into the resource model for validation
-	err = decoder.Decode(&r, params)
 	if err != nil {
-		log.Error("Error while decoding parameters : " + err.Error())
-		//panic(err)
-
+		log.Warn("Failed to get params from form with error : " + err.Error())
 	}
+	//Decode them into the resource model for validation
+	log.Info("Preparing to create a new alias")
+	if err := decoder.Decode(&r, params); err != nil {
+		log.Warn("Failed to decode form parameters to structure with error: " +
+			err.Error())
+	}
+
 	//Default values and domain
-	r.AddDefaultValues()
-	r.Hydrate()
+	r.DefaultAndHydrate()
 
 	defer c.Request().Body.Close()
 	//Validate structure
-	ok, errs := govalidator.ValidateStruct(r)
-	if errs != nil || ok == false {
+	if ok, err := govalidator.ValidateStruct(r); err != nil || ok == false {
+		log.Warn("Failed to validate parameters with error: " + err.Error())
+
 		return c.Render(http.StatusUnprocessableEntity, "home.html", map[string]interface{}{
-			"Auth":    true,
-			"Message": "There was an error while validating the alias " + params.Get("alias_name") + "Error: " + errs.Error(),
+			"Auth": true,
+			"Message": "There was an error while validating the alias " +
+				params.Get("alias_name") +
+				"Error: " + err.Error(),
 		})
 	}
-	//Create object
-	err = r.CreateObject()
-
-	if err != nil {
-
-		log.Error("Error while creating alias " + params.Get("alias_name") + "with error : " + err.Error())
+	//Create object in DB
+	if err := r.CreateObject(); err != nil {
+		log.Error(err.Error())
 		return c.Render(http.StatusBadRequest, "home.html", map[string]interface{}{
-			"Auth":    true,
-			"Message": "There was an error while creating the alias " + params.Get("alias_name") + "Error: " + err.Error(),
+			"Auth": true,
+			"Message": "There was an error while creating the alias" +
+				params.Get("alias_name") +
+				"Error: " + err.Error(),
 		})
 
 	}
@@ -123,25 +123,28 @@ func NewAlias(c echo.Context) error {
 
 //DeleteAlias deletes the requested alias from the DB
 func DeleteAlias(c echo.Context) error {
-	var r models.Resource
-	//Get the params from the form
 	aliasName := c.FormValue("alias_name")
-	//Validate structure with user defined input values
+	//Validate alias name only
 	if !govalidator.IsDNSName(aliasName) {
-		log.Error("Wrong type of query parameter, expected Alias name")
+
+		log.Warn("Wrong type of query parameter, expected Alias name")
+
 		return echo.NewHTTPError(http.StatusUnprocessableEntity)
 	}
 
-	alias, err := r.GetObjects(aliasName, "alias_name")
+	alias, err := models.GetObjects(aliasName, "alias_name")
 	if err != nil {
-		log.Error("Error while getting existing data for alias " + aliasName + "with error : " + err.Error())
+		log.Error("Failed to retrieve the existing data of alias " +
+			aliasName +
+			"with error: " + err.Error())
 	}
 
 	defer c.Request().Body.Close()
 
-	err = alias[0].DeleteObject()
-	if err != nil {
-		log.Error("Failed to delete object")
+	if err := alias[0].DeleteObject(); err != nil {
+		log.Error("Failed to delete alias" + alias[0].AliasName +
+			"with error: " + err.Error())
+
 		return c.Render(http.StatusBadRequest, "home.html", map[string]interface{}{
 			"Auth":    true,
 			"Message": err,
@@ -158,41 +161,52 @@ func DeleteAlias(c echo.Context) error {
 
 //ModifyAlias modifes cnames, nodes, hostgroup and best_hosts parameters
 func ModifyAlias(c echo.Context) error {
-	var new models.Resource
+	var newObj models.Resource
 	//Retrieve the parameters from the form
 	params, err := c.FormParams()
-	//Pass the values from the form to our structure
-	decoder.Decode(&new, params)
 	if err != nil {
-		log.Error("There was an error reading the parameters:" + err.Error())
+		log.Warn("Failed to get form parameters with error: " +
+			err.Error())
 		return err
 	}
-
+	//Pass the values from the form to our structure
+	if err := decoder.Decode(&newObj, params); err != nil {
+		log.Warn("Failed to decode form parameters into the structure with error: " +
+			err.Error())
+		return err
+	}
 	//Validate
-	ok, errs := govalidator.ValidateStruct(new)
-	if errs != nil || ok == false {
+	if ok, err := govalidator.ValidateStruct(newObj); err != nil || ok == false {
+		log.Error("Validation failed with error: " + err.Error())
 		return c.Render(http.StatusUnprocessableEntity, "home.html", map[string]interface{}{
-			"Auth":    true,
-			"Message": "There was an error while validating the alias " + params.Get("alias_name") + "Error: " + errs.Error(),
+			"Auth": true,
+			"Message": "There was an error while validating the alias " +
+				params.Get("alias_name") + "Error: " +
+				err.Error(),
 		})
 	}
 
-	r, err := res.GetObjects(new.AliasName, "alias_name")
+	existingObj, err := models.GetObjects(newObj.AliasName, "alias_name")
 	if err != nil {
-		log.Error("There was an error retrieving existing data for alias " + new.AliasName + "ERROR:" + err.Error())
+		log.Error("Failed to retrieve existing data for alias " +
+			newObj.AliasName +
+			"with error: " + err.Error())
 		return err
 	}
 	defer c.Request().Body.Close()
+
 	// Call the modifier
-	err = r[0].ModifyObject(new)
-	if err != nil {
-		log.Error("There was an error updating the alias: " + new.AliasName + "Error: " + err.Error())
+	if err := existingObj[0].ModifyObject(newObj); err != nil {
+
+		log.Error("Failed to update alias " + existingObj[0].AliasName +
+			"with error: " + err.Error())
 
 		return c.Render(http.StatusOK, "home.html", map[string]interface{}{
 			"Auth":    true,
-			"Message": "There was an error while updating the alias" + err.Error(),
+			"Message": "There was an error while updating the alias in DB: " + err.Error(),
 		})
 	}
+
 	log.Info("Alias updated successfully")
 	return c.Render(http.StatusOK, "home.html", map[string]interface{}{
 		"Auth":    true,
@@ -204,18 +218,21 @@ func ModifyAlias(c echo.Context) error {
 func CheckNameDNS(c echo.Context) error {
 	aliasToResolve := c.QueryParam("hostname")
 	var result int
-	log.Info("Checking if the object exists " + aliasToResolve)
 	con.Model(&models.Cname{}).Where("c_name=?", aliasToResolve).Count(&result)
 	if result == 0 {
 		con.Model(&models.Alias{}).Where("alias_name=?", aliasToResolve+".cern.ch").Count(&result)
 	}
 	if result == 0 {
 		if r, err := net.LookupHost(aliasToResolve); err != nil {
-			log.Info("Checking name in DNS for alias " + aliasToResolve + "Exception: " + err.Error())
 			result = 0
 		} else {
-			log.Info("Alias with the same name exists in the DNS")
+			log.Warn("Alias with the same name exists in the DNS")
 			result = len(r)
+			return c.Render(http.StatusConflict, "home.html", map[string]interface{}{
+				"Auth":    true,
+				"Message": "Alias with the same name exists in the DNS",
+			})
+
 		}
 	}
 	return c.JSON(http.StatusOK, result)

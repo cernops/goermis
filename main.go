@@ -2,42 +2,55 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"time"
 
+	"github.com/labstack/gommon/log"
 	"gitlab.cern.ch/lb-experts/goermis/api/models"
+	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 	"gitlab.cern.ch/lb-experts/goermis/db"
-	"gitlab.cern.ch/lb-experts/goermis/logger"
 	"gitlab.cern.ch/lb-experts/goermis/router"
 	"gitlab.cern.ch/lb-experts/goermis/views"
 )
 
 const (
 	// Version number
-	Version = "0.0.1"
+	Version = "0.0.2"
 	// Release number
 	Release = "2"
 )
 
-func main() {
-	logger.Log.Info("Service Started...")
-	// Echo instance
-	e := router.New()
-	logger.Log.Info("Initializing routes")
-	router.InitRoutes(e)
-	views.InitViews(e)
+func init() {
+	log.EnableColor()
+	log.SetLevel(1)
+	log.SetHeader("${time_rfc3339} ${level} ${short_file} ${line} ")
+	file, err := os.OpenFile(bootstrap.App.IFConfig.String("logging_file"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err == nil {
+		log.SetOutput(file)
+		log.Info("File set as logger output")
+	} else {
+		log.Info("Failed to log to file, using default stderr")
+	}
+}
 
-	logger.Log.Info("Initializing database")
+func main() {
+	log.Info("Service Started...")
+	// Echo instance
+	echo := router.New()
+	router.InitRoutes(echo)
+	views.InitViews(echo)
+
 	db.Init()
 	autoCreateTables(&models.Alias{}, &models.Node{}, &models.Cname{}, &models.AliasesNodes{})
 	autoMigrateTables()
 
 	// Start server
 	go func() {
-		if err := e.StartTLS(":8080", "/etc/ssl/certs/goermiscert.pem", "/etc/ssl/certs/goermiskey.pem"); err != nil {
-			logger.Log.Info("shutting down the server")
+		if err := echo.StartTLS(":8080",
+			bootstrap.App.IFConfig.String("goermiscert"),
+			bootstrap.App.IFConfig.String("goermiskey")); err != nil {
+			log.Debug("Ignore if error is Port Binding" + err.Error())
 		}
 	}()
 
@@ -48,8 +61,8 @@ func main() {
 	<-quit
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	if err := e.Shutdown(ctx); err != nil {
-		logger.Log.Fatal(err)
+	if err := echo.Shutdown(ctx); err != nil {
+		log.Fatal("Fatal error while shutting server down")
 	}
 }
 
@@ -60,7 +73,8 @@ func autoCreateTables(values ...interface{}) error {
 			if err != nil {
 				errClose := db.ManagerDB().Close()
 				if errClose != nil {
-					fmt.Printf("%s", errClose)
+					log.Error("Error while trying to close DB conn.")
+
 				}
 				return err
 
@@ -72,9 +86,6 @@ func autoCreateTables(values ...interface{}) error {
 
 // autoMigrateTables: migrate table columns using GORM
 func autoMigrateTables() {
-	err := db.ManagerDB().AutoMigrate(&models.Alias{}, &models.Node{}, &models.Cname{}, &models.AliasesNodes{})
-	if err != nil {
-		logger.Log.Error("An error occured while migrating the tables")
-	}
+	db.ManagerDB().AutoMigrate(&models.Alias{}, &models.Node{}, &models.Cname{}, &models.AliasesNodes{})
 
 }

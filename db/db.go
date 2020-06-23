@@ -10,6 +10,8 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/mysql" //need this too
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	_ "github.com/lib/pq"
+
+	"github.com/labstack/gommon/log"
 )
 
 var (
@@ -25,6 +27,8 @@ func Init() {
 		mysqlConn()
 		break
 	default:
+		log.Panic("Undefined connection on config.yaml")
+
 		panic("Undefined connection on config.yaml")
 	}
 }
@@ -39,9 +43,11 @@ func mysqlConn() {
 	connectionString = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true", bootstrap.App.IFConfig.String("username"), bootstrap.App.IFConfig.String("password"), bootstrap.App.IFConfig.String("host"), bootstrap.App.IFConfig.String("port"), bootstrap.App.IFConfig.String("database"))
 
 	if db, err = gorm.Open("mysql", connectionString); err != nil {
+		log.Panic("Database connection error")
 		panic(err)
 	}
 	if err = db.DB().Ping(); err != nil {
+		log.Panic("Unreachable database")
 		panic(err)
 	}
 	db.SingularTable(true)
@@ -59,6 +65,7 @@ func ManagerDB() *gorm.DB {
 		mysqlConn()
 		break
 	default:
+		log.Panic("Undefined connection on config.yaml")
 		panic("Undefined connection on config.yaml")
 	}
 

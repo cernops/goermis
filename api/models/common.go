@@ -22,7 +22,6 @@ func DeleteEmpty(s []string) []string {
 
 //StringInSlice checks if a string is in a slice
 func StringInSlice(a string, list []string) bool {
-	log.Info("In StringinSlice")
 	for _, b := range list {
 		if b == a {
 			return true
@@ -48,7 +47,7 @@ func stringToInt(s string) (i int) {
 	return i
 }
 
-func nodesToMap(p Resource) map[string]bool {
+func nodesInMap(p Resource) map[string]bool {
 
 	temp := make(map[string]bool)
 

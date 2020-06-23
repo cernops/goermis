@@ -1,15 +1,16 @@
 package models
 
 import (
+	"errors"
 	"strings"
 	"time"
 
 	schema "github.com/gorilla/Schema"
 	"github.com/jinzhu/copier"
-	"github.com/jinzhu/gorm"
 	"github.com/labstack/gommon/log"
+	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 	"gitlab.cern.ch/lb-experts/goermis/db"
-	cgorm "gitlab.cern.ch/lb-experts/goermis/db"
+	landbsoap "gitlab.cern.ch/lb-experts/goermis/landb"
 )
 
 var (
@@ -19,7 +20,7 @@ var (
 )
 
 //GetObjects return list of aliases if no parameters are passed or a single alias if parameters are given
-func (r Resource) GetObjects(param string, tablerow string) (b []Resource, err error) {
+func GetObjects(param string, tablerow string) (b []Resource, err error) {
 
 	if param == "" && tablerow == "" {
 		q = "SELECT a.id, alias_name, behaviour, best_hosts, clusters, " +
@@ -50,8 +51,7 @@ func (r Resource) GetObjects(param string, tablerow string) (b []Resource, err e
 	rows, err := con.Raw(q).Rows()
 
 	if err != nil {
-		log.Error("Error while getting list of objects: " + err.Error())
-		return b, err
+		return b, errors.New("Failed in query: " + err.Error())
 
 	}
 	defer rows.Close()
@@ -62,9 +62,8 @@ func (r Resource) GetObjects(param string, tablerow string) (b []Resource, err e
 			&result.LastModification, &result.Metric, &result.PollingInterval,
 			&result.Tenant, &result.TTL, &result.User, &result.Statistics)
 		if err != nil {
-			log.Error("Error when scanning in GetObjectsList: " + err.Error())
-
-			return b, err
+			return b, errors.New("Failed in scanning query results with err: " +
+				err.Error())
 		}
 		b = append(b, result)
 	}
@@ -73,47 +72,56 @@ func (r Resource) GetObjects(param string, tablerow string) (b []Resource, err e
 
 //CreateObject creates an alias
 func (r Resource) CreateObject() (err error) {
+	//DB
 	var a Alias
 	copier.Copy(&a, &r)
 	cnames := DeleteEmpty(strings.Split(r.Cname, ","))
-	return WithinTransaction(func(tx *gorm.DB) (err error) {
-
-		// check new object
-		if !cgorm.ManagerDB().NewRecord(&a) {
-			log.Error("Alias with the same  name as " + a.AliasName + "already exists")
-			return err
+	if err := CreateTransactions(a, cnames); err != nil {
+		return err
+	}
+	//DNS
+	entries := landbsoap.Soap.DNSDelegatedSearch(r.AliasName)
+	if len(entries) == 0 {
+		log.Info("Preparing to add " + r.AliasName + " in DNS")
+		view := "internal"
+		keyname := bootstrap.App.IFConfig.String("soap_keyname_i")
+		if StringInSlice(r.External, []string{"external", "yes"}) {
+			view = "external"
+			keyname = bootstrap.App.IFConfig.String("soap_keyname_e")
 		}
-		if err = tx.Create(&a).Error; err != nil {
-			tx.Rollback() // rollback
-			log.Error("Error in creating alias " + a.AliasName)
-			return err
-		}
 
-		if len(cnames) > 0 {
-			for _, cname := range cnames {
-				if !cgorm.ManagerDB().NewRecord(&Cname{CName: cname}) {
-					log.Error("Cname " + cname + "exists")
-					return err
+		if landbsoap.Soap.DNSDelegatedAdd(r.AliasName, view, keyname, "Created by: gouser", "testing go") {
+			log.Info(r.AliasName + "/" + view + "has been created")
+			if len(cnames) > 0 {
+				for _, cname := range cnames {
+					log.Info("Adding in DNS the cname " + cname)
+					if landbsoap.Soap.DNSDelegatedAliasAdd(r.AliasName, view, cname) {
+						log.Info("Alias " + cname + " has been created for " +
+							r.AliasName + "/" + view)
+					} else {
+						//Clear the mess, since smth went south
+						//First from DNS
+						if landbsoap.Soap.DNSDelegatedRemove(r.AliasName, view) {
+							log.Info("Cleared DNS from the failed addition")
+						}
+						//Then from DB
+						DeleteTransactions(r.AliasName, r.ID)
+						return errors.New("Failed to add cname " +
+							cname + "for alias " + r.AliasName + " in DNS. Rolling back ")
+					}
 				}
 
-				if err = tx.Model(&a).Association("Cnames").Append(&Cname{CName: cname}).Error; err != nil {
-					log.Error("Failed to add cname " + cname + "for alias " + a.AliasName)
-					tx.Rollback()
-					return err
-				}
 			}
+			return nil
 		}
-
-		return nil
-	})
+		return errors.New("Failed to add alias " + r.AliasName + "in DNS")
+	}
+	return errors.New("Alias entry with the same name exist in DNS, skipping creation")
 }
 
-//AddDefaultValues prepares alias before creation with def values
-func (r *Resource) AddDefaultValues() {
+//DefaultAndHydrate prepares the object with default values and domain
+func (r *Resource) DefaultAndHydrate() {
 	//Populate the struct with the default values
-	log.Info("Preparing alias " + r.AliasName + " with the default values")
-
-	//Passing default values
 	r.User = "kkouros"
 	r.Behaviour = "mindless"
 	r.Metric = "cmsfrontier"
@@ -122,10 +130,7 @@ func (r *Resource) AddDefaultValues() {
 	r.Clusters = "none"
 	r.Tenant = "golang"
 	r.LastModification = time.Now()
-}
-
-//Hydrate prepares a few input data before creation of new alias
-func (r *Resource) Hydrate() {
+	//Hydrate
 	if !strings.HasSuffix(r.AliasName, ".cern.ch") {
 		r.AliasName = r.AliasName + ".cern.ch"
 	}
@@ -139,66 +144,30 @@ func (r *Resource) Hydrate() {
 
 //DeleteObject deletes an alias and its Relations
 func (r Resource) DeleteObject() (err error) {
-	log.Info("Inside delete")
-	var relation []AliasesNodes
+	//DB
+	if err := DeleteTransactions(r.AliasName, r.ID); err != nil {
+		return err
+	}
 
-	return WithinTransaction(func(tx *gorm.DB) (err error) {
-
-		//Make sure alias exists
-		if tx.Where("alias_name = ?", r.AliasName).First(&Alias{}).RecordNotFound() {
-			log.Error("Alias " + r.AliasName + "doesn't exist ?! ")
-			return err
-
+	//DNS
+	entries := landbsoap.Soap.DNSDelegatedSearch(r.AliasName)
+	if len(entries) != 0 {
+		log.Info("Preparing to delete " + r.AliasName + " from DNS")
+		view := "internal"
+		if StringInSlice(r.External, []string{"external", "yes"}) {
+			view = "external"
 		}
-		//Find and store all relations
-		if err := tx.Where("alias_id=?", r.ID).Find(&relation).Error; err != nil {
-			log.Error("Error while getting all relations for the alias")
-			return err
+		if landbsoap.Soap.DNSDelegatedRemove(r.AliasName, view) {
+			log.Info(r.AliasName + "/" + view + "and all its cnames have been deleted ")
+			return nil
 		}
+		log.Info("Failed to delete " + r.AliasName + " from DNS. Rolling Back")
+		//Recreate it in DB
+		r.CreateObject()
 
-		for _, v := range relation {
-			var node Node
-			//Find node itself and load
-			if err := tx.Where("id=?", v.NodeID).First(&node).Error; err != nil {
-				log.Error("Error while getting the node of a certain relation")
-				return err
-			}
-			// Delete relation first
-			err = tx.Where("node_id=? AND alias_id =? ", v.NodeID, r.ID).Delete(&AliasesNodes{}).Error
-			if err != nil {
-				log.Error("Failed to clear nodes during alias deletion")
-				return err
-			}
-
-			//Delete node with no other relations
-			if tx.Model(&node).Association("Aliases").Count() == 0 {
-				log.Info("Node doesnt have other relation, delete it")
-				if err = con.Delete(&node).Error; err != nil {
-					log.Info("Error while deleting node with no relations")
-					//con.Rollback()
-					return err
-
-				}
-
-			}
-
-		}
-		//Delete cnames
-		err = tx.Where("alias_id= ?", r.ID).Delete(&Cname{}).Error
-		if err != nil {
-			log.Error("Cname deletion failed")
-			return err
-		}
-
-		//Finally delete alias
-		err = tx.Where("alias_name = ?", r.AliasName).Delete(&Alias{}).Error
-		if err != nil {
-			log.Error("Alias deletion failed.Aliasname :" + r.AliasName)
-			return err
-		}
-
-		return nil
-	})
+		return errors.New("Failed to delete alias " + r.AliasName + "from DNS")
+	}
+	return errors.New("The requested alias for deletion doesn't exist in DNS.Skipping deletion there")
 }
 
 //ModifyObject modifies aliases and its associations
@@ -207,41 +176,147 @@ func (r Resource) ModifyObject(new Resource) (err error) {
 	newCnames := DeleteEmpty(strings.Split(new.Cname, ","))
 	exCnames := DeleteEmpty(strings.Split(r.Cname, ","))
 
-	if err = con.Model(&Alias{}).UpdateColumns(
+	//Let's update the single-valued fields first
+	if err = con.Model(&Alias{}).Where("id = ?", r.ID).UpdateColumns(
 		map[string]interface{}{
 			"external":   new.External,
 			"hostgroup":  new.Hostgroup,
 			"best_hosts": new.BestHosts,
 		}).Error; err != nil {
-		log.Error("Error while updating alias " + r.AliasName)
+		return errors.New("Failed to update the single-valued fields with error: " + err.Error())
 
 	}
-	//err = a.UpdateNodes()
-	err = r.UpdateCnames(exCnames, newCnames)
-	if err != nil {
-		log.Error("Unable to update cnames ,Error : " + err.Error())
+	//Update cnames for object r with new cnames
+	if err = UpdateCnames(r.ID, exCnames, newCnames); err != nil {
 		return err
 	}
-	log.Info("Before node update")
-	err = r.UpdateNodes(nodesToMap(r), nodesToMap(new))
-	if err != nil {
-
-		log.Error("Unable to update nodes ,Error : " + err.Error())
+	/*Update nodes for r object with new nodes(nodesToMap converts string to map,
+	  where value indicates privilege allowed/forbidden)*/
+	if err = UpdateNodes(r.ID, nodesInMap(r), nodesInMap(new)); err != nil {
 		return err
 	}
 
+	if err = UpdateDNS(r.AliasName, r.External, new.External, newCnames); err != nil {
+		return err
+	}
 	return nil
 }
 
+//UpdateDNS updates the cname or visibility changes in DNS
+func UpdateDNS(name string, oldView string, newView string, newCnames []string) (err error) {
+	oview := "internal"
+	nview := "internal"
+	keyname := bootstrap.App.IFConfig.String("soap_keyname_i")
+	existingCnames := landbsoap.Soap.GimeCnamesOf(strings.Split(name, ".")[0])
+	log.Info(existingCnames)
+	log.Info(strings.Split(name, ".")[0])
+
+	if StringInSlice(oldView, []string{"yes", "external"}) {
+		oview = "external"
+	}
+	if StringInSlice(newView, []string{"yes", "external"}) {
+		nview = "external"
+		keyname = bootstrap.App.IFConfig.String("soap_keyname_e")
+	}
+
+	//View has changed so we delete and recreate alias with the new visibility
+	if oview != nview {
+		log.Info("Visibility has changed from " + oview + " to " + nview)
+		//Delete alias
+		if landbsoap.Soap.DNSDelegatedRemove(name, oview) {
+			log.Info("Deleting existing entry for " + name)
+			//Add again with the new view
+			if landbsoap.Soap.DNSDelegatedAdd(name, nview, keyname, "createdby:GO", "gotest") {
+				log.Info("The new entry with updated visibility created successfully for " + name + "/" + nview)
+				for _, cname := range newCnames {
+					if !landbsoap.Soap.DNSDelegatedAliasAdd(name, nview, cname) {
+						return errors.New("Failed to update DNS ,couldn't recreate cnames for alias " + name)
+					}
+				}
+				log.Info("Successful DNS update for alias " + name)
+				return nil
+			}
+			return errors.New("Failed to update DNS, couldn't recreate alias with new visibility")
+
+		}
+		return errors.New("Failed to update DNS, couldn't delete existing alias")
+
+	}
+
+	if len(newCnames) > 0 {
+		for _, existingCname := range existingCnames {
+			if !StringInSlice(existingCname, newCnames) {
+				if !landbsoap.Soap.DNSDelegatedAliasRemove(name, oview, existingCname) {
+					return errors.New("Failed to delete existing cname " +
+						existingCname + " while updating DNS")
+				}
+			}
+		}
+
+		for _, newCname := range newCnames {
+			if newCname == "" {
+				continue
+			}
+			if !StringInSlice(newCname, existingCnames) {
+				if !landbsoap.Soap.DNSDelegatedAliasAdd(name, oview, newCname) {
+					return errors.New("Failed to add new cname in DNS " +
+						newCname + " while updating alias " + name)
+				}
+			}
+
+		}
+
+	} else {
+		for _, cname := range existingCnames {
+			if !landbsoap.Soap.DNSDelegatedAliasRemove(name, oview, cname) {
+				return errors.New("Failed to delete cname from DNS" +
+					cname + " while purging all")
+			}
+		}
+	}
+	return nil
+}
+
+//UpdateNodes updates alias with new nodes
+func UpdateNodes(aliasID int, ex map[string]bool, new map[string]bool) (err error) {
+	for name := range ex {
+		if _, ok := new[name]; !ok {
+			if err = DeleteNodeTransactions(aliasID, name); err != nil {
+				return errors.New("Failed to delete existing node " +
+					name + " while updating, with error: " + err.Error())
+			}
+		}
+	}
+	for name, privilege := range new {
+		if name == "" {
+			continue
+		}
+		if _, ok := ex[name]; !ok {
+			if err = AddNodeTransactions(aliasID, name, privilege); err != nil {
+				return errors.New("Failed to add new node " +
+					name + " while updating, with error: " + err.Error())
+			}
+		} else if value, ok := ex[name]; ok && value != privilege {
+			if err = UpdatePrivilegeTransactions(aliasID, name, privilege); err != nil {
+				return errors.New("Failed to update privilege for node " +
+					name + " while updating, with error: " + err.Error())
+			}
+		}
+	}
+
+	return nil
+
+}
+
 //UpdateCnames updates cnames
-func (r Resource) UpdateCnames(exCnames []string, newCnames []string) (err error) {
+func UpdateCnames(aliasID int, exCnames []string, newCnames []string) (err error) {
 
 	if len(newCnames) > 0 {
 		for _, value := range exCnames {
 			if !StringInSlice(value, newCnames) {
-				log.Info("Deleting cname")
-				if err = r.DeleteCname(value); err != nil {
-					return err
+				if err = DeleteCnameTransactions(aliasID, value); err != nil {
+					return errors.New("Failed to delete existing cname " +
+						value + " while updating, with error: " + err.Error())
 				}
 			}
 		}
@@ -251,9 +326,9 @@ func (r Resource) UpdateCnames(exCnames []string, newCnames []string) (err error
 				continue
 			}
 			if !StringInSlice(value, exCnames) {
-				log.Info("Adding cname")
-				if err = r.AddCname(value); err != nil {
-					return err
+				if err = AddCnameTransactions(aliasID, value); err != nil {
+					return errors.New("Failed to add new cname " +
+						value + " while updating, with error: " + err.Error())
 				}
 			}
 
@@ -261,176 +336,11 @@ func (r Resource) UpdateCnames(exCnames []string, newCnames []string) (err error
 
 	} else {
 		for _, value := range exCnames {
-			log.Info("In cname deletion")
-
-			if err = r.DeleteCname(value); err != nil {
-				return err
+			if err = DeleteCnameTransactions(aliasID, value); err != nil {
+				return errors.New("Failed to delete cname " +
+					value + " while purging all, with error: " + err.Error())
 			}
 		}
 	}
 	return nil
-}
-
-//UpdateNodes updates cnames
-func (r Resource) UpdateNodes(ex map[string]bool, new map[string]bool) (err error) {
-	log.Info("Updating nodes")
-	for k, v := range ex {
-		if _, ok := new[k]; !ok {
-			if err = r.DeleteNode(k, v); err != nil {
-				return err
-			}
-		}
-	}
-	for k, v := range new {
-		if k == "" {
-			continue
-		}
-		if _, ok := ex[k]; !ok {
-			log.Info("Addit")
-			if err = r.AddNode(k, v); err != nil {
-				log.Error("Error in node addition ")
-				return err
-			}
-		} else if value, ok := ex[k]; ok && value != v {
-			if err = r.UpdateNodePrivilege(k, v); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-//DeleteNode deletes  a Node from the database
-func (r Resource) DeleteNode(name string, p bool) (err error) {
-	var node Node
-
-	return WithinTransaction(func(tx *gorm.DB) (err error) {
-		//find node
-		if err := tx.First(&node, "node_name=?", name).Error; err != nil {
-			log.Error("Coouldnt find the ID of the node for deletion")
-			tx.Rollback()
-			return err
-		}
-
-		//Delete relation
-		if err = tx.Set("gorm:association_autoupdate", false).
-			Where("alias_id = ? AND node_id = ?", r.ID, node.ID).
-			Delete(&AliasesNodes{}).Error; err != nil {
-			tx.Rollback()
-			log.Error("Error while delete in transaction node" + name)
-			return err
-		}
-		//Delete node with no other relations
-		if tx.Model(&node).Association("Aliases").Count() == 0 {
-			log.Info("Node doesnt have other relation, delete it")
-			if err = tx.Delete(&node).Error; err != nil {
-				log.Info("Error while deleting node with no relations")
-				tx.Rollback()
-				return err
-
-			}
-
-		}
-
-		return nil
-
-	})
-}
-
-//AddNode adds a node in the DB
-func (r Resource) AddNode(name string, p bool) (err error) {
-	var node Node
-
-	return WithinTransaction(func(tx *gorm.DB) (err error) {
-		err = tx.Where("node_name = ?", name).
-			Assign(Node{NodeName: name,
-				LastModification: time.Now()}).
-			FirstOrCreate(&node).Error
-
-		if err != nil {
-			tx.Rollback()
-			log.Error("Error while dealing with node ")
-			return err
-		}
-		if tx.Where("alias_id = ? AND node_id = ?", r.ID, node.ID).First(&AliasesNodes{}).RecordNotFound() {
-			if err = tx.First(&Alias{}, "id=?", r.ID).Create(
-				prepareRelation(node.ID, r.ID, p),
-			).Error; err != nil {
-				tx.Rollback()
-				return err
-			}
-		}
-		return nil
-	})
-}
-
-//UpdateNodePrivilege updates the privilege of a node from allowed to forbidden and vice versa
-func (r Resource) UpdateNodePrivilege(name string, p bool) (err error) {
-	var node Node
-	return WithinTransaction(func(tx *gorm.DB) (err error) {
-
-		//find node
-		if err := tx.First(&node, "node_name=?", name).Error; err != nil {
-			log.Error("Coouldnt find the ID of the node for deletion")
-			tx.Rollback()
-			return err
-		}
-
-		if err = tx.Model(&AliasesNodes{}).
-			Where("alias_id=? AND node_id = ?", r.ID, node.ID).
-			Update("blacklist", p).Error; err != nil {
-			log.Error("Error while updating privileges")
-			tx.Rollback()
-			return err
-		}
-
-		return nil
-	})
-
-}
-
-//AddCname appends a Cname
-func (r Resource) AddCname(cname string) error {
-	return WithinTransaction(func(tx *gorm.DB) (err error) {
-		if !cgorm.ManagerDB().NewRecord(&Cname{CName: cname}) {
-			log.Error("Cname" + cname + " already exists")
-			return err
-		}
-
-		if err = tx.Set("gorm:association_autoupdate", false).First(&Alias{}, "id=?", r.ID).Association("Cnames").Append(&Cname{CName: cname}).Error; err != nil {
-			log.Info("There was an error while adding cname " + string(cname))
-			tx.Rollback()
-			return err
-		}
-		return nil
-	})
-
-}
-
-//DeleteCname cname from db during modification
-//AutoUpdate is false, because otherwise we will be adding what we just deleted
-func (r Resource) DeleteCname(cname string) error {
-	return WithinTransaction(func(tx *gorm.DB) (err error) {
-		if err = tx.Set("gorm:association_autoupdate", false).Where("alias_id = ? AND c_name = ?", r.ID, cname).Delete(&Cname{}).Error; err != nil {
-			tx.Rollback()
-			log.Error("Error while delete in transaction cname" + cname)
-			return err
-		}
-		return nil
-
-	})
-
-}
-
-// WithinTransaction  accept DBFunc as parameter call DBFunc function within transaction begin, and commit and return error from DBFunc
-func WithinTransaction(fn DBFunc) (err error) {
-	tx := cgorm.ManagerDB().Begin() // start db transaction
-	defer tx.Commit()
-	err = fn(tx)
-
-	if err != nil {
-		log.Error("Error within transaction: " + err.Error())
-	}
-	return err
-
 }

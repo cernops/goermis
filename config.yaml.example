@@ -13,21 +13,14 @@ dev:
   open_conns: 100
   sslmode: disable
 
-staging:
-  adapter: ---CHANGE---
-  database: ---CHANGE---
-  username: ---CHANGE---
-  password: ---CHANGE---
-  host: ---CHANGE---   #defaults to 127.0.0.1
-  port: ---CHANGE---
-  idle_conns: 10
-  open_conns: 100
-  sslmode: disable
+  goermiscert: --change--
+  goermiskey: --change--
+  
 
-production:
-  adapter: ---CHANGE---
-  database: ---CHANGE---
-  username: ---CHANGE---
-  password: ---CHANGE---
-  host: ---CHANGE---   #defaults to 127.0.0.1
-  port: ---CHANGE---
+  soap_user: --change--
+  soap_password: --change--
+  soap_keyname_e: --change--
+  soap_keyname_i: --change--
+  soap_url: --change--
+  logging_file: --change--
+  
