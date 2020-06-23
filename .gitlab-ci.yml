@@ -48,5 +48,3 @@ build_rpm:
     paths:
       - SRPMS/
     expire_in: 1 week
-
-

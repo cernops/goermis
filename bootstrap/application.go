@@ -6,13 +6,16 @@ import (
 	"strings"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/labstack/gommon/log"
 	"github.com/spf13/viper"
 )
 
-var configFileFlag = flag.String("config", "config.yaml", "specify configuration file path")
+var (
+	configFileFlag = flag.String("config", "config.yaml", "specify configuration file path")
 
-//HomeFlag grabs the location of staticfiles & templates
-var HomeFlag string
+	//HomeFlag grabs the location of staticfiles & templates
+	HomeFlag string
+)
 
 //App prototype
 var App *Application
@@ -58,7 +61,7 @@ func (app *Application) loadAppConfig() {
 	}
 	appConfig.WatchConfig()
 	appConfig.OnConfigChange(func(e fsnotify.Event) {
-		//	glog.Info("App Config file changed %s:", e.Name)
+		log.Info("App Config file changed %s:", e.Name)
 	})
 	app.AppConfig = Config(*appConfig)
 }
@@ -81,7 +84,7 @@ func (app *Application) loadIFConfig() {
 	}
 	ifConfig.WatchConfig()
 	ifConfig.OnConfigChange(func(e fsnotify.Event) {
-		//	glog.Info("App Config file changed %s:", e.Name)
+		log.Info("App Config file changed %s:", e.Name)
 	})
 	app.IFConfig = Config(*ifConfig)
 }

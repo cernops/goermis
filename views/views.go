@@ -7,10 +7,9 @@ import (
 	"os"
 	"path/filepath"
 
-	log "github.com/sirupsen/logrus"
-	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
-
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/gommon/log"
+	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 )
 
 var (
@@ -29,6 +28,7 @@ func (t *TemplateRegistry) Render(w io.Writer, name string, data interface{}, c 
 	tmpl, ok := t.templates[name]
 	if !ok {
 		err := errors.New("Template not found -> " + name)
+		log.Warn("Template not found")
 		return err
 	}
 	return tmpl.ExecuteTemplate(w, "base.html", data)
@@ -37,7 +37,8 @@ func (t *TemplateRegistry) Render(w io.Writer, name string, data interface{}, c 
 func readCurrentDir(dir string) []string {
 	file, err := os.Open(dir)
 	if err != nil {
-		log.Fatalf("failed opening directory: %s", err)
+		log.Fatal("Failed opening directory")
+
 	}
 	defer file.Close()
 

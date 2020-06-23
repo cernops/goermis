@@ -4,24 +4,26 @@
  * LBDel - Javascript side code for the DELETE module of LBWeb
  */
 
-(function($){
+(function ($) {
 
-var newCluster = new LBCluster();
-var SelectInitVal = "Please_select";
+	var newCluster = new LBCluster();
+	var SelectInitVal = "Please_select";
 
-$(document).ready(function(){
-	initialize_form(true, 'delete');
+	$(document).ready(function () {
+		initialize_form(true, 'delete');
 
-	$('#clusterList').change(function(){
-		loadCluster($('#clusterList').val(), newCluster, false);
+		$('#clusterList').change(function () {
+			loadCluster($('#clusterList').val(), newCluster, false);
+		});
+
+		$('#edit-submit').click(function (event) {
+			event.preventDefault();
+			var TableData = $("#myTable").getTableData()
+			HostsAdded(TableData, newCluster);
+			submitForm('delete', newCluster);
+		});
+		checkSubmit(newCluster);
+
 	});
-
-	$('#edit-submit').click(function(event){
-		event.preventDefault();
-		submitForm('delete', newCluster);
-	});
-  checkSubmit(newCluster);
-
-});
 
 })(jQuery)
