@@ -131,7 +131,6 @@ func (r Resource) CreateObject() (err error) {
 //DefaultAndHydrate prepares the object with default values and domain
 func (r *Resource) DefaultAndHydrate() {
 	//Populate the struct with the default values
-	r.User = "kkouros"
 	r.Behaviour = "mindless"
 	r.Metric = "cmsfrontier"
 	r.PollingInterval = 300

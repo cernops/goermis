@@ -76,6 +76,7 @@ func NewAlias(c echo.Context) error {
 	var r models.Resource
 	//Get the params from the form
 	params, err := c.FormParams()
+	r.User = c.Request().Header.Get("X-Forwarded-User")
 	if err != nil {
 		log.Warn("Failed to get params from form with error : " + err.Error())
 	}
@@ -88,7 +89,6 @@ func NewAlias(c echo.Context) error {
 
 	//Default values and domain
 	r.DefaultAndHydrate()
-
 	defer c.Request().Body.Close()
 	//Validate structure
 	if ok, err := govalidator.ValidateStruct(r); err != nil || ok == false {
