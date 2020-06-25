@@ -87,6 +87,7 @@ func (r Resource) CreateObject() (err error) {
 	}
 	//DNS
 	entries := landbsoap.Soap.DNSDelegatedSearch(strings.Split(r.AliasName, ".")[0])
+	log.Info(entries)
 	if len(entries) == 0 {
 		log.Info("Preparing to add " + r.AliasName + " in DNS")
 		view := "internal"
@@ -120,7 +121,9 @@ func (r Resource) CreateObject() (err error) {
 			}
 			return nil
 		}
-		return errors.New("Failed to add alias " + r.AliasName + "in DNS")
+		//Failed to add in DNS, so lets clean DB
+		DeleteTransactions(r.AliasName, r.ID)
+		return errors.New("Failed to add alias " + r.AliasName + " in DNS")
 	}
 	return errors.New("Alias entry with the same name exist in DNS, skipping creation")
 }

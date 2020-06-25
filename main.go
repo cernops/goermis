@@ -37,7 +37,6 @@ func main() {
 	log.Info("Service Started...")
 	// Echo instance
 	echo := router.New()
-	router.InitRoutes(echo)
 	views.InitViews(echo)
 
 	db.Init()

@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/asaskevich/govalidator v0.0.0-20200428143746-21a406dcc535
+	github.com/davecgh/go-spew v1.1.1
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/go-ldap/ldap/v3 v3.1.11
 	github.com/go-sql-driver/mysql v1.5.0

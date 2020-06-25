@@ -33,12 +33,13 @@ type message struct {
 	Requestor  string
 }
 
-//CheckCrud checks a user if he is member of egroup
-func (l *Group) CheckCrud(username string) bool {
+//CheckCud checks a user if he is member of egroup
+func (l *Group) CheckCud(username string) bool {
 
 	if isMemberOf(username, "ermis-lbaas-admins") {
 		return true
 	}
+	log.Info(username + " is not member of egroup")
 	return false
 
 }
@@ -109,7 +110,6 @@ func (l *UserAuth) CheckWithForeman(username string, group string) bool {
 		log.Error("["+username+"]User not authorized.Status Code: ", resp.StatusCode)
 		return false
 	}
-	log.Info(data)
 	if err = json.Unmarshal(data, &m); err != nil {
 		log.Error("["+username+"]Error on unmarshalling response from teigi ", err.Error())
 		return false
