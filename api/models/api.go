@@ -92,7 +92,7 @@ func (r Resource) CreateObject() (err error) {
 	if len(entries) == 0 {
 		log.Info("Preparing to add " + r.AliasName + " in DNS")
 		view := "internal"
-		keyname := cfg.Soap.SoapKeynameI   
+		keyname := cfg.Soap.SoapKeynameI
 		if StringInSlice(r.External, []string{"external", "yes"}) {
 			view = "external"
 			keyname = cfg.Soap.SoapKeynameE

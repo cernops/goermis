@@ -38,7 +38,7 @@ func mysqlConn() {
 		connectionString string
 		err              error
 	)
-	
+
 	connectionString = fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true", cfg.Database.Username, cfg.Database.Password, cfg.Database.Host, cfg.Database.Port, cfg.Database.Database)
 	if db, err = gorm.Open("mysql", connectionString); err != nil {
 		log.Panic("Database connection error")
