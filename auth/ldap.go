@@ -56,7 +56,7 @@ func isMemberOf(username string, group string) bool {
 
 	if len(result.Entries) == 1 && result.Entries[0].GetAttributeValue("cn") == username {
 
-		log.Println("Got", result.Entries[0].GetAttributeValue("cn"), "search results")
+		log.Info("Got", result.Entries[0].GetAttributeValue("cn"), "search results")
 		return true
 
 	}

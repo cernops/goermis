@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
+
 	"github.com/labstack/gommon/log"
 )
 
@@ -48,8 +50,8 @@ func (l *Group) CheckCud(username string) bool {
 func GetConn() *UserAuth {
 	var conn = &UserAuth{
 		authRogerBaseURL: "https://woger.cern.ch:8202/authz/v1/hostgroup/",
-		authRogerCert:    "/etc/httpd/conf/ermiscert.pem",
-		authRogerCertKey: "/etc/httpd/conf/ermiskey.pem",
+		authRogerCert:    bootstrap.App.IFConfig.String("goermiscert"),
+		authRogerCertKey: bootstrap.App.IFConfig.String("goermiskey"),
 		authRogerCA:      "/etc/httpd/conf/ca.pem",
 		authRogerTimeout: 5,
 	}
