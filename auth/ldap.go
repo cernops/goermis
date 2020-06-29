@@ -2,7 +2,8 @@ package auth
 
 import (
 	"fmt"
-	"log"
+
+	"github.com/labstack/gommon/log"
 
 	"github.com/go-ldap/ldap/v3"
 )
