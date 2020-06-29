@@ -15,58 +15,51 @@ import (
 )
 
 var (
-	db *gorm.DB
+	db  *gorm.DB
+	cfg = bootstrap.GetConf()
 )
 
+/*
 // Init initialize database
 func Init() {
 	var adapter string
+	log.Info("Connecting to the databse")
 	adapter = bootstrap.App.IFConfig.String("adapter")
-	switch adapter {
-	case "mysql":
+	if adapter == "mysql" {
 		mysqlConn()
-		break
-	default:
-		log.Panic("Undefined connection on config.yaml")
-
-		panic("Undefined connection on config.yaml")
+	} else {
+		log.Panic("Undefined connection %s on the configuration file", adapter)
 	}
 }
-
+*/
 // mysqlConn: setup mysql database connection using the configuration from database.yaml
 func mysqlConn() {
 	var (
 		connectionString string
 		err              error
 	)
-
-	connectionString = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=true&loc=Local", bootstrap.App.IFConfig.String("username"), bootstrap.App.IFConfig.String("password"), bootstrap.App.IFConfig.String("host"), bootstrap.App.IFConfig.String("port"), bootstrap.App.IFConfig.String("database"))
-
+	
+	connectionString = fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true", cfg.Database.Username, cfg.Database.Password, cfg.Database.Host, cfg.Database.Port, cfg.Database.Database)
 	if db, err = gorm.Open("mysql", connectionString); err != nil {
 		log.Panic("Database connection error")
-		panic(err)
 	}
 	if err = db.DB().Ping(); err != nil {
 		log.Panic("Unreachable database")
-		panic(err)
 	}
 	db.SingularTable(true)
 	db.LogMode(true)
-	db.DB().SetMaxIdleConns(bootstrap.App.IFConfig.Int("idle_conns"))
-	db.DB().SetMaxOpenConns(bootstrap.App.IFConfig.Int("open_conns"))
+	db.DB().SetMaxIdleConns(cfg.Database.IdleConns)
+	db.DB().SetMaxOpenConns(cfg.Database.OpenConns)
 }
 
 //ManagerDB return GORM's database connection instance.
 func ManagerDB() *gorm.DB {
 	var adapter string
-	adapter = bootstrap.App.IFConfig.String("adapter")
-	switch adapter {
-	case "mysql":
+	adapter = cfg.Database.Adapter
+	if adapter == "mysql" {
 		mysqlConn()
-		break
-	default:
-		log.Panic("Undefined connection on config.yaml")
-		panic("Undefined connection on config.yaml")
+	} else {
+		log.Panicf("Undefined connection '%s' on the configuration file", adapter)
 	}
 
 	return db

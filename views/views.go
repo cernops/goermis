@@ -13,9 +13,9 @@ import (
 )
 
 var (
-	baseDir    = filepath.Join(bootstrap.HomeFlag, "/templates/base.html")
-	layoutsDir = filepath.Join(bootstrap.HomeFlag, "/templates/layouts")
-	formsDir   = filepath.Join(bootstrap.HomeFlag, "/templates/forms")
+	baseDir    = filepath.Join(*bootstrap.HomeFlag, "/templates/base.html")
+	layoutsDir = filepath.Join(*bootstrap.HomeFlag, "/templates/layouts")
+	formsDir   = filepath.Join(*bootstrap.HomeFlag, "/templates/forms")
 )
 
 // TemplateRegistry defines the template registry struct
@@ -48,7 +48,7 @@ func readCurrentDir(dir string) []string {
 
 //InitViews initializes the GUI
 func InitViews(e *echo.Echo) {
-	staticfiles := filepath.Join(bootstrap.HomeFlag, "/staticfiles")
+	staticfiles := filepath.Join(*bootstrap.HomeFlag, "/staticfiles")
 	e.Static("/staticfiles", staticfiles)
 	templates := make(map[string]*template.Template)
 	for _, file := range readCurrentDir(layoutsDir) {
