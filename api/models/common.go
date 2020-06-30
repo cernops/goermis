@@ -120,9 +120,9 @@ func CustomValidators() {
 				log.Error("Not valid hostgroup: " + str)
 				return false
 			}
-
+			return true
 		}
-		return true
+		return false
 	})
 
 }

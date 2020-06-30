@@ -88,7 +88,6 @@ func (r Resource) CreateObject() (err error) {
 	}
 	//DNS
 	entries := landbsoap.Soap.DNSDelegatedSearch(strings.Split(r.AliasName, ".")[0])
-	log.Info(entries)
 	if len(entries) == 0 {
 		log.Info("Preparing to add " + r.AliasName + " in DNS")
 		view := "internal"

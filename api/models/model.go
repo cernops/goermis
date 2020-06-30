@@ -67,7 +67,7 @@ type (
 		ForbiddenNodes   string    `json:"ForbiddenNodes"  schema:"ForbiddenNodes"  gorm:"not null" valid:"optional,nodes" `
 		AllowedNodes     string    `json:"AllowedNodes" schema:"AllowedNodes" gorm:"not null" valid:"optional,nodes"`
 		Cname            string    `json:"cnames"  schema:"cnames" gorm:"not null" valid:"optional,cnames"`
-		External         string    `json:"external" schema:"external" valid:"required,in(yes|no)"`
+		External         string    `json:"external" schema:"external" valid:"required,in(yes|no|internal|external)"`
 		Hostgroup        string    `json:"hostgroup" schema:"hostgroup" valid:"required,hostgroup"`
 		LastModification time.Time `json:"last_modification" schema:"last_modification" valid:"-"`
 		Metric           string    `json:"metric" schema:"metric" valid:"in(cmsfrontier|minino|minimum|),optional"`

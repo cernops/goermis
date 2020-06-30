@@ -42,5 +42,6 @@ func New() *echo.Echo {
 	api.GET("/aliases/:alias", handlers.GetAlias)
 	api.DELETE("/aliases", handlers.DeleteAlias)
 	api.POST("/aliases", handlers.NewAlias)
+	api.PATCH("/aliases/:alias", handlers.ModifyAlias)
 	return e
 }
