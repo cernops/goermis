@@ -18,6 +18,7 @@ var (
 	db  *gorm.DB
 	cfg = bootstrap.GetConf()
 )
+
 // mysqlConn: setup mysql database connection using the configuration from database.yaml
 func mysqlConn() {
 	var (

@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-
 	schema "github.com/gorilla/Schema"
 	"github.com/jinzhu/copier"
 	"github.com/labstack/gommon/log"
