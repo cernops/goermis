@@ -78,7 +78,10 @@ func GetConf() (conf *Config) {
 func NewConfig(configPath string) (*Config, error) {
 	// Create config structure
 	config := &Config{}
-
+	//Validate
+	if err := ValidateConfigPath(configPath); err != nil {
+		return nil, err
+	}
 	// Open config file
 	file, err := os.Open(configPath)
 	if err != nil {
@@ -109,28 +112,3 @@ func ValidateConfigPath(path string) error {
 	}
 	return nil
 }
-
-/*
-// ParseFlags will create and parse the CLI flags
-// and return the path to be used elsewhere
-func ParseFlags() (string, error) {
-	// String that contains the configured configuration path
-	var configPath string
-
-	// Set up a CLI flag called "-config" to allow users
-	// to supply the configuration file
-	flag.StringVar(&configPath, "config", "/usr/local/etc/goermis.yaml", "path to config file")
-
-
-	// Actually parse the flags
-	flag.Parse()
-
-	// Validate the path first
-	if err := ValidateConfigPath(configPath); err != nil {
-		return "", err
-	}
-
-	// Return the configuration path
-	return configPath, nil
-}
-*/
