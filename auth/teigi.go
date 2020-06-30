@@ -15,8 +15,6 @@ import (
 	"github.com/labstack/gommon/log"
 )
 
-var cfg = bootstrap.GetConf()
-
 //Group decides user authorization
 type Group struct {
 	egroupCRUD string
@@ -50,13 +48,15 @@ func (l *Group) CheckCud(username string) bool {
 
 //GetConn prepares the initial structure for starting a connection
 func GetConn() *UserAuth {
-	var conn = &UserAuth{
+	var (
+		cfg = bootstrap.GetConf()
+		conn = &UserAuth{
 		authRogerBaseURL: "https://woger.cern.ch:8202/authz/v1/hostgroup/",
 		authRogerCert:    cfg.Certs.GoermisCert,
 		authRogerCertKey: cfg.Certs.GoermisKey,
 		authRogerCA:      cfg.Certs.CACert,
 		authRogerTimeout: 5,
-	}
+	} )
 
 	return conn
 }

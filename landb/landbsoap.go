@@ -32,10 +32,10 @@ type LandbSoap struct {
 var (
 	//Soap is the externally visible instance of Soap interface
 	Soap = LandbSoap{}
-	cfg  = bootstrap.GetConf()
 )
 
 func init() {
+	cfg := bootstrap.GetConf()
 	password := cfg.Soap.SoapPassword
 	decodedPass, err := base64.StdEncoding.DecodeString(password)
 

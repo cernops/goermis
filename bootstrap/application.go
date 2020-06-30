@@ -17,27 +17,27 @@ type Config struct {
 		AppEnv     string `yaml:"app_env"`
 	}
 	Database struct {
-		Adapter   string `yaml:"adapter"`
-		Database  string `yaml:"database"`
-		Username  string `yaml:"username"`
-		Password  string `yaml:"password"`
-		Host      string `yaml:"host"`
-		Port      int    `yaml:"port"`
-		IdleConns int    `yaml:"idle_conns"`
-		OpenConns int    `yaml:"open_conns"`
-		Sslmode   string `yaml:"sslmode"`
+		Adapter   string
+		Database  string
+		Username  string
+		Password  string
+		Host      string
+		Port      int
+		IdleConns int `yaml:"idle_conns"`
+		OpenConns int `yaml:"open_conns"`
+		Sslmode   string
 	}
 	Soap struct {
-		SoapUser     string `yaml:"soap_user"`
+		SoapUser     string
 		SoapPassword string `yaml:"soap_password"`
 		SoapKeynameI string `yaml:"soap_keyname_i"`
 		SoapKeynameE string `yaml:"soap_keyname_e"`
 		SoapURL      string `yaml:"soap_url"`
 	}
 	Certs struct {
-		GoermisCert string `yaml:"goermiscert"`
-		GoermisKey  string `yaml:"goermiskey"`
-		CACert      string `yaml:"cacert"`
+		GoermisCert string `yaml:"goermis_cert"`
+		GoermisKey  string `yaml:"goermis_key"`
+		CACert      string `yaml:"ca_cert"`
 	}
 	Log struct {
 		LoggingFile string `yaml:"logging_file"`
@@ -46,12 +46,12 @@ type Config struct {
 
 var (
 	configFileFlag = flag.String("config", "/usr/local/etc/goermis.yaml", "specify configuration file path")
-
 	//HomeFlag grabs the location of staticfiles & templates
 	HomeFlag = flag.String("home", "/var/lib/ermis/", "specify statics path")
 )
 
 func init() {
+	//Init log in the bootstrap package, since its the first that its executed
 	log.SetLevel(1)
 	log.SetHeader("${time_rfc3339} ${level} ${short_file} ${line} ")
 	file, err := os.OpenFile(GetConf().Log.LoggingFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
@@ -62,11 +62,12 @@ func init() {
 		log.Info("Failed to log to file, using default stderr")
 	}
 	log.Info("Init of the application")
+	//Parse flags
 	flag.Parse()
 }
 
 //GetConf returns the Conf file
-func GetConf() (conf *Config) {
+func GetConf() *Config {
 	cfg, err := NewConfig(*configFileFlag)
 	if err != nil {
 		log.Fatal(err)
@@ -75,15 +76,15 @@ func GetConf() (conf *Config) {
 }
 
 // NewConfig returns a new decoded Config struct
-func NewConfig(configPath string) (*Config, error) {
+func NewConfig(configFileFlag string) (*Config, error) {
 	// Create config structure
 	config := &Config{}
-	//Validate
-	if err := ValidateConfigPath(configPath); err != nil {
+	//Validate its a readable file
+	if err := ValidateConfigFile(configFileFlag); err != nil {
 		return nil, err
 	}
 	// Open config file
-	file, err := os.Open(configPath)
+	file, err := os.Open(configFileFlag)
 	if err != nil {
 		return nil, err
 	}
@@ -100,9 +101,9 @@ func NewConfig(configPath string) (*Config, error) {
 	return config, nil
 }
 
-// ValidateConfigPath just makes sure, that the path provided is a file,
+// ValidateConfigFile just makes sure, that the path provided is a file,
 // that can be read
-func ValidateConfigPath(path string) error {
+func ValidateConfigFile(path string) error {
 	s, err := os.Stat(path)
 	if err != nil {
 		return err

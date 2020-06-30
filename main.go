@@ -14,10 +14,6 @@ import (
 	"gitlab.cern.ch/lb-experts/goermis/views"
 )
 
-var (
-	cfg = bootstrap.GetConf()
-)
-
 const (
 	// Version number
 	Version = "0.0.2"
@@ -35,6 +31,9 @@ func main() {
 
 	// Start server
 	go func() {
+		var (
+			cfg = bootstrap.GetConf()
+		)
 		if err := echo.StartTLS(":8080",
 			cfg.Certs.GoermisCert,
 			cfg.Certs.GoermisKey); err != nil {

@@ -18,20 +18,6 @@ var (
 	db  *gorm.DB
 	cfg = bootstrap.GetConf()
 )
-
-/*
-// Init initialize database
-func Init() {
-	var adapter string
-	log.Info("Connecting to the databse")
-	adapter = bootstrap.App.IFConfig.String("adapter")
-	if adapter == "mysql" {
-		mysqlConn()
-	} else {
-		log.Panic("Undefined connection %s on the configuration file", adapter)
-	}
-}
-*/
 // mysqlConn: setup mysql database connection using the configuration from database.yaml
 func mysqlConn() {
 	var (
