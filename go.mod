@@ -16,5 +16,6 @@ require (
 	github.com/lib/pq v1.5.2
 	github.com/spf13/viper v1.6.3
 	golang.org/x/sys v0.0.0-20200523222454-059865788121 // indirect
+	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
 
 )

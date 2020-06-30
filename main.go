@@ -21,33 +21,22 @@ const (
 	Release = "2"
 )
 
-func init() {
-	log.SetLevel(1)
-	log.SetHeader("${time_rfc3339} ${level} ${short_file} ${line} ")
-	file, err := os.OpenFile(bootstrap.App.IFConfig.String("logging_file"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err == nil {
-		log.SetOutput(file)
-		log.Info("File set as logger output")
-	} else {
-		log.Info("Failed to log to file, using default stderr")
-	}
-}
-
 func main() {
 	log.Info("Service Started...")
 	// Echo instance
 	echo := router.New()
 	views.InitViews(echo)
-
-	db.Init()
 	autoCreateTables(&models.Alias{}, &models.Node{}, &models.Cname{}, &models.AliasesNodes{})
 	autoMigrateTables()
 
 	// Start server
 	go func() {
+		var (
+			cfg = bootstrap.GetConf()
+		)
 		if err := echo.StartTLS(":8080",
-			bootstrap.App.IFConfig.String("goermiscert"),
-			bootstrap.App.IFConfig.String("goermiskey")); err != nil {
+			cfg.Certs.GoermisCert,
+			cfg.Certs.GoermisKey); err != nil {
 			log.Fatal("Failed to start server: " + err.Error())
 		}
 	}()

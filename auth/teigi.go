@@ -48,13 +48,16 @@ func (l *Group) CheckCud(username string) bool {
 
 //GetConn prepares the initial structure for starting a connection
 func GetConn() *UserAuth {
-	var conn = &UserAuth{
-		authRogerBaseURL: "https://woger.cern.ch:8202/authz/v1/hostgroup/",
-		authRogerCert:    bootstrap.App.IFConfig.String("goermiscert"),
-		authRogerCertKey: bootstrap.App.IFConfig.String("goermiskey"),
-		authRogerCA:      "/etc/httpd/conf/ca.pem",
-		authRogerTimeout: 5,
-	}
+	var (
+		cfg  = bootstrap.GetConf()
+		conn = &UserAuth{
+			authRogerBaseURL: "https://woger.cern.ch:8202/authz/v1/hostgroup/",
+			authRogerCert:    cfg.Certs.GoermisCert,
+			authRogerCertKey: cfg.Certs.GoermisKey,
+			authRogerCA:      cfg.Certs.CACert,
+			authRogerTimeout: 5,
+		}
+	)
 
 	return conn
 }

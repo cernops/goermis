@@ -3,131 +3,113 @@ package bootstrap
 import (
 	"flag"
 	"fmt"
-	"strings"
+	"os"
 
-	"github.com/fsnotify/fsnotify"
 	"github.com/labstack/gommon/log"
-	"github.com/spf13/viper"
+	"gopkg.in/yaml.v3"
 )
+
+//Config describes the yaml file
+type Config struct {
+	App struct {
+		AppName    string `yaml:"app_name"`
+		AppVersion string `yaml:"app_version"`
+		AppEnv     string `yaml:"app_env"`
+	}
+	Database struct {
+		Adapter   string
+		Database  string
+		Username  string
+		Password  string
+		Host      string
+		Port      int
+		IdleConns int `yaml:"idle_conns"`
+		OpenConns int `yaml:"open_conns"`
+		Sslmode   string
+	}
+	Soap struct {
+		SoapUser     string
+		SoapPassword string `yaml:"soap_password"`
+		SoapKeynameI string `yaml:"soap_keyname_i"`
+		SoapKeynameE string `yaml:"soap_keyname_e"`
+		SoapURL      string `yaml:"soap_url"`
+	}
+	Certs struct {
+		GoermisCert string `yaml:"goermis_cert"`
+		GoermisKey  string `yaml:"goermis_key"`
+		CACert      string `yaml:"ca_cert"`
+	}
+	Log struct {
+		LoggingFile string `yaml:"logging_file"`
+	}
+}
 
 var (
-	configFileFlag = flag.String("config", "config.yaml", "specify configuration file path")
-
+	configFileFlag = flag.String("config", "/usr/local/etc/goermis.yaml", "specify configuration file path")
 	//HomeFlag grabs the location of staticfiles & templates
-	HomeFlag string
+	HomeFlag = flag.String("home", "/var/lib/ermis/", "specify statics path")
 )
 
-//App prototype
-var App *Application
-
-//Config file
-type Config viper.Viper
-
-//Application struct
-type Application struct {
-	Name      string `json:"name"`
-	Version   string `json:"version"`
-	ENV       string `json:"env"`
-	AppConfig Config `json:"application_config"`
-	IFConfig  Config `json:"interface_config"`
-}
-
 func init() {
-	flag.StringVar(&HomeFlag, "home", "/goermis", "specify statics path")
+	//Init log in the bootstrap package, since its the first that its executed
+	log.SetLevel(1)
+	log.SetHeader("${time_rfc3339} ${level} ${short_file} ${line} ")
+	file, err := os.OpenFile(GetConf().Log.LoggingFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err == nil {
+		log.SetOutput(file)
+		log.Info("File set as logger output")
+	} else {
+		log.Info("Failed to log to file, using default stderr")
+	}
+	log.Info("Init of the application")
+	//Parse flags
 	flag.Parse()
-	App = &Application{}
-	App.Name = "APP_NAME"
-	App.Version = "APP_VERSION"
-	App.loadENV()
-	App.loadAppConfig()
-	App.loadIFConfig()
 }
 
-// loadAppConfig: read application config and build viper object
-func (app *Application) loadAppConfig() {
-	var (
-		appConfig *viper.Viper
-		err       error
-	)
-	appConfig = viper.New()
-	appConfig.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
-	appConfig.SetEnvPrefix("APP_")
-	appConfig.AutomaticEnv()
-	appConfig.SetConfigName("config")
-	appConfig.AddConfigPath(*configFileFlag)
-	appConfig.SetConfigType("yaml")
-	if err = appConfig.ReadInConfig(); err != nil {
-		panic(err)
+//GetConf returns the Conf file
+func GetConf() *Config {
+	cfg, err := NewConfig(*configFileFlag)
+	if err != nil {
+		log.Fatal(err)
 	}
-	appConfig.WatchConfig()
-	appConfig.OnConfigChange(func(e fsnotify.Event) {
-		log.Info("App Config file changed %s:", e.Name)
-	})
-	app.AppConfig = Config(*appConfig)
+	return cfg
 }
 
-// loadDBConfig: read application config and build viper object
-func (app *Application) loadIFConfig() {
-	var (
-		ifConfig *viper.Viper
-		err      error
-	)
-	ifConfig = viper.New()
-	ifConfig.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
-	ifConfig.SetEnvPrefix("IF_")
-	ifConfig.AutomaticEnv()
-	ifConfig.SetConfigName("config")
-	ifConfig.AddConfigPath(*configFileFlag)
-	ifConfig.SetConfigType("yaml")
-	if err = ifConfig.ReadInConfig(); err != nil {
-		panic(err)
+// NewConfig returns a new decoded Config struct
+func NewConfig(configFileFlag string) (*Config, error) {
+	// Create config structure
+	config := &Config{}
+	//Validate its a readable file
+	if err := ValidateConfigFile(configFileFlag); err != nil {
+		return nil, err
 	}
-	ifConfig.WatchConfig()
-	ifConfig.OnConfigChange(func(e fsnotify.Event) {
-		log.Info("App Config file changed %s:", e.Name)
-	})
-	app.IFConfig = Config(*ifConfig)
-}
-
-// loadENV
-func (app *Application) loadENV() {
-	var APPENV string
-	var appConfig viper.Viper
-	appConfig = viper.Viper(app.AppConfig)
-	APPENV = appConfig.GetString("env")
-	switch APPENV {
-	case "dev":
-		app.ENV = "dev"
-		break
-	case "staging":
-		app.ENV = "staging"
-		break
-	case "production":
-		app.ENV = "production"
-		break
-	default:
-		app.ENV = "dev"
-		break
+	// Open config file
+	file, err := os.Open(configFileFlag)
+	if err != nil {
+		return nil, err
 	}
+	defer file.Close()
+
+	// Init new YAML decode
+	d := yaml.NewDecoder(file)
+
+	// Start YAML decoding from file
+	if err := d.Decode(&config); err != nil {
+		return nil, err
+	}
+
+	return config, nil
 }
 
-// String: read string value from viper.Viper
-func (config *Config) String(key string) string {
-	var viperConfig viper.Viper
-	viperConfig = viper.Viper(*config)
-	return viperConfig.GetString(fmt.Sprintf("%s.%s", App.ENV, key))
-}
-
-//Int read int value from viper.Viper
-func (config *Config) Int(key string) int {
-	var viperConfig viper.Viper
-	viperConfig = viper.Viper(*config)
-	return viperConfig.GetInt(fmt.Sprintf("%s.%s", App.ENV, key))
-}
-
-// Boolean read boolean value from viper.Viper
-func (config *Config) Boolean(key string) bool {
-	var viperConfig viper.Viper
-	viperConfig = viper.Viper(*config)
-	return viperConfig.GetBool(fmt.Sprintf("%s.%s", App.ENV, key))
+// ValidateConfigFile just makes sure, that the path provided is a file,
+// that can be read
+func ValidateConfigFile(path string) error {
+	s, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+	if s.IsDir() {
+		return fmt.Errorf("'%s' is a directory, not a normal file", path)
+	}
+	return nil
 }

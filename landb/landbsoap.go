@@ -8,10 +8,11 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/labstack/gommon/log"
 
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 )
@@ -34,16 +35,17 @@ var (
 )
 
 func init() {
-	password := bootstrap.App.IFConfig.String("soap_password")
+	cfg := bootstrap.GetConf()
+	password := cfg.Soap.SoapPassword
 	decodedPass, err := base64.StdEncoding.DecodeString(password)
 
 	Soap = LandbSoap{
-		Username:  bootstrap.App.IFConfig.String("soap_user"),
+		Username:  cfg.Soap.SoapUser,
 		Password:  string(decodedPass),
 		Ca:        "/etc/ssl/certs/ca-bundle.crt",
-		HostCert:  bootstrap.App.IFConfig.String("goermiscert"),
-		HostKey:   bootstrap.App.IFConfig.String("goermiskey"),
-		URL:       bootstrap.App.IFConfig.String("soap_url"),
+		HostCert:  cfg.Certs.GoermisCert,
+		HostKey:   cfg.Certs.GoermisKey,
+		URL:       cfg.Soap.SoapURL,
 		AuthToken: "",
 		Client:    &http.Client{}}
 

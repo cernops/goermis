@@ -4,6 +4,7 @@ import (
 	"net"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/asaskevich/govalidator"
 	schema "github.com/gorilla/Schema"
@@ -34,7 +35,6 @@ func init() {
 
 //GetAliases handles requests of all aliases
 func GetAliases(c echo.Context) error {
-
 	log.Info("Ready do get all aliases")
 	if all.Objects, e = models.GetObjects("", ""); e != nil {
 		log.Error(e.Error())
@@ -47,6 +47,7 @@ func GetAliases(c echo.Context) error {
 
 //GetAlias queries for a specific alias
 func GetAlias(c echo.Context) error {
+	//Get the name/ID of alias
 	param := c.Param("alias")
 	if !govalidator.IsDNSName(param) {
 		log.Error("Wrong type of query parameter.Expected alphanum, received " + param)
@@ -57,6 +58,10 @@ func GetAlias(c echo.Context) error {
 	if _, err := strconv.Atoi(c.Param("alias")); err == nil {
 		tablerow = "id"
 	} else {
+		if !strings.HasSuffix(param, ".cern.ch") {
+			param = param + ".cern.ch"
+		}
+
 		tablerow = "alias_name"
 	}
 

@@ -18,6 +18,7 @@ var (
 	con     = db.ManagerDB()
 	decoder = schema.NewDecoder()
 	q       string
+	cfg     = bootstrap.GetConf()
 )
 
 //GetObjects return list of aliases if no parameters are passed or a single alias if parameters are given
@@ -91,10 +92,10 @@ func (r Resource) CreateObject() (err error) {
 	if len(entries) == 0 {
 		log.Info("Preparing to add " + r.AliasName + " in DNS")
 		view := "internal"
-		keyname := bootstrap.App.IFConfig.String("soap_keyname_i")
+		keyname := cfg.Soap.SoapKeynameI
 		if StringInSlice(r.External, []string{"external", "yes"}) {
 			view = "external"
-			keyname = bootstrap.App.IFConfig.String("soap_keyname_e")
+			keyname = cfg.Soap.SoapKeynameE
 		}
 
 		if landbsoap.Soap.DNSDelegatedAdd(r.AliasName, view, keyname, "Created by: gouser", "testing go") {
@@ -214,7 +215,7 @@ func (r Resource) ModifyObject(new Resource) (err error) {
 func UpdateDNS(name string, oldView string, newView string, newCnames []string) (err error) {
 	oview := "internal"
 	nview := "internal"
-	keyname := bootstrap.App.IFConfig.String("soap_keyname_i")
+	keyname := cfg.Soap.SoapKeynameI
 	existingCnames := landbsoap.Soap.GimeCnamesOf(strings.Split(name, ".")[0])
 	log.Info(existingCnames)
 	log.Info(strings.Split(name, ".")[0])
@@ -224,7 +225,7 @@ func UpdateDNS(name string, oldView string, newView string, newCnames []string) 
 	}
 	if StringInSlice(newView, []string{"yes", "external"}) {
 		nview = "external"
-		keyname = bootstrap.App.IFConfig.String("soap_keyname_e")
+		keyname = cfg.Soap.SoapKeynameE
 	}
 
 	//View has changed so we delete and recreate alias with the new visibility
