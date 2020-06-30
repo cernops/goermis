@@ -22,7 +22,6 @@ const (
 )
 
 func init() {
-	log.EnableColor()
 	log.SetLevel(1)
 	log.SetHeader("${time_rfc3339} ${level} ${short_file} ${line} ")
 	file, err := os.OpenFile(bootstrap.App.IFConfig.String("logging_file"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
@@ -38,7 +37,6 @@ func main() {
 	log.Info("Service Started...")
 	// Echo instance
 	echo := router.New()
-	router.InitRoutes(echo)
 	views.InitViews(echo)
 
 	db.Init()
@@ -50,7 +48,7 @@ func main() {
 		if err := echo.StartTLS(":8080",
 			bootstrap.App.IFConfig.String("goermiscert"),
 			bootstrap.App.IFConfig.String("goermiskey")); err != nil {
-			log.Debug("Ignore if error is Port Binding" + err.Error())
+			log.Fatal("Failed to start server: " + err.Error())
 		}
 	}()
 

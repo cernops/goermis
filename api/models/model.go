@@ -68,14 +68,15 @@ type (
 		AllowedNodes     string    `json:"AllowedNodes" schema:"AllowedNodes" gorm:"not null" valid:"optional,nodes"`
 		Cname            string    `json:"cnames"  schema:"cnames" gorm:"not null" valid:"optional,cnames"`
 		External         string    `json:"external" schema:"external" valid:"required,in(yes|no)"`
-		Hostgroup        string    `json:"hostgroup" schema:"hostgroup" valid:"required,alphanum"`
+		Hostgroup        string    `json:"hostgroup" schema:"hostgroup" valid:"required,hostgroup"`
 		LastModification time.Time `json:"last_modification" schema:"last_modification" valid:"-"`
-		Metric           string    `json:"metric" schema:"metric" valid:"metric,optional"`
+		Metric           string    `json:"metric" schema:"metric" valid:"in(cmsfrontier|minino|minimum|),optional"`
 		PollingInterval  int       `json:"polling_interval" schema:"polling_interval" valid:"numeric"`
 		Tenant           string    `json:"tenant" schema:"tenant" valid:"optional,alphanum"`
 		TTL              int       `json:"ttl" schema:"ttl" valid:"numeric"`
 		User             string    `json:"user" schema:"user" valid:"optional,alphanum"`
 		Statistics       string    `json:"statistics" schema:"statistics" valid:"alpha"`
+		URI              string    `valid:"-"`
 	}
 	//Objects holds multiple result structs
 	Objects struct {
