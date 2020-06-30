@@ -73,14 +73,6 @@ func prepareRelation(nodeID int, aliasID int, p bool) (r *AliasesNodes) {
 
 //CustomValidators adds our new tags in the govalidator
 func CustomValidators() {
-	// Metric validation
-	govalidator.TagMap["metric"] = govalidator.Validator(func(str string) bool {
-
-		allowed := []string{"minino", "minimum", "cmsfrontier", ""}
-
-		return StringInSlice(str, allowed)
-	})
-
 	govalidator.TagMap["nodes"] = govalidator.Validator(func(str string) bool {
 		if len(str) > 0 {
 			split := strings.Split(str, ",")
@@ -118,6 +110,19 @@ func CustomValidators() {
 	govalidator.TagMap["best_hosts"] = govalidator.Validator(func(str string) bool {
 		return stringToInt(str) >= -1
 
+	})
+
+	govalidator.TagMap["hostgroup"] = govalidator.Validator(func(str string) bool {
+
+		if len(str) > 0 {
+			var allowed = regexp.MustCompile(`^[a-z][a-z0-9\_\/]*[a-z0-9]$`)
+			if !allowed.MatchString(str) || !govalidator.InRange(len(str), 2, 50) {
+				log.Error("Not valid hostgroup: " + str)
+				return false
+			}
+
+		}
+		return true
 	})
 
 }

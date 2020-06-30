@@ -2,6 +2,7 @@ package models
 
 import (
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 
@@ -57,10 +58,15 @@ func GetObjects(param string, tablerow string) (b []Resource, err error) {
 	defer rows.Close()
 	for rows.Next() {
 		var result Resource
+		//Fill the struct with the results of the DB query
 		err := rows.Scan(&result.ID, &result.AliasName, &result.Behaviour, &result.BestHosts, &result.Clusters,
 			&result.ForbiddenNodes, &result.AllowedNodes, &result.Cname, &result.External, &result.Hostgroup,
 			&result.LastModification, &result.Metric, &result.PollingInterval,
 			&result.Tenant, &result.TTL, &result.User, &result.Statistics)
+
+		//Infer the URI value
+		result.URI = "api/v1/" + strconv.Itoa(result.ID)
+
 		if err != nil {
 			return b, errors.New("Failed in scanning query results with err: " +
 				err.Error())
@@ -80,7 +86,8 @@ func (r Resource) CreateObject() (err error) {
 		return err
 	}
 	//DNS
-	entries := landbsoap.Soap.DNSDelegatedSearch(r.AliasName)
+	entries := landbsoap.Soap.DNSDelegatedSearch(strings.Split(r.AliasName, ".")[0])
+	log.Info(entries)
 	if len(entries) == 0 {
 		log.Info("Preparing to add " + r.AliasName + " in DNS")
 		view := "internal"
@@ -114,7 +121,9 @@ func (r Resource) CreateObject() (err error) {
 			}
 			return nil
 		}
-		return errors.New("Failed to add alias " + r.AliasName + "in DNS")
+		//Failed to add in DNS, so lets clean DB
+		DeleteTransactions(r.AliasName, r.ID)
+		return errors.New("Failed to add alias " + r.AliasName + " in DNS")
 	}
 	return errors.New("Alias entry with the same name exist in DNS, skipping creation")
 }
@@ -122,7 +131,6 @@ func (r Resource) CreateObject() (err error) {
 //DefaultAndHydrate prepares the object with default values and domain
 func (r *Resource) DefaultAndHydrate() {
 	//Populate the struct with the default values
-	r.User = "kkouros"
 	r.Behaviour = "mindless"
 	r.Metric = "cmsfrontier"
 	r.PollingInterval = 300
@@ -150,7 +158,7 @@ func (r Resource) DeleteObject() (err error) {
 	}
 
 	//DNS
-	entries := landbsoap.Soap.DNSDelegatedSearch(r.AliasName)
+	entries := landbsoap.Soap.DNSDelegatedSearch(strings.Split(r.AliasName, ".")[0])
 	if len(entries) != 0 {
 		log.Info("Preparing to delete " + r.AliasName + " from DNS")
 		view := "internal"
