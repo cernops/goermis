@@ -47,12 +47,19 @@ type Config struct {
 var (
 	configFileFlag = flag.String("config", "/usr/local/etc/goermis.yaml", "specify configuration file path")
 	//HomeFlag grabs the location of staticfiles & templates
-	HomeFlag = flag.String("home", "/var/lib/ermis/", "specify statics path")
+	HomeFlag   = flag.String("home", "/var/lib/ermis/", "specify statics path")
+	debugLevel = flag.Bool("debug", false, "display debug messages")
 )
 
 func init() {
+	//Parse flags
+	flag.Parse()
 	//Init log in the bootstrap package, since its the first that its executed
-	log.SetLevel(1)
+	if *debugLevel {
+		log.SetLevel(1)
+	} else {
+		log.SetLevel(2)
+	}
 	log.SetHeader("${time_rfc3339} ${level} ${short_file} ${line} ")
 	file, err := os.OpenFile(GetConf().Log.LoggingFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err == nil {
@@ -62,8 +69,6 @@ func init() {
 		log.Info("Failed to log to file, using default stderr")
 	}
 	log.Info("Init of the application")
-	//Parse flags
-	flag.Parse()
 }
 
 //GetConf returns the Conf file
