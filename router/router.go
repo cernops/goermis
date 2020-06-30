@@ -18,7 +18,6 @@ func New() *echo.Echo {
 		AllowMethods: []string{http.MethodGet, http.MethodHead, http.MethodPut, http.MethodPatch, http.MethodPost, http.MethodDelete},
 		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
 	}))
-
 	lbweb := e.Group("/lbweb")
 	lbweb.Use(m.CheckAuthorization)
 	lbweb.Use(middleware.CSRFWithConfig(middleware.CSRFConfig{
