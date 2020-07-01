@@ -1,16 +1,19 @@
-package models
+package api
 
 import (
+	"bytes"
+	"io/ioutil"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/asaskevich/govalidator"
+	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
+	"gitlab.cern.ch/lb-experts/goermis/aiermis/orm"
 )
 
-//DeleteEmpty filters an array for empty string values
-func DeleteEmpty(s []string) []string {
+func deleteEmpty(s []string) []string {
 	var r []string
 	for _, str := range s {
 		if str != "" {
@@ -30,8 +33,8 @@ func StringInSlice(a string, list []string) bool {
 	return false
 }
 
-//getExistingCnames extracts the names of cnames for a certain alias
-func getExistingCnames(a Alias) (s []string) {
+//GetExistingCnames extracts the names of cnames for a certain alias
+func getExistingCnames(a orm.Alias) (s []string) {
 
 	for _, value := range a.Cnames {
 		s = append(s, value.CName)
@@ -39,6 +42,7 @@ func getExistingCnames(a Alias) (s []string) {
 	return s
 }
 
+//StringToInt converts a string to a int. It is used to hide error checks
 func stringToInt(s string) (i int) {
 	i, err := strconv.Atoi(s)
 	if err != nil {
@@ -47,17 +51,30 @@ func stringToInt(s string) (i int) {
 	return i
 }
 
-func nodesInMap(p Resource) map[string]bool {
+//StoreBodyOfRequest is used to store the body of a request in case its needed
+func storeBodyOfRequest(c echo.Context) []byte {
+	// Read the content since we need it more than once
+	var bodyOfRequest []byte
+	if c.Request().Body != nil {
+		bodyOfRequest, _ = ioutil.ReadAll(c.Request().Body)
+	}
+	// Restore the io.ReadCloser to its original state
+	c.Request().Body = ioutil.NopCloser(bytes.NewBuffer(bodyOfRequest)) // Use the content
+	return bodyOfRequest
+}
+
+//NodesInMap puts the nodes in a map. The value is their privilege
+func nodesInMap(AllowedNodes string, ForbiddenNodes string) map[string]bool {
 
 	temp := make(map[string]bool)
 
 	modes := map[string]bool{
-		p.AllowedNodes:   false,
-		p.ForbiddenNodes: true,
+		AllowedNodes:   false,
+		ForbiddenNodes: true,
 	}
 	for k, v := range modes {
 		if k != "" {
-			for _, val := range DeleteEmpty(strings.Split(k, ",")) {
+			for _, val := range deleteEmpty(strings.Split(k, ",")) {
 				temp[val] = v
 			}
 		}
@@ -66,13 +83,8 @@ func nodesInMap(p Resource) map[string]bool {
 	return temp
 }
 
-func prepareRelation(nodeID int, aliasID int, p bool) (r *AliasesNodes) {
-	r = &AliasesNodes{AliasID: aliasID, NodeID: nodeID, Blacklist: p}
-	return r
-}
-
 //CustomValidators adds our new tags in the govalidator
-func CustomValidators() {
+func customValidators() {
 	govalidator.TagMap["nodes"] = govalidator.Validator(func(str string) bool {
 		if len(str) > 0 {
 			split := strings.Split(str, ",")

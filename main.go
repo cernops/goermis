@@ -2,16 +2,15 @@ package main
 
 import (
 	"context"
-	"os"
-	"os/signal"
-	"time"
-
 	"github.com/labstack/gommon/log"
-	"gitlab.cern.ch/lb-experts/goermis/api/models"
+	"gitlab.cern.ch/lb-experts/goermis/aiermis/orm"
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 	"gitlab.cern.ch/lb-experts/goermis/db"
 	"gitlab.cern.ch/lb-experts/goermis/router"
 	"gitlab.cern.ch/lb-experts/goermis/views"
+	"os"
+	"os/signal"
+	"time"
 )
 
 const (
@@ -26,7 +25,7 @@ func main() {
 	// Echo instance
 	echo := router.New()
 	views.InitViews(echo)
-	autoCreateTables(&models.Alias{}, &models.Node{}, &models.Cname{}, &models.AliasesNodes{})
+	autoCreateTables(&orm.Alias{}, &orm.Node{}, &orm.Cname{}, &orm.AliasesNodes{})
 	autoMigrateTables()
 
 	// Start server
@@ -73,6 +72,6 @@ func autoCreateTables(values ...interface{}) error {
 
 // autoMigrateTables: migrate table columns using GORM
 func autoMigrateTables() {
-	db.ManagerDB().AutoMigrate(&models.Alias{}, &models.Node{}, &models.Cname{}, &models.AliasesNodes{})
+	db.ManagerDB().AutoMigrate(&orm.Alias{}, &orm.Node{}, &orm.Cname{}, &orm.AliasesNodes{})
 
 }

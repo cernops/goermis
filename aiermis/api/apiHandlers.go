@@ -1,4 +1,4 @@
-package handlers
+package api
 
 import (
 	"net"
@@ -7,33 +7,31 @@ import (
 	"strings"
 
 	"github.com/asaskevich/govalidator"
-	schema "github.com/gorilla/Schema"
+	"github.com/davecgh/go-spew/spew"
+
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
-	"gitlab.cern.ch/lb-experts/goermis/api/models"
+	"gitlab.cern.ch/lb-experts/goermis/aiermis/orm"
 	"gitlab.cern.ch/lb-experts/goermis/db"
-)
-
-var (
-	decoder = schema.NewDecoder()
 )
 
 func init() {
 	govalidator.SetFieldsRequiredByDefault(true)
-	decoder.IgnoreUnknownKeys(true)
-	models.CustomValidators()
+	customValidators()
 }
+
+//COMMON HANDLERS
 
 //GetAliases returns a list of ALL aliases
 func GetAliases(c echo.Context) error {
 	var (
-		list models.Objects
+		list Objects
 		e    error
 	)
 
 	log.Info("Ready do get all aliases")
 	//If empty values provided,the MySQL query returns all aliases
-	if list.Objects, e = models.GetObjects("", ""); e != nil {
+	if list.Objects, e = GetObjects("", ""); e != nil {
 		log.Error(e.Error())
 		return echo.NewHTTPError(http.StatusBadRequest, e.Error())
 	}
@@ -45,7 +43,7 @@ func GetAliases(c echo.Context) error {
 //GetAlias queries for a specific alias
 func GetAlias(c echo.Context) error {
 	var (
-		list     models.Objects
+		list     Objects
 		e        error
 		tablerow string
 	)
@@ -68,7 +66,7 @@ func GetAlias(c echo.Context) error {
 		tablerow = "alias_name"
 	}
 
-	if list.Objects, e = models.GetObjects(string(param), tablerow); e != nil {
+	if list.Objects, e = GetObjects(string(param), tablerow); e != nil {
 		log.Error("Unable to get the alias with error message: " + e.Error())
 
 		return echo.NewHTTPError(http.StatusBadRequest, e.Error())
@@ -79,9 +77,19 @@ func GetAlias(c echo.Context) error {
 
 }
 
-//NewAlias creates a new alias entry in the DB
-func NewAlias(c echo.Context) error {
-	r := populateStruct(c)
+//CreateAlias creates a new alias entry in the DB
+func CreateAlias(c echo.Context) error {
+
+	//Struct r serves for getting request values and validate them
+	var r Resource
+	if err := c.Bind(&r); err != nil {
+		log.Warn("Failed to bind params " + err.Error())
+	}
+
+	//User is provided in the HEADER
+	r.User = c.Request().Header.Get("X-Forwarded-User")
+	defer c.Request().Body.Close()
+
 	//Validate structure
 	if ok, err := govalidator.ValidateStruct(r); err != nil || ok == false {
 		log.Warn("Failed to validate parameters with error: " + err.Error())
@@ -128,7 +136,7 @@ func DeleteAlias(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnprocessableEntity)
 	}
 
-	alias, err := models.GetObjects(aliasName, "alias_name")
+	alias, err := GetObjects(aliasName, "alias_name")
 	if err != nil {
 		log.Error("Failed to retrieve the existing data of alias " +
 			aliasName +
@@ -155,29 +163,85 @@ func DeleteAlias(c echo.Context) error {
 
 }
 
+//LBWEB-SPECIFIC HANDLERS
+
 //ModifyAlias modifes cnames, nodes, hostgroup and best_hosts parameters
 func ModifyAlias(c echo.Context) error {
-	newObject := populateStruct(c)
+	var r Resource
+	if err := c.Bind(&r); err != nil {
+		log.Warn("Failed to bind params " + err.Error())
+	}
+	spew.Dump(r)
+
+	//After that, we use the alias name for retrieving its profile from DB
+	existingObj, err := GetObjects(r.AliasName, "alias_name")
+	if err != nil {
+		log.Error("Failed to retrieve existing data for alias " +
+			r.AliasName +
+			"with error: " + err.Error())
+		return err
+	}
+
+	//Preserve the DB values for these fields, because they are needed for comparison
+	stashC := existingObj[0].Cname          //Cnames
+	stashA := existingObj[0].AllowedNodes   //AllowedNodes
+	stashF := existingObj[0].ForbiddenNodes //ForbiddenNodes
+
+	//Update fields if changed, PATCH
+	if r.AllowedNodes != "" {
+		existingObj[0].AllowedNodes = r.AllowedNodes
+	}
+	if r.External != "" {
+		existingObj[0].External = r.External
+	}
+	if r.BestHosts != 0 {
+		existingObj[0].BestHosts = r.BestHosts
+	}
+	if r.Metric != "" {
+		existingObj[0].Metric = r.Metric
+	}
+	if r.PollingInterval != 0 {
+		existingObj[0].PollingInterval = r.PollingInterval
+	}
+	if r.Hostgroup != "" {
+		existingObj[0].Hostgroup = r.Hostgroup
+	}
+	if r.Tenant != "" {
+		existingObj[0].Tenant = r.Tenant
+	}
+	if r.ForbiddenNodes != "" {
+		existingObj[0].ForbiddenNodes = r.ForbiddenNodes
+	}
+	if r.Cname != "" {
+		existingObj[0].Cname = r.Cname
+	}
+	if r.TTL != 0 {
+		existingObj[0].TTL = r.TTL
+	}
+
+	/*
+		//Now that we have old and new information, we update existingObj with changed fields
+		if err := c.Bind(&existingObj[0]); err != nil {
+			log.Warn("Failed to decode form parameters into the structure with error: " +
+				err.Error())
+			return err
+		}*/
+
 	//Validate
-	if ok, err := govalidator.ValidateStruct(newObject); err != nil || ok == false {
+	if ok, err := govalidator.ValidateStruct(existingObj[0]); err != nil || ok == false {
 		log.Error("Validation failed with error: " + err.Error())
 		return c.Render(http.StatusUnprocessableEntity, "home.html", map[string]interface{}{
 			"Auth": true,
 			"Message": "There was an error while validating the alias " +
-				newObject.AliasName + "Error: " +
+				existingObj[0].AliasName + "Error: " +
 				err.Error(),
 		})
 	}
-	//Retrieve from DB the info for the alias that we will modify
-	existingObj, err := models.GetObjects(newObject.AliasName, "alias_name")
-	if err != nil {
-		log.Error("Failed to retrieve existing data for alias " +
-			newObject.AliasName +
-			"with error: " + err.Error())
-		return err
-	}
-	// Modify existingObj with newObject as parameter
-	if err := existingObj[0].ModifyObject(newObject); err != nil {
+
+	defer c.Request().Body.Close()
+
+	// Call the modifier
+	if err := existingObj[0].ModifyObject(stashC, stashA, stashF); err != nil {
 
 		log.Error("Failed to update alias " + existingObj[0].AliasName +
 			"with error: " + err.Error())
@@ -203,9 +267,9 @@ func CheckNameDNS(c echo.Context) error {
 	)
 
 	aliasToResolve := c.QueryParam("hostname")
-	con.Model(&models.Cname{}).Where("c_name=?", aliasToResolve).Count(&result)
+	con.Model(&orm.Cname{}).Where("c_name=?", aliasToResolve).Count(&result)
 	if result == 0 {
-		con.Model(&models.Alias{}).Where("alias_name=?", aliasToResolve+".cern.ch").Count(&result)
+		con.Model(&orm.Alias{}).Where("alias_name=?", aliasToResolve+".cern.ch").Count(&result)
 	}
 	if result == 0 {
 		if r, err := net.LookupHost(aliasToResolve); err != nil {
@@ -223,30 +287,26 @@ func CheckNameDNS(c echo.Context) error {
 	return c.JSON(http.StatusOK, result)
 }
 
-func populateStruct(c echo.Context) (r models.Resource) {
-	//UI parameters are passed inside a form
-	params, err := c.FormParams()
-	if err != nil {
-		log.Warn("Failed to get params from form with error : " + err.Error())
-	}
-	//If form has values, decode them in structure
-	if len(params) != 0 {
-		//Decode parameters in structure
-		if err := decoder.Decode(&r, params); err != nil {
-			log.Warn("Failed to decode form parameters to structure with error: " +
-				err.Error())
-		}
-		//Else handle json params
-	} else {
-		//Kermis is using this one
-		log.Info("Kermis parameters")
-		if err := c.Bind(&r); err != nil {
-			log.Warn("Failed to bind params " + err.Error())
-		}
+//KERMIS-SPECIFIC HANDLERS
 
+//PatchAlias patches an existing alias. It serves kermis update operation
+func PatchAlias(c echo.Context) error {
+	var r Resource
+	if err := c.Bind(&r); err != nil {
+		log.Info("Failed to bind request to structure")
+		return c.JSON(http.StatusUnprocessableEntity, "Failed to bind Request")
 	}
-	//User is provided in the HEADER
-	r.User = c.Request().Header.Get("X-Forwarded-User")
-	defer c.Request().Body.Close()
-	return r
+	a := c.ParamValues()
+	b := c.Param("alias_name")
+	c1 := c.Get("alias_name")
+	d := c.Get("alias_name")
+	e1 := c.QueryParam("alias_name")
+
+	log.Info(a)
+	log.Info(b)
+	log.Info(c1)
+	log.Info(d)
+	log.Info(e1)
+	return c.JSON(http.StatusOK, "Update succedeed")
+
 }

@@ -1,24 +1,53 @@
-package models
+package api
 
 import (
 	"errors"
+
 	"strconv"
 	"strings"
 	"time"
 
-	schema "github.com/gorilla/Schema"
 	"github.com/jinzhu/copier"
 	"github.com/labstack/gommon/log"
+	"gitlab.cern.ch/lb-experts/goermis/aiermis/orm"
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 	"gitlab.cern.ch/lb-experts/goermis/db"
+
 	landbsoap "gitlab.cern.ch/lb-experts/goermis/landb"
 )
 
 var (
-	con     = db.ManagerDB()
-	decoder = schema.NewDecoder()
-	q       string
-	cfg     = bootstrap.GetConf()
+	con = db.ManagerDB()
+	q   string
+	cfg = bootstrap.GetConf()
+)
+
+//Resource deals with the output from the queries
+type (
+	Resource struct {
+		ID               int       `form:"alias_id" json:"alias_id" valid:"required,numeric"`
+		AliasName        string    `form:"alias_name" json:"alias_name"  valid:"required,dns"`
+		Behaviour        string    `form:"behaviour" json:"behaviour" valid:"-"`
+		BestHosts        int       `form:"best_hosts" json:"best_hosts" valid:"required,int,best_hosts"`
+		Clusters         string    `form:"clusters" json:"clusters"  valid:"alphanum"`
+		ForbiddenNodes   string    `form:"ForbiddenNodes" json:"ForbiddenNodes"   gorm:"not null" valid:"optional,nodes" `
+		AllowedNodes     string    `form:"AllowedNodes" json:"AllowedNodes"  gorm:"not null" valid:"optional,nodes"`
+		Cname            string    `form:"cnames" json:"cnames"   gorm:"not null" valid:"optional,cnames"`
+		External         string    `form:"external" json:"external"  valid:"required,in(yes|no|internal|external)"`
+		Hostgroup        string    `form:"hostgroup" json:"hostgroup"  valid:"required,hostgroup"`
+		LastModification time.Time `form:"last_modification" json:"last_modification"  valid:"-"`
+		Metric           string    `form:"metric" json:"metric"  valid:"in(cmsfrontier|minino|minimum|),optional"`
+		PollingInterval  int       `form:"polling_interval" json:"polling_interval" valid:"numeric"`
+		Tenant           string    `form:"tenant" json:"tenant"  valid:"optional,alphanum"`
+		TTL              int       `form:"ttl" json:"ttl"  valid:"numeric"`
+		User             string    `form:"user" json:"user"  valid:"optional,alphanum"`
+		Statistics       string    `form:"statistics" json:"statistics"  valid:"alpha"`
+		URI              string    `valid:"-"`
+	}
+	//Objects holds multiple result structs
+	Objects struct {
+		Objects []Resource `json:"objects"`
+	}
 )
 
 //GetObjects return list of aliases if no parameters are passed or a single alias if parameters are given
@@ -79,15 +108,24 @@ func GetObjects(param string, tablerow string) (b []Resource, err error) {
 
 //CreateObject creates an alias
 func (r Resource) CreateObject() (err error) {
-	//DB
-	var a Alias
+	//DB//
+
+	//We use ORM struct here, so that we are able to create the relations
+	var a orm.Alias
+
+	//Copier fills Alias struct with the values from Resource struct
 	copier.Copy(&a, &r)
-	cnames := DeleteEmpty(strings.Split(r.Cname, ","))
-	if err := CreateTransactions(a, cnames); err != nil {
+	//Cnames are treated seperately, because they will be created using their struct
+	cnames := deleteEmpty(strings.Split(r.Cname, ","))
+
+	//Create object in the DB with transactions
+	if err := orm.CreateTransactions(a, cnames); err != nil {
 		return err
 	}
-	//DNS
+
+	//DNS//
 	entries := landbsoap.Soap.DNSDelegatedSearch(strings.Split(r.AliasName, ".")[0])
+	//Double-check that DNS doesn't contain such an alias
 	if len(entries) == 0 {
 		log.Info("Preparing to add " + r.AliasName + " in DNS")
 		view := "internal"
@@ -96,23 +134,27 @@ func (r Resource) CreateObject() (err error) {
 			view = "external"
 			keyname = cfg.Soap.SoapKeynameE
 		}
-
+		//Create the alias first
 		if landbsoap.Soap.DNSDelegatedAdd(r.AliasName, view, keyname, "Created by: gouser", "testing go") {
 			log.Info(r.AliasName + "/" + view + "has been created")
+
+			//If alias is created successfully and there are also cnames...
 			if len(cnames) > 0 {
 				for _, cname := range cnames {
 					log.Info("Adding in DNS the cname " + cname)
+
+					//...Create cnames,too
 					if landbsoap.Soap.DNSDelegatedAliasAdd(r.AliasName, view, cname) {
 						log.Info("Alias " + cname + " has been created for " +
 							r.AliasName + "/" + view)
 					} else {
-						//Clear the mess, since smth went south
+						//If cname creation fails, clear the mess by deleting alias
 						//First from DNS
 						if landbsoap.Soap.DNSDelegatedRemove(r.AliasName, view) {
 							log.Info("Cleared DNS from the failed addition")
 						}
 						//Then from DB
-						DeleteTransactions(r.AliasName, r.ID)
+						orm.DeleteTransactions(r.AliasName, r.ID)
 						return errors.New("Failed to add cname " +
 							cname + "for alias " + r.AliasName + " in DNS. Rolling back ")
 					}
@@ -122,7 +164,7 @@ func (r Resource) CreateObject() (err error) {
 			return nil
 		}
 		//Failed to add in DNS, so lets clean DB
-		DeleteTransactions(r.AliasName, r.ID)
+		orm.DeleteTransactions(r.AliasName, r.ID)
 		return errors.New("Failed to add alias " + r.AliasName + " in DNS")
 	}
 	return errors.New("Alias entry with the same name exist in DNS, skipping creation")
@@ -153,7 +195,7 @@ func (r *Resource) DefaultAndHydrate() {
 //DeleteObject deletes an alias and its Relations
 func (r Resource) DeleteObject() (err error) {
 	//DB
-	if err := DeleteTransactions(r.AliasName, r.ID); err != nil {
+	if err := orm.DeleteTransactions(r.AliasName, r.ID); err != nil {
 		return err
 	}
 
@@ -179,32 +221,35 @@ func (r Resource) DeleteObject() (err error) {
 }
 
 //ModifyObject modifies aliases and its associations
-func (r Resource) ModifyObject(new Resource) (err error) {
+func (r Resource) ModifyObject(oldCnames string, oldAllowed string, oldForbidden string) (err error) {
 	//Prepare cnames separately
-	newCnames := DeleteEmpty(strings.Split(new.Cname, ","))
-	exCnames := DeleteEmpty(strings.Split(r.Cname, ","))
+	newCnames := deleteEmpty(strings.Split(r.Cname, ","))
+	exCnames := deleteEmpty(strings.Split(oldCnames, ","))
 
 	//Let's update the single-valued fields first
-	if err = con.Model(&Alias{}).Where("id = ?", r.ID).UpdateColumns(
+	if err = con.Model(&orm.Alias{}).Where("id = ?", r.ID).UpdateColumns(
 		map[string]interface{}{
-			"external":   new.External,
-			"hostgroup":  new.Hostgroup,
-			"best_hosts": new.BestHosts,
+			"external":   r.External,
+			"hostgroup":  r.Hostgroup,
+			"best_hosts": r.BestHosts,
 		}).Error; err != nil {
 		return errors.New("Failed to update the single-valued fields with error: " + err.Error())
 
 	}
+
 	//Update cnames for object r with new cnames
 	if err = UpdateCnames(r.ID, exCnames, newCnames); err != nil {
 		return err
 	}
 	/*Update nodes for r object with new nodes(nodesToMap converts string to map,
 	  where value indicates privilege allowed/forbidden)*/
-	if err = UpdateNodes(r.ID, nodesInMap(r), nodesInMap(new)); err != nil {
+	newNodesMap := nodesInMap(r.AllowedNodes, r.ForbiddenNodes)
+	oldNodesMap := nodesInMap(oldAllowed, oldForbidden)
+	if err = UpdateNodes(r.ID, newNodesMap, oldNodesMap); err != nil {
 		return err
 	}
 
-	if err = UpdateDNS(r.AliasName, r.External, new.External, newCnames); err != nil {
+	if err = UpdateDNS(r.AliasName, r.External, r.External, newCnames); err != nil {
 		return err
 	}
 	return nil
@@ -286,10 +331,10 @@ func UpdateDNS(name string, oldView string, newView string, newCnames []string) 
 }
 
 //UpdateNodes updates alias with new nodes
-func UpdateNodes(aliasID int, ex map[string]bool, new map[string]bool) (err error) {
-	for name := range ex {
+func UpdateNodes(aliasID int, new map[string]bool, old map[string]bool) (err error) {
+	for name := range old {
 		if _, ok := new[name]; !ok {
-			if err = DeleteNodeTransactions(aliasID, name); err != nil {
+			if err = orm.DeleteNodeTransactions(aliasID, name); err != nil {
 				return errors.New("Failed to delete existing node " +
 					name + " while updating, with error: " + err.Error())
 			}
@@ -299,13 +344,13 @@ func UpdateNodes(aliasID int, ex map[string]bool, new map[string]bool) (err erro
 		if name == "" {
 			continue
 		}
-		if _, ok := ex[name]; !ok {
-			if err = AddNodeTransactions(aliasID, name, privilege); err != nil {
+		if _, ok := old[name]; !ok {
+			if err = orm.AddNodeTransactions(aliasID, name, privilege); err != nil {
 				return errors.New("Failed to add new node " +
 					name + " while updating, with error: " + err.Error())
 			}
-		} else if value, ok := ex[name]; ok && value != privilege {
-			if err = UpdatePrivilegeTransactions(aliasID, name, privilege); err != nil {
+		} else if value, ok := old[name]; ok && value != privilege {
+			if err = orm.UpdatePrivilegeTransactions(aliasID, name, privilege); err != nil {
 				return errors.New("Failed to update privilege for node " +
 					name + " while updating, with error: " + err.Error())
 			}
@@ -322,7 +367,7 @@ func UpdateCnames(aliasID int, exCnames []string, newCnames []string) (err error
 	if len(newCnames) > 0 {
 		for _, value := range exCnames {
 			if !StringInSlice(value, newCnames) {
-				if err = DeleteCnameTransactions(aliasID, value); err != nil {
+				if err = orm.DeleteCnameTransactions(aliasID, value); err != nil {
 					return errors.New("Failed to delete existing cname " +
 						value + " while updating, with error: " + err.Error())
 				}
@@ -334,7 +379,7 @@ func UpdateCnames(aliasID int, exCnames []string, newCnames []string) (err error
 				continue
 			}
 			if !StringInSlice(value, exCnames) {
-				if err = AddCnameTransactions(aliasID, value); err != nil {
+				if err = orm.AddCnameTransactions(aliasID, value); err != nil {
 					return errors.New("Failed to add new cname " +
 						value + " while updating, with error: " + err.Error())
 				}
@@ -344,7 +389,7 @@ func UpdateCnames(aliasID int, exCnames []string, newCnames []string) (err error
 
 	} else {
 		for _, value := range exCnames {
-			if err = DeleteCnameTransactions(aliasID, value); err != nil {
+			if err = orm.DeleteCnameTransactions(aliasID, value); err != nil {
 				return errors.New("Failed to delete cname " +
 					value + " while purging all, with error: " + err.Error())
 			}

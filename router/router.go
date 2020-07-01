@@ -5,13 +5,12 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"gitlab.cern.ch/lb-experts/goermis/api/handlers"
-	m "gitlab.cern.ch/lb-experts/goermis/api/middleware"
+	"gitlab.cern.ch/lb-experts/goermis/aiermis/api"
+	m "gitlab.cern.ch/lb-experts/goermis/aiermis/middleware"
 )
 
-//New Echo COntext
+//New Echo Context
 func New() *echo.Echo {
-
 	e := echo.New()
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{"*"},
@@ -25,23 +24,23 @@ func New() *echo.Echo {
 		TokenLookup: "form:csrf", ContextKey: "csrf", CookieName: "_csrf", CookieMaxAge: 86400,
 	}))
 
-	lbweb.GET("/", handlers.HomeHandler)
-	lbweb.GET("/create/", handlers.CreateHandler)
-	lbweb.GET("/modify/", handlers.ModifyHandler)
-	lbweb.GET("/display/", handlers.DisplayHandler)
-	lbweb.GET("/delete/", handlers.DeleteHandler)
-	lbweb.GET("/logs/", handlers.LogsHandler)
-	lbweb.POST("/new_alias", handlers.NewAlias)
-	lbweb.POST("/delete_alias", handlers.DeleteAlias)
-	lbweb.POST("/modify_alias", handlers.ModifyAlias)
-	lbweb.GET("/*/checkname/:hostname", handlers.CheckNameDNS)
+	lbweb.GET("/", api.HomeHandler)
+	lbweb.GET("/create/", api.CreateHandler)
+	lbweb.GET("/modify/", api.ModifyHandler)
+	lbweb.GET("/display/", api.DisplayHandler)
+	lbweb.GET("/delete/", api.DeleteHandler)
+	lbweb.GET("/logs/", api.LogsHandler)
+	lbweb.POST("/new_alias", api.CreateAlias)
+	lbweb.POST("/delete_alias", api.DeleteAlias)
+	lbweb.POST("/modify_alias", api.ModifyAlias)
+	lbweb.GET("/*/checkname/:hostname", api.CheckNameDNS)
 
-	api := e.Group("/api/v1")
-	api.Use(m.CheckAuthorization)
-	api.GET("/aliases", handlers.GetAliases)
-	api.GET("/aliases/:alias", handlers.GetAlias)
-	api.DELETE("/aliases", handlers.DeleteAlias)
-	api.POST("/aliases", handlers.NewAlias)
-	api.PATCH("/aliases/:alias", handlers.ModifyAlias)
+	lbterm := e.Group("/api/v1")
+	lbterm.Use(m.CheckAuthorization)
+	lbterm.GET("/aliases", api.GetAliases)
+	lbterm.GET("/aliases/:alias", api.GetAlias)
+	lbterm.DELETE("/aliases", api.DeleteAlias)
+	lbterm.POST("/aliases", api.CreateAlias)
+	lbterm.PATCH("/aliases/:alias", api.ModifyAlias)
 	return e
 }

@@ -5,7 +5,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
-	"gitlab.cern.ch/lb-experts/goermis/api/models"
+	"gitlab.cern.ch/lb-experts/goermis/aiermis/api"
 	"gitlab.cern.ch/lb-experts/goermis/auth"
 )
 
@@ -30,14 +30,14 @@ func CheckAuthorization(nextHandler echo.HandlerFunc) echo.HandlerFunc {
 				return nextHandler(c)
 			}
 			//If user is not in the egroup but method is GET, proceed to the next handler
-			if models.StringInSlice(c.Request().Method, []string{"GET"}) {
+			if api.StringInSlice(c.Request().Method, []string{"GET"}) {
 				log.Info("[" + username + "] Authorized as GET request")
 				return nextHandler(c)
 			}
 			//If user is not in the egroup and method is {POST,PATCH,DELETE}, check with teigi
 			//If hostgroup is in Request, we use that one. In case there is no hostgroup
 			//,such as, when deleting with kermis, we find hostgroup in DB.
-			if models.StringInSlice(c.Request().Method, []string{"POST", "DELETE", "PATCH"}) {
+			if api.StringInSlice(c.Request().Method, []string{"POST", "DELETE", "PATCH"}) {
 				log.Info("[" + username + "] Querying teigi for authorization")
 				if conn.CheckWithForeman(username, findHostgroup(c)) {
 					log.Info("[" + username + "] Authorized by teigi")
@@ -69,7 +69,7 @@ func messageToUser(c echo.Context, status int, message string) error {
 func findHostgroup(c echo.Context) string {
 	hostgroup := c.FormValue("hostgroup")
 	if hostgroup == "" {
-		alias, _ := models.GetObjects(c.FormValue("alias_name"), "alias_name")
+		alias, _ := api.GetObjects(c.FormValue("alias_name"), "alias_name")
 		hostgroup = alias[0].Hostgroup
 	}
 	return hostgroup

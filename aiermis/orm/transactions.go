@@ -1,4 +1,4 @@
-package models
+package orm
 
 import (
 	"errors"
@@ -75,7 +75,7 @@ func DeleteTransactions(name string, ID int) (err error) {
 
 			//Delete node with no other relations
 			if tx.Model(&node).Association("Aliases").Count() == 0 {
-				if err = con.Delete(&node).Error; err != nil {
+				if err = tx.Delete(&node).Error; err != nil {
 					return errors.New("Failed to delete unrelated node " +
 						node.NodeName +
 						"Error: " + err.Error())
@@ -213,8 +213,8 @@ func DeleteCnameTransactions(aliasID int, cname string) error {
 
 }
 
-// WithinTransaction  accept DBFunc as parameter call DBFunc function within transaction begin, and commit and return error from DBFunc
-func WithinTransaction(fn DBFunc) (err error) {
+// WithinTransaction  accept dBFunc as parameter call dBFunc function within transaction begin, and commit and return error from dBFunc
+func WithinTransaction(fn dBFunc) (err error) {
 	tx := cgorm.ManagerDB().Begin() // start db transaction
 	defer tx.Commit()
 	err = fn(tx)
@@ -223,4 +223,10 @@ func WithinTransaction(fn DBFunc) (err error) {
 	}
 	return err
 
+}
+
+//PrepareRelation prepares an entry for the node-alias table
+func prepareRelation(nodeID int, aliasID int, p bool) (r *AliasesNodes) {
+	r = &AliasesNodes{AliasID: aliasID, NodeID: nodeID, Blacklist: p}
+	return r
 }
