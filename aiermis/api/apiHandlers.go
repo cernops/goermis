@@ -89,7 +89,7 @@ func CreateAlias(c echo.Context) error {
 
 	//Validate structure
 	if ok, err := govalidator.ValidateStruct(r); err != nil || ok == false {
-		MessageToUser(c, http.StatusUnprocessableEntity,
+		return MessageToUser(c, http.StatusUnprocessableEntity,
 			"Validation error for "+r.AliasName+" : "+err.Error(), "home.html")
 	}
 
@@ -99,7 +99,7 @@ func CreateAlias(c echo.Context) error {
 	log.Info("[" + username + "] " + "Ready to create a new alias " + r.AliasName)
 	//Create object
 	if err := r.CreateObject(); err != nil {
-		MessageToUser(c, http.StatusBadRequest,
+		return MessageToUser(c, http.StatusBadRequest,
 			"Creation error for "+r.AliasName+" : "+err.Error(), "home.html")
 	}
 
@@ -124,7 +124,7 @@ func DeleteAlias(c echo.Context) error {
 	}
 	defer c.Request().Body.Close()
 	if err := alias[0].DeleteObject(); err != nil {
-		MessageToUser(c, http.StatusBadRequest, err.Error(), "home.html")
+		return MessageToUser(c, http.StatusBadRequest, err.Error(), "home.html")
 
 	}
 
@@ -185,7 +185,7 @@ func ModifyAlias(c echo.Context) error {
 
 	//Validate
 	if ok, err := govalidator.ValidateStruct(existingObj[0]); err != nil || ok == false {
-		MessageToUser(c, http.StatusUnprocessableEntity,
+		return MessageToUser(c, http.StatusUnprocessableEntity,
 			"Validation error for alias "+existingObj[0].AliasName+" : "+err.Error(), "home.html")
 	}
 
@@ -193,7 +193,7 @@ func ModifyAlias(c echo.Context) error {
 
 	// Call the modifier
 	if err := existingObj[0].ModifyObject(stashC, stashA, stashF); err != nil {
-		MessageToUser(c, http.StatusBadRequest,
+		return MessageToUser(c, http.StatusBadRequest,
 			"Update error for alias "+existingObj[0].AliasName+" : "+err.Error(), "home.html")
 	}
 
@@ -220,7 +220,7 @@ func CheckNameDNS(c echo.Context) error {
 		} else {
 			result = len(r)
 
-			MessageToUser(c, http.StatusConflict,
+			return MessageToUser(c, http.StatusConflict,
 				"Duplicate for "+aliasToResolve+" in DNS "+err.Error(), "home.html")
 
 		}

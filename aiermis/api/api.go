@@ -265,7 +265,6 @@ func UpdateDNS(name string, oldView string, newView string, newCnames []string) 
 	keyname := cfg.Soap.SoapKeynameI
 	existingCnames := landbsoap.Soap.GimeCnamesOf(strings.Split(name, ".")[0])
 
-
 	if StringInSlice(oldView, []string{"yes", "external"}) {
 		oview = "external"
 	}
