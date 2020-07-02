@@ -1,8 +1,6 @@
 package auth
 
 import (
-	"fmt"
-
 	"github.com/labstack/gommon/log"
 
 	"github.com/go-ldap/ldap/v3"
@@ -29,7 +27,6 @@ func initconnection() *ldap.Conn {
 func isMemberOf(username string, group string) bool {
 	conn := initconnection()
 	defer conn.Close()
-	fmt.Println(group)
 	base := "CN=" + username + baseSuffix
 	filter := "(memberOf=CN=" + group + filterSuffix
 	nestedFilter := nestedfilterPrefix + group + filterSuffix
@@ -44,11 +41,11 @@ func isMemberOf(username string, group string) bool {
 	searchReq := query(base, filter)
 	result, err := conn.Search(searchReq)
 	if err != nil && result == nil {
-		fmt.Printf("No results in the egroup.LDAP response: %s", err)
+		log.Error("No results in the egroup.LDAP response: " + err.Error())
 		searchReq = query(base, nestedFilter)
 		result, err = conn.Search(searchReq)
 		if err != nil {
-			fmt.Printf("No results in the nested egroups.LDAP response : %s", err)
+			log.Error("No results in the nested egroups.LDAP response : " + err.Error())
 			return false
 		}
 

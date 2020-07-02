@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -120,7 +119,7 @@ func (l *UserAuth) CheckWithForeman(username string, group string) bool {
 		return false
 	}
 	if m.Authorized {
-		fmt.Println("[" + username + "]Foreman authorized user with hostgroup " + m.Hostgroup)
+		log.Info("[" + username + "]Foreman authorized user with hostgroup " + m.Hostgroup)
 		return true
 	}
 	return false

@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/asaskevich/govalidator"
-
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
 	"gitlab.cern.ch/lb-experts/goermis/aiermis/orm"
@@ -137,11 +136,9 @@ func DeleteAlias(c echo.Context) error {
 func ModifyAlias(c echo.Context) error {
 	var r Resource
 	username := c.Request().Header.Get("X-Forwarded-User")
-
 	if err := c.Bind(&r); err != nil {
 		log.Warn("[" + username + "] " + "Failed to bind params " + err.Error())
 	}
-
 	//After we bind request, we use the alias name for retrieving its profile from DB
 	existingObj, err := GetObjects(r.AliasName, "alias_name")
 	if err != nil {
@@ -185,7 +182,6 @@ func ModifyAlias(c echo.Context) error {
 	existingObj[0].ForbiddenNodes = r.ForbiddenNodes
 	existingObj[0].AllowedNodes = r.AllowedNodes
 	existingObj[0].Cname = r.Cname
-
 	//Validate
 	if ok, err := govalidator.ValidateStruct(existingObj[0]); err != nil || ok == false {
 		return MessageToUser(c, http.StatusUnprocessableEntity,

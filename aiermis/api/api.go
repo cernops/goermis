@@ -30,7 +30,7 @@ type (
 		Behaviour        string    `form:"behaviour" json:"behaviour" valid:"-"`
 		BestHosts        int       `form:"best_hosts" json:"best_hosts" valid:"required,int,best_hosts"`
 		Clusters         string    `form:"clusters" json:"clusters"  valid:"alphanum"`
-		ForbiddenNodes   string    `form:"ForbiddenNodes" json:"ForbiddenNodes"   gorm:"not null" valid:"optional,nodes" `
+		ForbiddenNodes   string    `form:"ForbiddenNodes" json:"ForbiddenNodes" gorm:"not null" valid:"optional,nodes" `
 		AllowedNodes     string    `form:"AllowedNodes" json:"AllowedNodes"  gorm:"not null" valid:"optional,nodes"`
 		Cname            string    `form:"cnames" json:"cnames"   gorm:"not null" valid:"optional,cnames"`
 		External         string    `form:"external" json:"external"  valid:"required,in(yes|no|internal|external)"`

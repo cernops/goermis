@@ -20,7 +20,7 @@ func CheckAuthorization(nextHandler echo.HandlerFunc) echo.HandlerFunc {
 			return api.MessageToUser(c, http.StatusBadRequest, "Failed to initiate teigi connection", home)
 
 		}
-		//spew.Dump(c.Request())
+
 		//This username check most probably will change with OIDC
 		if username != "" {
 			log.Debug("[" + username + "] Checking authorization")
