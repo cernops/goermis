@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/jinzhu/copier"
 	"github.com/labstack/gommon/log"
 	"gitlab.cern.ch/lb-experts/goermis/aiermis/orm"
@@ -222,12 +221,10 @@ func (r Resource) DeleteObject() (err error) {
 }
 
 //ModifyObject modifies aliases and its associations
-func (r Resource) ModifyObject(oldCnames string, oldAllowed string, oldForbidden string) (err error) {
+func (r Resource) ModifyObject(oldValues map[string]string) (err error) {
 	//Prepare cnames separately
 	newCnames := deleteEmpty(strings.Split(r.Cname, ","))
-	exCnames := deleteEmpty(strings.Split(oldCnames, ","))
-	spew.Dump(newCnames)
-	spew.Dump(exCnames)
+	exCnames := deleteEmpty(strings.Split(oldValues["Cnames"], ","))
 
 	//Let's update the single-valued fields first
 	if err = con.Model(&orm.Alias{}).Where("id = ?", r.ID).UpdateColumns(
@@ -247,12 +244,12 @@ func (r Resource) ModifyObject(oldCnames string, oldAllowed string, oldForbidden
 	/*Update nodes for r object with new nodes(nodesToMap converts string to map,
 	  where value indicates privilege allowed/forbidden)*/
 	newNodesMap := nodesInMap(r.AllowedNodes, r.ForbiddenNodes)
-	oldNodesMap := nodesInMap(oldAllowed, oldForbidden)
+	oldNodesMap := nodesInMap(oldValues["Allowed"], oldValues["Forbidden"])
 	if err = UpdateNodes(r.ID, newNodesMap, oldNodesMap); err != nil {
 		return err
 	}
 
-	if err = UpdateDNS(r.AliasName, r.External, r.External, newCnames); err != nil {
+	if err = UpdateDNS(r.AliasName, oldValues["View"], r.External, newCnames); err != nil {
 		return err
 	}
 	return nil

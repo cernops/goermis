@@ -128,12 +128,10 @@ func DeleteAlias(c echo.Context) error {
 
 	}
 
-	return MessageToUser(c, http.StatusCreated,
+	return MessageToUser(c, http.StatusOK,
 		aliasName+" deleted successfully ", "home.html")
 
 }
-
-//LBWEB-SPECIFIC HANDLERS
 
 //ModifyAlias modifes cnames, nodes, hostgroup and best_hosts parameters
 func ModifyAlias(c echo.Context) error {
@@ -143,18 +141,23 @@ func ModifyAlias(c echo.Context) error {
 	if err := c.Bind(&r); err != nil {
 		log.Warn("[" + username + "] " + "Failed to bind params " + err.Error())
 	}
-	//After that, we use the alias name for retrieving its profile from DB
+
+	//After we bind request, we use the alias name for retrieving its profile from DB
 	existingObj, err := GetObjects(r.AliasName, "alias_name")
 	if err != nil {
 		log.Error("[" + username + "] " + "Failed to retrieve alias " + r.AliasName + " : " + err.Error())
 		return err
 	}
-	//Preserve the DB values for these fields, because they are needed for comparison
-	stashC := existingObj[0].Cname          //Cnames
-	stashA := existingObj[0].AllowedNodes   //AllowedNodes
-	stashF := existingObj[0].ForbiddenNodes //ForbiddenNodes
 
-	//Update fields if changed. Serves kermis PATCH and UI forms
+	//Stash these old values because are needed later again
+	stashedValues := map[string]string{
+		"Cnames":    existingObj[0].Cname,          //Cnames
+		"Allowed":   existingObj[0].AllowedNodes,   //AllowedNodes
+		"Forbidden": existingObj[0].ForbiddenNodes, //ForbiddenNodes
+		"View":      existingObj[0].External,       //View
+	}
+
+	//UPDATE changed fields. Serves kermis PATCH and UI forms
 	if r.External != "" {
 		existingObj[0].External = r.External
 	}
@@ -192,13 +195,13 @@ func ModifyAlias(c echo.Context) error {
 	defer c.Request().Body.Close()
 
 	// Call the modifier
-	if err := existingObj[0].ModifyObject(stashC, stashA, stashF); err != nil {
+	if err := existingObj[0].ModifyObject(stashedValues); err != nil {
 		return MessageToUser(c, http.StatusBadRequest,
 			"Update error for alias "+existingObj[0].AliasName+" : "+err.Error(), "home.html")
 	}
 
-	return MessageToUser(c, http.StatusOK,
-		c.FormValue("alias_name")+" updated Successfully"+err.Error(), "home.html")
+	return MessageToUser(c, http.StatusAccepted,
+		r.AliasName+" updated Successfully", "home.html")
 
 }
 
@@ -221,7 +224,7 @@ func CheckNameDNS(c echo.Context) error {
 			result = len(r)
 
 			return MessageToUser(c, http.StatusConflict,
-				"Duplicate for "+aliasToResolve+" in DNS "+err.Error(), "home.html")
+				"Duplicate for "+aliasToResolve+" in DNS ", "home.html")
 
 		}
 	}
