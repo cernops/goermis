@@ -138,3 +138,22 @@ func customValidators() {
 	})
 
 }
+
+//MessageToUser renders the reply for the user
+func MessageToUser(c echo.Context, status int, message string, page string) error {
+	username := c.Request().Header.Get("X-Forwarded-User")
+	if message != "" {
+		if 200 <= status && status < 300 {
+			log.Info("[" + username + "]" + message)
+		} else {
+			log.Error("[" + username + "]" + message)
+		}
+	}
+
+	return c.Render(status, page, map[string]interface{}{
+		"Auth":    true,
+		"csrf":    c.Get("csrf"),
+		"User":    username,
+		"Message": message,
+	})
+}

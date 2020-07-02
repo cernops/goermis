@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/jinzhu/copier"
 	"github.com/labstack/gommon/log"
 	"gitlab.cern.ch/lb-experts/goermis/aiermis/orm"
@@ -225,6 +226,8 @@ func (r Resource) ModifyObject(oldCnames string, oldAllowed string, oldForbidden
 	//Prepare cnames separately
 	newCnames := deleteEmpty(strings.Split(r.Cname, ","))
 	exCnames := deleteEmpty(strings.Split(oldCnames, ","))
+	spew.Dump(newCnames)
+	spew.Dump(exCnames)
 
 	//Let's update the single-valued fields first
 	if err = con.Model(&orm.Alias{}).Where("id = ?", r.ID).UpdateColumns(
@@ -261,8 +264,7 @@ func UpdateDNS(name string, oldView string, newView string, newCnames []string) 
 	nview := "internal"
 	keyname := cfg.Soap.SoapKeynameI
 	existingCnames := landbsoap.Soap.GimeCnamesOf(strings.Split(name, ".")[0])
-	log.Info(existingCnames)
-	log.Info(strings.Split(name, ".")[0])
+
 
 	if StringInSlice(oldView, []string{"yes", "external"}) {
 		oview = "external"

@@ -52,7 +52,7 @@ var (
 
 func init() {
 	//Init log in the bootstrap package, since its the first that its executed
-	log.SetLevel(1)
+	log.SetLevel(2)
 	log.SetHeader("${time_rfc3339} ${level} ${short_file} ${line} ")
 	file, err := os.OpenFile(GetConf().Log.LoggingFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err == nil {
