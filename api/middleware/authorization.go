@@ -16,6 +16,7 @@ func CheckAuthorization(nextHandler echo.HandlerFunc) echo.HandlerFunc {
 		conn := auth.GetConn()
 		var d auth.Group
 		if err := conn.InitConnection(); err != nil {
+			log.Error(err)
 			return messageToUser(c, http.StatusBadRequest, "Failed to initiate teigi connection")
 
 		}

@@ -16,9 +16,9 @@ import (
 
 const (
 	// Version number
-	Version = "0.0.2"
+	Version = "0.0.3"
 	// Release number
-	Release = "2"
+	Release = "1"
 )
 
 func main() {
