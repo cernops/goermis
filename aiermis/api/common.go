@@ -1,8 +1,6 @@
 package api
 
 import (
-	"bytes"
-	"io/ioutil"
 	"regexp"
 	"strconv"
 	"strings"
@@ -33,7 +31,7 @@ func StringInSlice(a string, list []string) bool {
 	return false
 }
 
-//GetExistingCnames extracts the names of cnames for a certain alias
+//getExistingCnames extracts the names of cnames for a certain alias
 func getExistingCnames(a orm.Alias) (s []string) {
 
 	for _, value := range a.Cnames {
@@ -42,7 +40,7 @@ func getExistingCnames(a orm.Alias) (s []string) {
 	return s
 }
 
-//StringToInt converts a string to a int. It is used to hide error checks
+//stringToInt converts a string to a int. It is used to hide error checks
 func stringToInt(s string) (i int) {
 	i, err := strconv.Atoi(s)
 	if err != nil {
@@ -51,19 +49,7 @@ func stringToInt(s string) (i int) {
 	return i
 }
 
-//StoreBodyOfRequest is used to store the body of a request in case its needed
-func storeBodyOfRequest(c echo.Context) []byte {
-	// Read the content since we need it more than once
-	var bodyOfRequest []byte
-	if c.Request().Body != nil {
-		bodyOfRequest, _ = ioutil.ReadAll(c.Request().Body)
-	}
-	// Restore the io.ReadCloser to its original state
-	c.Request().Body = ioutil.NopCloser(bytes.NewBuffer(bodyOfRequest)) // Use the content
-	return bodyOfRequest
-}
-
-//NodesInMap puts the nodes in a map. The value is their privilege
+//nodesInMap puts the nodes in a map. The value is their privilege
 func nodesInMap(AllowedNodes string, ForbiddenNodes string) map[string]bool {
 
 	temp := make(map[string]bool)
@@ -83,7 +69,7 @@ func nodesInMap(AllowedNodes string, ForbiddenNodes string) map[string]bool {
 	return temp
 }
 
-//CustomValidators adds our new tags in the govalidator
+//ustomValidators adds our new tags in the govalidator
 func customValidators() {
 	govalidator.TagMap["nodes"] = govalidator.Validator(func(str string) bool {
 		if len(str) > 0 {

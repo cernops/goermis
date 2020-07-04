@@ -25,15 +25,15 @@ func New() *echo.Echo {
 	}))
 
 	lbweb.GET("/", api.HomeHandler)
-	lbweb.GET("/create/", api.CreateHandler)
-	lbweb.GET("/modify/", api.ModifyHandler)
-	lbweb.GET("/display/", api.DisplayHandler)
-	lbweb.GET("/delete/", api.DeleteHandler)
-	lbweb.GET("/logs/", api.LogsHandler)
+	lbweb.GET("/create", api.CreateHandler)
+	lbweb.GET("/modify", api.ModifyHandler)
+	lbweb.GET("/display", api.DisplayHandler)
+	lbweb.GET("/delete", api.DeleteHandler)
+	lbweb.GET("/logs", api.LogsHandler)
 	lbweb.POST("/new_alias", api.CreateAlias)
 	lbweb.POST("/delete_alias", api.DeleteAlias)
 	lbweb.POST("/modify_alias", api.ModifyAlias)
-	lbweb.GET("/*/checkname/:hostname", api.CheckNameDNS)
+	lbweb.GET("/checkname", api.CheckNameDNS)
 
 	lbterm := e.Group("/api/v1")
 	lbterm.Use(m.CheckAuthorization)
@@ -42,5 +42,6 @@ func New() *echo.Echo {
 	lbterm.DELETE("/aliases", api.DeleteAlias)
 	lbterm.POST("/aliases", api.CreateAlias)
 	lbterm.PATCH("/aliases/:alias", api.ModifyAlias)
+
 	return e
 }

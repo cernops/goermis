@@ -41,11 +41,11 @@ func isMemberOf(username string, group string) bool {
 	searchReq := query(base, filter)
 	result, err := conn.Search(searchReq)
 	if err != nil && result == nil {
-		log.Error("No results in the egroup.LDAP response: " + err.Error())
+		log.Error("User" + username + " is not member of ermis-lbaas-admins")
 		searchReq = query(base, nestedFilter)
 		result, err = conn.Search(searchReq)
-		if err != nil {
-			log.Error("No results in the nested egroups.LDAP response : " + err.Error())
+		if err != nil && result == nil {
+			log.Error("User" + username + " is not member in any of nested e-groups")
 			return false
 		}
 
