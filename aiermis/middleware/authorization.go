@@ -18,10 +18,9 @@ type user struct {
 	isTeigi  bool
 }
 
-func (u *user) set(username string, admin bool, get bool, teigi bool) {
+func (u *user) set(username string, admin bool, teigi bool) {
 	u.username = username
 	u.isAdmin = admin
-	u.isGET = get
 	u.isTeigi = teigi
 }
 func currentuser() *user {
@@ -30,38 +29,36 @@ func currentuser() *user {
 func (u *user) reset() {
 	u.username = ""
 	u.isAdmin = false
-	u.isGET = false
 	u.isTeigi = false
 }
 
 //CheckAuthorization checks if user is in the egroup and if he is allowed to create in the hostgroup
 func CheckAuthorization(nextHandler echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-
-		//Prevent continuous checks for every request for already authorized users
 		u := currentuser()
 		username := c.Request().Header.Get("X-Forwarded-User")
-		if username == u.username {
-			if u.isAdmin == true || u.isGET == true || u.isTeigi == true {
-				return nextHandler(c)
-			}
-		}
-
 		if username != "" {
+			//Prevent continuous checks for every
+			// request for already authorized users
+			if username == u.username {
+				if u.isAdmin == true || u.isTeigi == true {
+					return nextHandler(c)
+				}
+			}
+
 			log.Info("Checking authorization for " + username)
 			var d auth.Group
 			//If user is in ermis-lbaas-admins proceed
 			// to the next handler, without pinging teigi
 			if d.CheckCud(username) {
-				u.set(username, true, false, false)
+				u.set(username, true, false) //Temporary save user, authorized as admin
 				log.Info("[" + username + "] Authorized as admin")
 				return nextHandler(c)
 			}
 
 			//If user is not in the egroup but method is GET, proceed to the next handler
 			if api.StringInSlice(c.Request().Method, []string{"GET"}) {
-				u.set(username, false, true, false)
-				log.Info("[" + username + "] Authorized as GET request")
+				log.Info("[" + username + "] GET request")
 				return nextHandler(c)
 			}
 
@@ -70,14 +67,13 @@ func CheckAuthorization(nextHandler echo.HandlerFunc) echo.HandlerFunc {
 			//,such as, when deleting with kermis, we find hostgroup in DB.
 			if api.StringInSlice(c.Request().Method, []string{"POST", "DELETE", "PATCH"}) {
 				log.Info("[" + username + "] Querying teigi for authorization")
-
 				conn := auth.GetConn()
 				if err := conn.InitConnection(); err != nil {
 					return api.MessageToUser(c, http.StatusBadRequest, "Failed to initiate teigi connection", "home.html")
 
 				}
 				if conn.CheckWithForeman(username, findHostgroup(c)) {
-					u.set(username, false, false, true)
+					u.set(username, false, true) //Temporary save user, authorized by teigi
 					log.Info("[" + username + "] Authorized by teigi")
 					return nextHandler(c)
 				}
