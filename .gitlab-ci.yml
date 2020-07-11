@@ -38,7 +38,7 @@ behave:
   allow_failure: false
   script:
     - yum -y install python2-behave
-    - cd  ermis_tests
+    - cd  tests/behave
     - printf "[tbag]\ntbag_hostname = woger.cern.ch\ntbag_port = 8201\ntbag_timeout = 15" >> /etc/ai/ai.conf
     - behave . -D ermistst=$ERMISTST -D ermists=$ERMISTS
 
