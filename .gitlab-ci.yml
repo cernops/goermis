@@ -32,6 +32,16 @@ before_script:
   go12 get ./...
 
 
+behave:
+  image: gitlab-registry.cern.ch/ai-config-team/ai-tools
+  stage: test
+  allow_failure: false
+  script:
+    - yum -y install python2-behave
+    - cd  ermis_tests
+    - printf "[tbag]\ntbag_hostname = woger.cern.ch\ntbag_port = 8201\ntbag_timeout = 15" >> /etc/ai/ai.conf
+    - behave . -D ermistst=$ERMISTST -D ermists=$ERMISTS
+
 build_rpm:
   stage: build_rpm
   script:
