@@ -39,7 +39,7 @@ behave:
   allow_failure: false
   script:
     - yum -y install python2-behave krb5-workstation
-    - echo $ERMISTST | kinit ermistst@CERN.CH
+    - echo $ERMISTST_DECODED | kinit ermistst@CERN.CH
     - klist
     - cd  tests/behave
     - printf "[tbag]\ntbag_hostname = woger.cern.ch\ntbag_port = 8201\ntbag_timeout = 15" >> /etc/ai/ai.conf
