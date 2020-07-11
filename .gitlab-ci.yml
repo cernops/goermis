@@ -22,7 +22,8 @@ before_script:
   - export PKG=$(rpm -q --specfile $SPEC --queryformat "%{name}-%{version}\n" | head -n 1)
   - export PKG_REL7=$(rpm -q --define "dist .ai7" --specfile $SPEC --queryformat "%{name}-%{version}-%{release}\n" | head -n 1)
   - export PKG_REL8=$(rpm -q --define "dist .el8" --specfile $SPEC --queryformat "%{name}-%{version}-%{release}\n" | head -n 1)
-
+ 
+  
 .installGo12: &installGo12 |
   mkdir /go12
   yum -y install git gcc
@@ -37,7 +38,9 @@ behave:
   stage: test
   allow_failure: false
   script:
-    - yum -y install python2-behave
+    - yum -y install python2-behave krb5-workstation
+    - echo $ERMISTST | kinit ermistst@CERN.CH
+    - klist
     - cd  tests/behave
     - printf "[tbag]\ntbag_hostname = woger.cern.ch\ntbag_port = 8201\ntbag_timeout = 15" >> /etc/ai/ai.conf
     - behave . -D ermistst=$ERMISTST -D ermists=$ERMISTS
