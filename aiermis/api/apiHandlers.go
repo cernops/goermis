@@ -32,7 +32,7 @@ func GetAliases(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, e.Error())
 	}
 	defer c.Request().Body.Close()
-	log.Info("[" + username + "]" + " List of aliases retrieved successfully")
+	//log.Info("[" + username + "]" + " List of aliases retrieved successfully")
 	return c.JSON(http.StatusOK, list)
 }
 
@@ -49,7 +49,7 @@ func GetAlias(c echo.Context) error {
 	//Validate that the parameter is DNS-compatible
 	if !govalidator.IsDNSName(param) {
 		log.Error("[" + username + "] " + "Wrong type of query parameter.Expected alphanum, received " + param)
-		return echo.NewHTTPError(http.StatusUnprocessableEntity)
+		return echo.NewHTTPError(http.StatusBadRequest)
 	}
 
 	//Switch between name and ID query(enables user to ask by name or id)
@@ -68,7 +68,7 @@ func GetAlias(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, e.Error())
 	}
 	defer c.Request().Body.Close()
-	log.Info("[" + username + "] " + "Alias" + param + " retrieved successfully")
+	//log.Info("[" + username + "] " + "Alias" + param + " retrieved successfully")
 	return c.JSON(http.StatusOK, list)
 
 }
@@ -83,17 +83,25 @@ func CreateAlias(c echo.Context) error {
 	}
 
 	//User is provided in the HEADER
-	r.User = c.Request().Header.Get("X-Forwarded-User")
+	r.User = username
 	defer c.Request().Body.Close()
 
 	//Validate structure
 	if ok, err := govalidator.ValidateStruct(r); err != nil || ok == false {
-		return MessageToUser(c, http.StatusUnprocessableEntity,
+		return MessageToUser(c, http.StatusBadRequest,
 			"Validation error for "+r.AliasName+" : "+err.Error(), "home.html")
 	}
 
 	//Default values and hydrate(domain,visibility)
 	r.DefaultAndHydrate()
+
+	//Check for duplicates
+	alias, _ := GetObjects(r.AliasName, "alias_name")
+	if alias != nil {
+		return MessageToUser(c, http.StatusConflict,
+			"Alias "+r.AliasName+" already exists ", "home.html")
+
+	}
 
 	log.Info("[" + username + "] " + "Ready to create a new alias " + r.AliasName)
 	//Create object
@@ -110,25 +118,38 @@ func CreateAlias(c echo.Context) error {
 //DeleteAlias deletes the requested alias from the DB
 func DeleteAlias(c echo.Context) error {
 	username := c.Request().Header.Get("X-Forwarded-User")
-	aliasName := c.FormValue("alias_name")
-	//Validate alias name only
-	if !govalidator.IsDNSName(aliasName) {
-		log.Warn("[" + username + "] " + "Wrong type of query parameter, expected Alias name")
-		return echo.NewHTTPError(http.StatusUnprocessableEntity)
+	var r Resource
+
+	//Bind request
+	if err := c.Bind(&r); err != nil {
+		log.Warn("[" + username + "] " + "Failed to bind params " + err.Error())
 	}
 
-	alias, err := GetObjects(aliasName, "alias_name")
+	//User is provided in the HEADER
+	r.User = username
+	defer c.Request().Body.Close()
+	//Validate alias name only, since the rest of the struct will be empty when DELETE
+	if !govalidator.IsDNSName(r.AliasName) {
+		log.Warn("[" + username + "] " + "Wrong type of query parameter, expected Alias name, got :" + r.AliasName)
+		return echo.NewHTTPError(http.StatusBadRequest)
+	}
+
+	alias, err := GetObjects(r.AliasName, "alias_name")
 	if err != nil {
-		log.Error("[" + username + "] " + "Failed to retrieve alias " + aliasName + " : " + err.Error())
+		log.Error("[" + username + "] " + "Failed to retrieve alias " + r.AliasName + " : " + err.Error())
 	}
 	defer c.Request().Body.Close()
-	if err := alias[0].DeleteObject(); err != nil {
-		return MessageToUser(c, http.StatusBadRequest, err.Error(), "home.html")
+
+	if alias != nil {
+		if err := alias[0].DeleteObject(); err != nil {
+			return MessageToUser(c, http.StatusBadRequest, err.Error(), "home.html")
+
+		}
+		return MessageToUser(c, http.StatusOK,
+			r.AliasName+" deleted successfully ", "home.html")
 
 	}
-
-	return MessageToUser(c, http.StatusOK,
-		aliasName+" deleted successfully ", "home.html")
+	return MessageToUser(c, http.StatusNotFound, r.AliasName+" not found", "home.html")
 
 }
 
@@ -184,7 +205,7 @@ func ModifyAlias(c echo.Context) error {
 	existingObj[0].Cname = r.Cname
 	//Validate
 	if ok, err := govalidator.ValidateStruct(existingObj[0]); err != nil || ok == false {
-		return MessageToUser(c, http.StatusUnprocessableEntity,
+		return MessageToUser(c, http.StatusBadRequest,
 			"Validation error for alias "+existingObj[0].AliasName+" : "+err.Error(), "home.html")
 	}
 
