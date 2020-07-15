@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
 	"gitlab.cern.ch/lb-experts/goermis/aiermis/api"
@@ -22,7 +21,6 @@ func CheckAuthorization(nextHandler echo.HandlerFunc) echo.HandlerFunc {
 			//Ermis-lbaas-admins are superusers
 			if d.CheckCud(username) {
 				return nextHandler(c)
-
 				//If user is not in the egroup but method is GET, proceed to the next handler
 			} else if c.Request().Method == "GET" {
 				return nextHandler(c)
@@ -41,13 +39,13 @@ func askTeigi(c echo.Context, nextHandler echo.HandlerFunc, username string) err
 		authInOldHg bool
 	)
 
-	//Teigi conn
+	//Teigi connection
 	conn := auth.GetConn()
 	if err := conn.InitConnection(); err != nil {
 		return api.MessageToUser(c, http.StatusBadRequest, "Failed to initiate teigi connection", "home.html")
 
 	}
-	//Here we find the hostgroup values in the Req Body and the one in DB
+	//We extract the hostgroup values in the Req Body and the one in DB for the same alias.
 	newHg, oldHg, err := findHostgroup(c)
 	if err != nil {
 		return api.MessageToUser(c, http.StatusBadRequest,
@@ -55,23 +53,24 @@ func askTeigi(c echo.Context, nextHandler echo.HandlerFunc, username string) err
 
 	}
 
-	if newHg == "" && oldHg == "" {
-		return api.MessageToUser(c, http.StatusBadRequest,
-			"Not allowed to modify/create/delete without hostgroup", "home.html")
-
+	//In this step we check username , against both hostgroups.
+	//We need this step to prevent unauthorized alias movements.
+	if newHg != "" {
+		authInNewHg = conn.CheckWithForeman(username, newHg)
 	}
-	//If value is != "", we check with teigi
-	authInNewHg = conn.CheckWithForeman(username, newHg)
-	authInOldHg = conn.CheckWithForeman(username, oldHg)
+	if oldHg != "" {
+		authInOldHg = conn.CheckWithForeman(username, oldHg)
+	}
 
 	switch c.Request().Method {
 	//1.In case method is PATCH...
 	case "PATCH":
-		//...and there is no hostgroup field,allow to PATCH other fields
+		//...and there is no hostgroup field in the Request,allow to PATCH other fields
+		//if the user is authorized in the old hostgroup
 		if newHg == "" && authInOldHg {
-			log.Info("[" + username + "] Authorized by teigi for PATCH, using ixisting hg")
+			log.Info("[" + username + "] Authorized by teigi for PATCH, using existing hostgroup")
 			return nextHandler(c)
-			//When PATCH-ing hostgroup itself, verify user in both hostgroups
+			//When PATCH-ing hostgroup value itself, verify user in both hostgroups
 		} else if authInNewHg && authInOldHg {
 			log.Info("[" + username + "] Authorized by teigi for PATCH, using both hg")
 			return nextHandler(c)
@@ -80,8 +79,8 @@ func askTeigi(c echo.Context, nextHandler echo.HandlerFunc, username string) err
 			username+" is unauthorized to PATCH in hostgroup "+oldHg, "home.html")
 		//2.In case method is POST...
 	case "POST":
-		//Here we authorize the creation of new aliases,
-		// if teigi agrees with the new hg.
+		//Here we authorize the creation of new aliases(no hostgroup value in DB),
+		// if teigi gives the OK for the new hostgroup value.
 		if authInNewHg && oldHg == "" {
 			log.Info("[" + username + "] Authorized by teigi to POST new alias")
 			return nextHandler(c)
@@ -109,14 +108,12 @@ func askTeigi(c echo.Context, nextHandler echo.HandlerFunc, username string) err
 	}
 }
 
-func findHostgroup(c echo.Context) (string, string, error) {
+func findHostgroup(c echo.Context) (newHg string, oldHg string, err error) {
 	type body struct {
 		Alias     string `json:"alias_name"`
 		Hostgroup string `json:"hostgroup,omitempty"` //if there is no hostgroup provided, don't panic
 	}
 	var (
-		newHg        string
-		oldHg        string
 		aliasToquery string
 	)
 
@@ -149,9 +146,16 @@ func findHostgroup(c echo.Context) (string, string, error) {
 
 	//Get the hostgroup that is registered for the same alias.
 	alias, _ := api.GetObjects(aliasToquery, "alias_name")
-	spew.Dump(alias)
 	if alias != nil {
 		oldHg = alias[0].Hostgroup
+	}
+
+	//In case the hostgroup fields are empty in the request and the DB
+	//we throw a bad request error, because this is a scenario we don't want.
+	if newHg == "" && oldHg == "" {
+		return "", "", api.MessageToUser(c, http.StatusBadRequest,
+			"Not allowed to modify/create/delete without hostgroup", "home.html")
+
 	}
 
 	return newHg, oldHg, nil

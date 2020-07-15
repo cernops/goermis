@@ -94,7 +94,7 @@ func CreateAlias(c echo.Context) error {
 
 	//Default values and hydrate(domain,visibility)
 	r.DefaultAndHydrate()
-
+	log.Info("Before dub check")
 	//Check for duplicates
 	alias, _ := GetObjects(r.AliasName, "alias_name")
 	if alias != nil {
@@ -161,64 +161,57 @@ func ModifyAlias(c echo.Context) error {
 		log.Warn("[" + username + "] " + "Failed to bind params " + err.Error())
 	}
 	//After we bind request, we use the alias name for retrieving its profile from DB
-	existingObj, err := GetObjects(r.AliasName, "alias_name")
+	alias, err := GetObjects(r.AliasName, "alias_name")
 	if err != nil {
 		log.Error("[" + username + "] " + "Failed to retrieve alias " + r.AliasName + " : " + err.Error())
 		return err
 	}
 
-	//Stash these old values because are needed later again
-	stashedValues := map[string]string{
-		"Cnames":    existingObj[0].Cname,          //Cnames
-		"Allowed":   existingObj[0].AllowedNodes,   //AllowedNodes
-		"Forbidden": existingObj[0].ForbiddenNodes, //ForbiddenNodes
-		"View":      existingObj[0].External,       //View
-	}
-
-	//UPDATE changed fields. Serves kermis PATCH and UI forms
+	//UPDATE changed fields in the retrieved struct for that alias.
+	//This helps in validation, since we don't know what fields are changing every time
 	if r.External != "" {
-		existingObj[0].External = r.External
+		alias[0].External = r.External
 	}
 	if r.BestHosts != 0 {
-		existingObj[0].BestHosts = r.BestHosts
+		alias[0].BestHosts = r.BestHosts
 	}
 	if r.Metric != "" {
-		existingObj[0].Metric = r.Metric
+		alias[0].Metric = r.Metric
 	}
 	if r.PollingInterval != 0 {
-		existingObj[0].PollingInterval = r.PollingInterval
+		alias[0].PollingInterval = r.PollingInterval
 	}
 	if r.Hostgroup != "" {
-		existingObj[0].Hostgroup = r.Hostgroup
+		alias[0].Hostgroup = r.Hostgroup
 	}
 	if r.Tenant != "" {
-		existingObj[0].Tenant = r.Tenant
+		alias[0].Tenant = r.Tenant
 	}
 
 	if r.TTL != 0 {
-		existingObj[0].TTL = r.TTL
+		alias[0].TTL = r.TTL
 	}
 	//These three fields are updated even if value is empty
 	//because empty values are part of the update in their case
-	existingObj[0].ForbiddenNodes = r.ForbiddenNodes
-	existingObj[0].AllowedNodes = r.AllowedNodes
-	existingObj[0].Cname = r.Cname
+	alias[0].ForbiddenNodes = r.ForbiddenNodes
+	alias[0].AllowedNodes = r.AllowedNodes
+	alias[0].Cname = r.Cname
 	//Validate
-	if ok, err := govalidator.ValidateStruct(existingObj[0]); err != nil || ok == false {
+	if ok, err := govalidator.ValidateStruct(alias[0]); err != nil || ok == false {
 		return MessageToUser(c, http.StatusBadRequest,
-			"Validation error for alias "+existingObj[0].AliasName+" : "+err.Error(), "home.html")
+			"Validation error for alias "+alias[0].AliasName+" : "+err.Error(), "home.html")
 	}
 
 	defer c.Request().Body.Close()
 
 	// Call the modifier
-	if err := existingObj[0].ModifyObject(stashedValues); err != nil {
+	if err := alias[0].ModifyObject(); err != nil {
 		return MessageToUser(c, http.StatusBadRequest,
-			"Update error for alias "+existingObj[0].AliasName+" : "+err.Error(), "home.html")
+			"Update error for alias "+alias[0].AliasName+" : "+err.Error(), "home.html")
 	}
 
 	return MessageToUser(c, http.StatusAccepted,
-		r.AliasName+" updated Successfully", "home.html")
+		alias[0].AliasName+" updated Successfully", "home.html")
 
 }
 
@@ -226,24 +219,20 @@ func ModifyAlias(c echo.Context) error {
 func CheckNameDNS(c echo.Context) error {
 	var (
 		result int
-		con    = db.ManagerDB()
+
+		con = db.ManagerDB()
 	)
 
 	aliasToResolve := c.QueryParam("hostname")
+	//Search cnames with the same name
 	con.Model(&orm.Cname{}).Where("c_name=?", aliasToResolve).Count(&result)
 	if result == 0 {
+		//Search aliases
 		con.Model(&orm.Alias{}).Where("alias_name=?", aliasToResolve+".cern.ch").Count(&result)
 	}
 	if result == 0 {
-		if r, err := net.LookupHost(aliasToResolve); err != nil {
-			result = 0
-		} else {
-			result = len(r)
-
-			return MessageToUser(c, http.StatusConflict,
-				"Duplicate for "+aliasToResolve+" in DNS ", "home.html")
-
-		}
+		r, _ := net.LookupHost(aliasToResolve)
+		result = len(r)
 	}
 	return c.JSON(http.StatusOK, result)
 }

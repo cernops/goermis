@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/asaskevich/govalidator"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
 	"gitlab.cern.ch/lb-experts/goermis/aiermis/orm"
@@ -142,4 +143,20 @@ func MessageToUser(c echo.Context, status int, message string, page string) erro
 		"User":    username,
 		"Message": message,
 	})
+}
+
+//Equal compares two slices . If they contain the same
+//elements (w/o order included), it returns true
+func Equal(s1, s2 []string) bool {
+	spew.Dump(s1)
+	spew.Dump(s2)
+	if len(s1) != len(s2) {
+		return false
+	}
+	for _, v := range s1 {
+		if !StringInSlice(v, s2) {
+			return false
+		}
+	}
+	return true
 }
