@@ -94,7 +94,6 @@ func CreateAlias(c echo.Context) error {
 
 	//Default values and hydrate(domain,visibility)
 	r.DefaultAndHydrate()
-	log.Info("Before dub check")
 	//Check for duplicates
 	alias, _ := GetObjects(r.AliasName, "alias_name")
 	if alias != nil {
