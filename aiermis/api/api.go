@@ -7,13 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/jinzhu/copier"
 	"github.com/labstack/gommon/log"
 	"gitlab.cern.ch/lb-experts/goermis/aiermis/orm"
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 	"gitlab.cern.ch/lb-experts/goermis/db"
-
 	landbsoap "gitlab.cern.ch/lb-experts/goermis/landb"
 )
 
@@ -125,10 +123,11 @@ func (r Resource) CreateObject() (err error) {
 	if err := orm.CreateTransactions(a, cnames); err != nil {
 		return err
 	}
-	//DNS//
+
+	//createInDNS will create the alias and cnames in DNS.//
 	if err := r.createInDNS(); err != nil {
+
 		//If it fails to create alias in DNS, we rollback the creation in DB.
-		//For that, we need the ID, which
 		r.rollBack("add")
 		return err
 	}
@@ -161,10 +160,13 @@ func (r *Resource) DefaultAndHydrate() {
 
 //DeleteObject deletes an alias and its Relations
 func (r Resource) DeleteObject() (err error) {
-	//DB
+	//Delete from DB
 	if err := orm.DeleteTransactions(r.AliasName, r.ID); err != nil {
 		return err
 	}
+
+	//Now delete from DNS.If something goes wrong then we
+	//rollback the freshly created DB entry
 	if err := r.deleteFromDNS(); err != nil {
 		r.rollBack("delete")
 		return err
@@ -176,13 +178,11 @@ func (r Resource) DeleteObject() (err error) {
 
 //ModifyObject modifies aliases and its associations
 func (r Resource) ModifyObject() (err error) {
-	//First, lets get once more the old values.
-	oldObject, _ := GetObjects(r.AliasName, "alias_name")
-	//Prepare cnames separately
-	newCnames := deleteEmpty(strings.Split(r.Cname, ","))
-	exCnames := deleteEmpty(strings.Split(oldObject[0].Cname, ","))
 
-	//Let's update in DB the single-valued fields first
+	//First, lets get once more the old values.We need the cnames and nodes for comparison
+	oldObject, _ := GetObjects(r.AliasName, "alias_name")
+
+	//Let's update in DB the single-valued fields that do not require iterations and comparison
 	if err = con.Model(&orm.Alias{}).Where("id = ?", r.ID).UpdateColumns(
 		map[string]interface{}{
 			"external":         r.External,
@@ -197,19 +197,19 @@ func (r Resource) ModifyObject() (err error) {
 
 	}
 
-	//Update cnames for object r with new cnames
-	if err = r.UpdateCnames(exCnames, newCnames); err != nil {
+	//1.Update cnames
+	if err = r.UpdateCnames(oldObject[0]); err != nil {
 		return err
 	}
 
-	//If view has changed or cnames , then we update DNS too
-	if r.External != oldObject[0].External || !Equal(newCnames, exCnames) {
-		spew.Dump("yes")
+	//2.Update DNS only if any of view or cnames has changed
+	if r.External != oldObject[0].External || !Equal(r.Cname, oldObject[0].Cname) {
 		if err = r.UpdateDNS(oldObject[0]); err != nil {
 			return err
 		}
 	}
-	/*Update nodes for r object with new nodes(nodesToMap converts string to map,
+
+	/*3.Update nodes for r object with new nodes(nodesToMap converts string to map,
 	  where value indicates privilege allowed/forbidden)*/
 	newNodesMap := nodesInMap(r.AllowedNodes, r.ForbiddenNodes)
 	oldNodesMap := nodesInMap(oldObject[0].AllowedNodes, oldObject[0].ForbiddenNodes)
@@ -253,7 +253,11 @@ func (r Resource) UpdateNodes(new map[string]bool, old map[string]bool) (err err
 }
 
 //UpdateCnames updates cnames in DB
-func (r Resource) UpdateCnames(exCnames []string, newCnames []string) (err error) {
+func (r Resource) UpdateCnames(oldObject Resource) (err error) {
+
+	//Split string and delete any possible empty values
+	newCnames := deleteEmpty(strings.Split(r.Cname, ","))
+	exCnames := deleteEmpty(strings.Split(oldObject.Cname, ","))
 
 	if len(newCnames) > 0 {
 		for _, value := range exCnames {
@@ -289,11 +293,10 @@ func (r Resource) UpdateCnames(exCnames []string, newCnames []string) (err error
 	return nil
 }
 
-////DNS ACTIONS////
+/////////////////////////DNS ACTIONS/////////////////////////
 
 func (r Resource) createInDNS() error {
-	//prepare cnames
-	entries := landbsoap.Soap.DNSDelegatedSearch(strings.Split(r.AliasName, ".")[0]) //check for existing aliases in DNS with the same name
+	entries := landbsoap.Conn().DNSDelegatedSearch(strings.Split(r.AliasName, ".")[0]) //check for existing aliases in DNS with the same name
 
 	//Double-check that DNS doesn't contain such an alias
 	if len(entries) == 0 {
@@ -308,7 +311,7 @@ func (r Resource) createInDNS() error {
 		//Create the alias first
 		for view, keyname := range views {
 			//If alias creation succeeds, then we proceed with the rest
-			if landbsoap.Soap.DNSDelegatedAdd(r.AliasName, view, keyname, "Created by:"+r.User, "goermis") {
+			if landbsoap.Conn().DNSDelegatedAdd(r.AliasName, view, keyname, "Created by:"+r.User, "goermis") {
 				log.Info(r.AliasName + "/" + view + "has been created")
 				//If alias is created successfully and there are also cnames...
 				if r.Cname != "" {
@@ -331,6 +334,113 @@ func (r Resource) createInDNS() error {
 
 }
 
+func (r Resource) createCnamesDNS(view string) bool {
+
+	cnames := deleteEmpty(strings.Split(r.Cname, ","))
+	for _, cname := range cnames {
+		log.Info("Adding in DNS the cname " + cname)
+		if !landbsoap.Conn().DNSDelegatedAliasAdd(r.AliasName, view, cname) {
+			return false
+		}
+	}
+
+	return true
+}
+
+//UpdateDNS updates the cname or visibility changes in DNS
+func (r Resource) UpdateDNS(oldObject Resource) (err error) {
+	//1.If view has changed delete and recreate alias and cnames
+	log.Info("Visibility has changed from " + oldObject.External + " to " + r.External)
+	//a.Delete alias and Cnames from DNS
+	if err := oldObject.deleteFromDNS(); err != nil {
+		return errors.New("Failed to clean DNS from alias while updating: " + oldObject.AliasName + "/" + oldObject.External)
+	}
+	//b.Recreate alias with the new view and cnames
+	if err := r.createInDNS(); err != nil {
+		return errors.New("Failed to recreate alias while updating: " + r.AliasName + "/" + r.External)
+	}
+	return nil
+	//2.Else if there is a change in cnames, update DNS
+	/*} else if !Equal(r.Cname, oldObject.Cname) {
+		if err := r.updateCnamesInDNS(oldObject); err != nil {
+			return errors.New("Failed to update DNS with the new cnames for " + r.AliasName + "/" + r.External)
+		}
+	}*/
+
+}
+
+/*
+func (r Resource) updateCnamesInDNS(oldObject Resource) error {
+	//2.If only cnames have changed, update only them
+	newCnames := deleteEmpty(strings.Split(r.Cname, ","))
+	existingCnames := deleteEmpty(strings.Split(oldObject.Cname, ","))
+	var views []string
+	views = append(views, "internal")
+	if StringInSlice(r.External, []string{"external", "yes"}) {
+		views = append(views, "external")
+	}
+	for _, view := range views {
+		if r.Cname != "" {
+			for _, existingCname := range existingCnames {
+				if !StringInSlice(existingCname, newCnames) {
+					if !landbsoap.Conn().DNSDelegatedAliasRemove(name, oview, existingCname) {
+						return errors.New("Failed to delete existing cname " +
+							existingCname + " while updating DNS")
+					}
+				}
+			}
+
+			for _, newCname := range newCnames {
+				if newCname == "" {
+					continue
+				}
+				if !StringInSlice(newCname, existingCnames) {
+					if !landbsoap.Conn().DNSDelegatedAliasAdd(name, oview, newCname) {
+						return errors.New("Failed to add new cname in DNS " +
+							newCname + " while updating alias " + name)
+					}
+				}
+
+			}
+
+		} else {
+			for _, cname := range existingCnames {
+				if !landbsoap.Conn().DNSDelegatedAliasRemove(name, oview, cname) {
+					return errors.New("Failed to delete cname from DNS" +
+						cname + " while purging all")
+				}
+			}
+		}
+	}
+	return nil
+
+}
+*/
+func (r Resource) deleteFromDNS() error {
+
+	entries := landbsoap.Conn().DNSDelegatedSearch(strings.Split(r.AliasName, ".")[0])
+	if len(entries) != 0 {
+		log.Info("Preparing to delete " + r.AliasName + " from DNS")
+		var views []string
+		views = append(views, "internal")
+		if StringInSlice(r.External, []string{"external", "yes"}) {
+			views = append(views, "external")
+		}
+		for _, view := range views {
+			if landbsoap.Conn().DNSDelegatedRemove(r.AliasName, view) {
+				log.Info(r.AliasName + "/" + view + " has been deleted ")
+			} else {
+				return errors.New("Failed to delete " + r.AliasName + "/" + view + " from DNS. Rolling Back")
+
+			}
+
+		}
+
+		return nil
+	}
+	return errors.New("The requested alias for deletion doesn't exist in DNS.Skipping deletion there")
+}
+
 //Clean the mess when something goes wrong
 func (r Resource) rollBack(process string) {
 
@@ -346,94 +456,4 @@ func (r Resource) rollBack(process string) {
 
 	}
 
-}
-
-func (r Resource) createCnamesDNS(view string) bool {
-	cnames := deleteEmpty(strings.Split(r.Cname, ","))
-	for _, cname := range cnames {
-		log.Info("Adding in DNS the cname " + cname)
-		if !landbsoap.Soap.DNSDelegatedAliasAdd(r.AliasName, view, cname) {
-			return false
-		}
-	}
-
-	return true
-}
-
-//UpdateDNS updates the cname or visibility changes in DNS
-func (r Resource) UpdateDNS(oldObject Resource) (err error) {
-
-	//newCnames := deleteEmpty(strings.Split(r.Cname, ","))
-	//existingCnames := deleteEmpty(strings.Split(oldObject.Cname, ","))
-
-	//View has changed so we delete and recreate alias with the new visibility
-	//if r.External != oldObject.External {
-	//log.Info("Visibility has changed from " + oldObject.External + " to " + r.External)
-	//Delete alias from DNS
-	if err := oldObject.deleteFromDNS(); err != nil {
-		return errors.New("Failed to clean DNS from alias while updating: " + oldObject.AliasName + "/" + oldObject.External)
-	}
-	//Recreate with the new view and cnames
-	if err := r.createInDNS(); err != nil {
-		return errors.New("Failed to recreate alias while updating: " + r.AliasName + "/" + r.External)
-	}
-
-	//}
-	/*
-		if r.Cname != "" {
-			for _, existingCname := range existingCnames {
-				if !StringInSlice(existingCname, newCnames) {
-					if !landbsoap.Soap.DNSDelegatedAliasRemove(name, oview, existingCname) {
-						return errors.New("Failed to delete existing cname " +
-							existingCname + " while updating DNS")
-					}
-				}
-			}
-
-			for _, newCname := range newCnames {
-				if newCname == "" {
-					continue
-				}
-				if !StringInSlice(newCname, existingCnames) {
-					if !landbsoap.Soap.DNSDelegatedAliasAdd(name, oview, newCname) {
-						return errors.New("Failed to add new cname in DNS " +
-							newCname + " while updating alias " + name)
-					}
-				}
-
-			}
-
-		} else {
-			for _, cname := range existingCnames {
-				if !landbsoap.Soap.DNSDelegatedAliasRemove(name, oview, cname) {
-					return errors.New("Failed to delete cname from DNS" +
-						cname + " while purging all")
-				}
-			}
-		}*/
-	return nil
-}
-
-func (r Resource) deleteFromDNS() error {
-	entries := landbsoap.Soap.DNSDelegatedSearch(strings.Split(r.AliasName, ".")[0])
-	if len(entries) != 0 {
-		log.Info("Preparing to delete " + r.AliasName + " from DNS")
-		var views []string
-		views = append(views, "internal")
-		if StringInSlice(r.External, []string{"external", "yes"}) {
-			views = append(views, "external")
-		}
-		for _, view := range views {
-			if landbsoap.Soap.DNSDelegatedRemove(r.AliasName, view) {
-				log.Info(r.AliasName + "/" + view + " has been deleted ")
-			} else {
-				return errors.New("Failed to delete " + r.AliasName + "/" + view + " from DNS. Rolling Back")
-
-			}
-
-		}
-
-		return nil
-	}
-	return errors.New("The requested alias for deletion doesn't exist in DNS.Skipping deletion there")
 }

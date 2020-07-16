@@ -13,7 +13,7 @@
                 loaderWindow();
 
 
-                getData('https://goermis.cern.ch/lbweb/api/v1/aliases');
+                getData('https://goermis.cern.ch/api/v1/aliases');
 
                 $('#clusterList').change(function () {
                         location = $('#clusterList').val();

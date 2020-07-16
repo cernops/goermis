@@ -146,12 +146,14 @@ func MessageToUser(c echo.Context, status int, message string, page string) erro
 
 //Equal compares two slices . If they contain the same
 //elements (w/o order included), it returns true
-func Equal(s1, s2 []string) bool {
-	if len(s1) != len(s2) {
+func Equal(string1, string2 string) bool {
+	slice1 := deleteEmpty(strings.Split(string1, ","))
+	slice2 := deleteEmpty(strings.Split(string2, ","))
+	if len(slice1) != len(slice2) {
 		return false
 	}
-	for _, v := range s1 {
-		if !StringInSlice(v, s2) {
+	for _, v := range slice1 {
+		if !StringInSlice(v, slice2) {
 			return false
 		}
 	}

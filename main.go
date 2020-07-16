@@ -23,16 +23,20 @@ const (
 
 func main() {
 	log.Info("Service Started...")
+
 	// Echo instance
 	echo := router.New()
+
+	//Initiate template views
 	views.InitViews(echo)
+
+	//Create and keep up to date DB tables
 	autoCreateTables(&orm.Alias{}, &orm.Node{}, &orm.Cname{}, &orm.AliasesNodes{})
 	autoMigrateTables()
+
 	// Start server
 	go func() {
-		var (
-			cfg = bootstrap.GetConf()
-		)
+		cfg := bootstrap.GetConf()
 		if err := echo.StartTLS(":8080",
 			cfg.Certs.GoermisCert,
 			cfg.Certs.GoermisKey); err != nil {
@@ -50,6 +54,7 @@ func main() {
 	if err := echo.Shutdown(ctx); err != nil {
 		log.Fatal("Fatal error while shutting server down")
 	}
+
 }
 
 func autoCreateTables(values ...interface{}) error {

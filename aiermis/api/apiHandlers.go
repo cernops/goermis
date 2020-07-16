@@ -154,48 +154,54 @@ func DeleteAlias(c echo.Context) error {
 
 //ModifyAlias modifes cnames, nodes, hostgroup and best_hosts parameters
 func ModifyAlias(c echo.Context) error {
-	var r Resource
+	//temp Resource is used to bind parameters from the request
+	//Kermis allows us to change lots of fields.Since we don't know what
+	//fields change each time, we get the existing object from DB and update
+	//only the changed fields one-by-one.
+	var temp Resource
 	username := c.Request().Header.Get("X-Forwarded-User")
-	if err := c.Bind(&r); err != nil {
+	//Bind request to the temp Resource
+	if err := c.Bind(&temp); err != nil {
 		log.Warn("[" + username + "] " + "Failed to bind params " + err.Error())
 	}
 	//After we bind request, we use the alias name for retrieving its profile from DB
-	alias, err := GetObjects(r.AliasName, "alias_name")
+	alias, err := GetObjects(temp.AliasName, "alias_name")
 	if err != nil {
-		log.Error("[" + username + "] " + "Failed to retrieve alias " + r.AliasName + " : " + err.Error())
+		log.Error("[" + username + "] " + "Failed to retrieve alias " + temp.AliasName + " : " + err.Error())
 		return err
 	}
 
 	//UPDATE changed fields in the retrieved struct for that alias.
 	//This helps in validation, since we don't know what fields are changing every time
-	if r.External != "" {
-		alias[0].External = r.External
+	if temp.External != "" {
+		alias[0].External = temp.External
 	}
-	if r.BestHosts != 0 {
-		alias[0].BestHosts = r.BestHosts
+	if temp.BestHosts != 0 {
+		alias[0].BestHosts = temp.BestHosts
 	}
-	if r.Metric != "" {
-		alias[0].Metric = r.Metric
+	if temp.Metric != "" {
+		alias[0].Metric = temp.Metric
 	}
-	if r.PollingInterval != 0 {
-		alias[0].PollingInterval = r.PollingInterval
+	if temp.PollingInterval != 0 {
+		alias[0].PollingInterval = temp.PollingInterval
 	}
-	if r.Hostgroup != "" {
-		alias[0].Hostgroup = r.Hostgroup
+	if temp.Hostgroup != "" {
+		alias[0].Hostgroup = temp.Hostgroup
 	}
-	if r.Tenant != "" {
-		alias[0].Tenant = r.Tenant
+	if temp.Tenant != "" {
+		alias[0].Tenant = temp.Tenant
 	}
 
-	if r.TTL != 0 {
-		alias[0].TTL = r.TTL
+	if temp.TTL != 0 {
+		alias[0].TTL = temp.TTL
 	}
 	//These three fields are updated even if value is empty
 	//because empty values are part of the update in their case
-	alias[0].ForbiddenNodes = r.ForbiddenNodes
-	alias[0].AllowedNodes = r.AllowedNodes
-	alias[0].Cname = r.Cname
-	//Validate
+	alias[0].ForbiddenNodes = temp.ForbiddenNodes
+	alias[0].AllowedNodes = temp.AllowedNodes
+	alias[0].Cname = temp.Cname
+	
+	//Validate the object alias , with the now-updated fields
 	if ok, err := govalidator.ValidateStruct(alias[0]); err != nil || ok == false {
 		return MessageToUser(c, http.StatusBadRequest,
 			"Validation error for alias "+alias[0].AliasName+" : "+err.Error(), "home.html")
