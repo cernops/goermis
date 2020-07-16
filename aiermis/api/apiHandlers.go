@@ -200,7 +200,7 @@ func ModifyAlias(c echo.Context) error {
 	alias[0].ForbiddenNodes = temp.ForbiddenNodes
 	alias[0].AllowedNodes = temp.AllowedNodes
 	alias[0].Cname = temp.Cname
-	
+
 	//Validate the object alias , with the now-updated fields
 	if ok, err := govalidator.ValidateStruct(alias[0]); err != nil || ok == false {
 		return MessageToUser(c, http.StatusBadRequest,

@@ -20,15 +20,15 @@ import (
 
 //LandbSoap defines the structure
 type LandbSoap struct {
-	Username   string
-	Password   string
-	Ca         string
-	HostCert   string
-	HostKey    string
-	URL        string
-	AuthToken  string
-	Expiration time.Time
-	Client     *http.Client
+	Username  string
+	Password  string
+	Ca        string
+	HostCert  string
+	HostKey   string
+	URL       string
+	AuthToken string
+	CreatedAt time.Time
+	Client    *http.Client
 }
 
 var soap LandbSoap
@@ -56,7 +56,7 @@ func init() {
 //Conn is nothing
 func Conn() *LandbSoap {
 	//Initiate a new connection only if there is no token or if token is in the limits of expiration
-	if soap.AuthToken == "" || tokenExpired(soap.Expiration) {
+	if soap.AuthToken == "" || tokenExpired(soap.CreatedAt) {
 		err := soap.InitConnection()
 		if err != nil {
 			log.Fatal("Error initiating SOAP interface")
@@ -150,7 +150,7 @@ func (landbself *LandbSoap) InitConnection() error {
 	}
 
 	landbself.AuthToken = authresult.Body.GetAuthTokenResponse.Token
-	landbself.Expiration = time.Now()
+	landbself.CreatedAt = time.Now()
 	//fmt.Println("Token = " + landbself.AuthToken)
 
 	return nil
