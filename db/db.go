@@ -2,11 +2,11 @@ package db
 
 import (
 	"fmt"
-	"github.com/labstack/gommon/log"
-	"github.com/jinzhu/gorm"
-	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 	_ "github.com/go-sql-driver/mysql" //need this,please don't remove
+	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql" //need this too
+	"github.com/labstack/gommon/log"
+	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 )
 
 // GormLogger struct
@@ -35,7 +35,7 @@ func mysqlConn() {
 	db.SingularTable(true)
 	//Enable logging
 	db.LogMode(true)
-	//Set our custom logger 
+	//Set our custom logger
 	db.SetLogger(&GormLogger{})
 	db.DB().SetMaxIdleConns(cfg.Database.IdleConns)
 	db.DB().SetMaxOpenConns(cfg.Database.OpenConns)
@@ -58,5 +58,5 @@ func ManagerDB() *gorm.DB {
 // Print - Log Formatter
 func (*GormLogger) Print(v ...interface{}) {
 	//Print out only the issued sql command v[3] and the values v[4]
-    log.Info(fmt.Sprintf("%v%v",v[3],v[4]))
+	log.Info(fmt.Sprintf("%v%v", v[3], v[4]))
 }
