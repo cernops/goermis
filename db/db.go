@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+
 	_ "github.com/go-sql-driver/mysql" //need this,please don't remove
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql" //need this too
@@ -32,9 +33,17 @@ func mysqlConn() {
 		log.Panic("Unreachable database")
 	}
 
+	//Keep the table names singular(maintain conformity with existing DB)
 	db.SingularTable(true)
+
+	//Customize table names according to existing DB tables(alternative solution is to rename tables in DB)
+	gorm.DefaultTableNameHandler = func(db *gorm.DB, defaultTableName string) string {
+		return "ermis_api_" + defaultTableName
+	}
+
 	//Enable logging
 	db.LogMode(true)
+
 	//Set our custom logger
 	db.SetLogger(&GormLogger{})
 	db.DB().SetMaxIdleConns(cfg.Database.IdleConns)
@@ -58,5 +67,6 @@ func ManagerDB() *gorm.DB {
 // Print - Log Formatter
 func (*GormLogger) Print(v ...interface{}) {
 	//Print out only the issued sql command v[3] and the values v[4]
-	log.Info(fmt.Sprintf("%v%v", v[3], v[4]))
+	log.Info(fmt.Sprintf("%v Value(s):%v\n", v[3], v[4]))
+
 }

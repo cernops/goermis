@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -35,7 +36,7 @@ func StringInSlice(a string, list []string) bool {
 func getExistingCnames(a orm.Alias) (s []string) {
 
 	for _, value := range a.Cnames {
-		s = append(s, value.CName)
+		s = append(s, value.Cname)
 	}
 	return s
 }
@@ -50,17 +51,23 @@ func stringToInt(s string) (i int) {
 }
 
 //nodesInMap puts the nodes in a map. The value is their privilege
-func nodesInMap(AllowedNodes string, ForbiddenNodes string) map[string]bool {
+func nodesInMap(AllowedNodes interface{}, ForbiddenNodes interface{}) map[string]bool {
+	if AllowedNodes == nil {
+		AllowedNodes = ""
+	}
+	if ForbiddenNodes == nil {
+		ForbiddenNodes = ""
+	}
 
 	temp := make(map[string]bool)
 
-	modes := map[string]bool{
+	modes := map[interface{}]bool{
 		AllowedNodes:   false,
 		ForbiddenNodes: true,
 	}
 	for k, v := range modes {
 		if k != "" {
-			for _, val := range deleteEmpty(strings.Split(k, ",")) {
+			for _, val := range deleteEmpty(strings.Split(fmt.Sprintf("%v", k), ",")) {
 				temp[val] = v
 			}
 		}
@@ -149,6 +156,7 @@ func MessageToUser(c echo.Context, status int, message string, page string) erro
 func Equal(string1, string2 string) bool {
 	slice1 := deleteEmpty(strings.Split(string1, ","))
 	slice2 := deleteEmpty(strings.Split(string2, ","))
+
 	if len(slice1) != len(slice2) {
 		return false
 	}
@@ -158,4 +166,12 @@ func Equal(string1, string2 string) bool {
 		}
 	}
 	return true
+}
+func prepare(p *string) []string {
+	var s []string
+	if &p == nil {
+		return s
+	}
+	s = deleteEmpty(strings.Split(*p, ","))
+	return s
 }

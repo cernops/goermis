@@ -5,6 +5,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+
 	"gitlab.cern.ch/lb-experts/goermis/aiermis/api"
 	m "gitlab.cern.ch/lb-experts/goermis/aiermis/middleware"
 )

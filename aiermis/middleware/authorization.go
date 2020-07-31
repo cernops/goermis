@@ -15,7 +15,10 @@ import (
 //CheckAuthorization checks if user is in the egroup and if he is allowed to create in the hostgroup
 func CheckAuthorization(nextHandler echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
+
+		//Get username from the Header
 		username := c.Request().Header.Get("X-Forwarded-User")
+
 		if username != "" {
 			var d auth.Group
 			//Ermis-lbaas-admins are superusers
@@ -45,7 +48,7 @@ func askTeigi(c echo.Context, nextHandler echo.HandlerFunc, username string) err
 		return api.MessageToUser(c, http.StatusBadRequest, "Failed to initiate teigi connection", "home.html")
 
 	}
-	//We extract the hostgroup values in the Req Body and the one in DB for the same alias.
+	//We extract the hostgroup values from the Req Body and the one in DB, for the same alias.
 	newHg, oldHg, err := findHostgroup(c)
 	if err != nil {
 		return api.MessageToUser(c, http.StatusBadRequest,

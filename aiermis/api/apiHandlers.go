@@ -192,7 +192,7 @@ func ModifyAlias(c echo.Context) error {
 		alias[0].Tenant = temp.Tenant
 	}
 
-	if temp.TTL != 0 {
+	if temp.TTL != 60 {
 		alias[0].TTL = temp.TTL
 	}
 	//These three fields are updated even if value is empty
@@ -230,7 +230,7 @@ func CheckNameDNS(c echo.Context) error {
 
 	aliasToResolve := c.QueryParam("hostname")
 	//Search cnames with the same name
-	con.Model(&orm.Cname{}).Where("c_name=?", aliasToResolve).Count(&result)
+	con.Model(&orm.Cname{}).Where("cname=?", aliasToResolve).Count(&result)
 	if result == 0 {
 		//Search aliases
 		con.Model(&orm.Alias{}).Where("alias_name=?", aliasToResolve+".cern.ch").Count(&result)

@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/jinzhu/gorm"
 	"github.com/labstack/gommon/log"
 	"gitlab.cern.ch/lb-experts/goermis/aiermis/orm"
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
@@ -31,7 +32,7 @@ func main() {
 	views.InitViews(echo)
 
 	//Create and keep up to date DB tables
-	autoCreateTables(&orm.Alias{}, &orm.Node{}, &orm.Cname{}, &orm.AliasesNodes{})
+	autoCreateTables(&orm.Alias{}, &orm.Node{}, &orm.Cname{}, &orm.Relation{})
 	autoMigrateTables()
 
 	// Start server
@@ -61,6 +62,9 @@ func autoCreateTables(values ...interface{}) error {
 	for _, value := range values {
 		if !db.ManagerDB().HasTable(value) {
 			err := db.ManagerDB().CreateTable(value).Error
+			gorm.DefaultTableNameHandler = func(db *gorm.DB, defaultTableName string) string {
+				return "ermis_api_" + defaultTableName
+			}
 			if err != nil {
 				errClose := db.ManagerDB().Close()
 				if errClose != nil {
@@ -77,6 +81,6 @@ func autoCreateTables(values ...interface{}) error {
 
 // autoMigrateTables: migrate table columns using GORM
 func autoMigrateTables() {
-	db.ManagerDB().AutoMigrate(&orm.Alias{}, &orm.Node{}, &orm.Cname{}, &orm.AliasesNodes{})
+	db.ManagerDB().AutoMigrate(&orm.Alias{}, &orm.Node{}, &orm.Cname{}, &orm.Relation{})
 
 }
