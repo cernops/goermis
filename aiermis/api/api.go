@@ -151,7 +151,6 @@ func (r *Resource) DefaultAndHydrate() {
 	r.Clusters = "none"
 	r.Tenant = "golang"
 	r.TTL = 60
-
 	r.LastModification = time.Now()
 	//Hydrate
 	if !strings.HasSuffix(r.AliasName, ".cern.ch") {
@@ -204,6 +203,7 @@ func (r Resource) ModifyObject() (err error) {
 			"polling_interval": r.PollingInterval,
 			"ttl":              r.TTL,
 			"tenant":           r.Tenant,
+			"last_modification": time.Now(),
 		}).Error; err != nil {
 		return errors.New("Failed to update the single-valued fields with error: " + err.Error())
 

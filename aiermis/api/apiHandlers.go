@@ -192,7 +192,7 @@ func ModifyAlias(c echo.Context) error {
 		alias[0].Tenant = temp.Tenant
 	}
 
-	if temp.TTL != 60 {
+	if temp.TTL != 0 {
 		alias[0].TTL = temp.TTL
 	}
 	//These three fields are updated even if value is empty

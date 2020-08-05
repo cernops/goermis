@@ -49,9 +49,9 @@ type (
 
 	//Node structure defines the model for the nodes params Node struct {
 	Node struct {
-		ID               int    `  gorm:"unique;not null;auto_increment;primary_key"`
-		NodeName         string `  gorm:"not null;type:varchar(40);unique" `
-		LastModification time.Time
+		ID               int       `  gorm:"unique;not null;auto_increment;primary_key"`
+		NodeName         string    `  gorm:"not null;type:varchar(40);unique" `
+		LastModification time.Time `gorm:"DEFAULT:current_timestamp"`
 		Load             int
 		State            string `  gorm:"type:varchar(15);not null" `
 		Hostgroup        string `  gorm:"type:varchar(40);not null" `
