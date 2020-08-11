@@ -196,13 +196,13 @@ func (r Resource) ModifyObject() (err error) {
 	//Let's update in DB the single-valued fields that do not require iteration/comparisson
 	if err = con.Model(&orm.Alias{}).Where("id = ?", r.ID).UpdateColumns(
 		map[string]interface{}{
-			"external":         r.External,
-			"hostgroup":        r.Hostgroup,
-			"best_hosts":       r.BestHosts,
-			"metric":           r.Metric,
-			"polling_interval": r.PollingInterval,
-			"ttl":              r.TTL,
-			"tenant":           r.Tenant,
+			"external":          r.External,
+			"hostgroup":         r.Hostgroup,
+			"best_hosts":        r.BestHosts,
+			"metric":            r.Metric,
+			"polling_interval":  r.PollingInterval,
+			"ttl":               r.TTL,
+			"tenant":            r.Tenant,
 			"last_modification": time.Now(),
 		}).Error; err != nil {
 		return errors.New("Failed to update the single-valued fields with error: " + err.Error())
