@@ -38,7 +38,8 @@ func init() {
 	password := cfg.Soap.SoapPassword
 	decodedPass, err := base64.StdEncoding.DecodeString(password)
 	if err != nil {
-		log.Fatal("Error decoding SOAP password")
+		//log.Fatal("Error decoding SOAP password")
+		log.Info("Error decoding SOAP password")
 	}
 
 	soap = LandbSoap{

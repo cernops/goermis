@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
 	"github.com/jinzhu/gorm"
@@ -35,29 +36,38 @@ func main() {
 	autoCreateTables(&orm.Alias{}, &orm.Node{}, &orm.Cname{}, &orm.Relation{})
 	autoMigrateTables()
 
-	// Start server
+	/* Start server
+	       Error handling is done a bit differently in this situation. The reason is that
+		   when server is restarted we force it to reuse the same socket. Despite being successfully
+		   restarted, it throws a bind error. This interferes with other important cases where we need
+		   to shut down the service */
+
 	go func() {
 		cfg := bootstrap.GetConf()
-		if err := echo.StartTLS(":8080",
+		err := echo.StartTLS(":8080",
 			cfg.Certs.GoermisCert,
-			cfg.Certs.GoermisKey); err != nil {
-			log.Fatal("Failed to start server: " + err.Error())
+			cfg.Certs.GoermisKey)
+		if !strings.HasSuffix(err.Error(), "bind: address already in use") {
+			//log.Fatal("Failed to start server: " + err.Error())
+			log.Info("Failed to start server: " + err.Error())
 		}
 	}()
 
 	// Wait for interrupt signal to gracefully shutdown the server with
-	// a timeout of 10 seconds.
+	// a timeout of 10 seconds. It is needed to accomplish socket recycling
 	quit := make(chan os.Signal)
 	signal.Notify(quit, os.Interrupt)
 	<-quit
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := echo.Shutdown(ctx); err != nil {
-		log.Fatal("Fatal error while shutting server down")
+		//log.Fatal("Fatal error while shutting server down " + err.Error())
+		log.Info("Fatal error while shutting server down " + err.Error())
 	}
 
 }
 
+//GORM will create/migrate new data, but will not delete anything for security reasons
 func autoCreateTables(values ...interface{}) error {
 	for _, value := range values {
 		if !db.ManagerDB().HasTable(value) {
@@ -79,7 +89,7 @@ func autoCreateTables(values ...interface{}) error {
 	return nil
 }
 
-// autoMigrateTables: migrate table columns using GORM
+// autoMigrateTables: migrate table columns using GORM. Will not delete/change types for security reasons
 func autoMigrateTables() {
 	db.ManagerDB().AutoMigrate(&orm.Alias{}, &orm.Node{}, &orm.Cname{}, &orm.Relation{})
 

@@ -17,7 +17,8 @@ const (
 func initconnection() *ldap.Conn {
 	l, err := ldap.DialURL("ldap://xldap.cern.ch")
 	if err != nil {
-		log.Fatal(err)
+		//log.Fatal(err)
+		log.Error(err)
 		return nil
 	}
 	return l
