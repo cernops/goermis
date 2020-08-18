@@ -47,7 +47,7 @@ type Config struct {
 
 var (
 	configFileFlag = flag.String("config", "/run/secrets/config", "specify configuration file path")
-	debugLevel = flag.Bool("debug", false, "display debug messages")
+	debugLevel     = flag.Bool("debug", false, "display debug messages")
 )
 
 func init() {

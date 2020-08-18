@@ -13,9 +13,9 @@ import (
 
 var (
 	templatesLoc = bootstrap.GetConf().App.Templates
-	baseDir    = filepath.Join(templatesLoc, "/templates/base.html")
-	layoutsDir = filepath.Join(templatesLoc, "/templates/layouts")
-	formsDir   = filepath.Join(templatesLoc, "/templates/forms")
+	baseDir      = filepath.Join(templatesLoc, "/templates/base.html")
+	layoutsDir   = filepath.Join(templatesLoc, "/templates/layouts")
+	formsDir     = filepath.Join(templatesLoc, "/templates/forms")
 )
 
 // TemplateRegistry defines the template registry struct
