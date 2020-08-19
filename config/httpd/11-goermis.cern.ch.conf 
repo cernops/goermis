@@ -1,0 +1,116 @@
+# ************************************
+# Vhost template in module puppetlabs-apache
+# Managed by Puppet
+# ************************************
+# 
+<VirtualHost *:443>
+  ServerName goermis.cern.ch
+
+  ## Vhost docroot
+  DocumentRoot "/var/www/ermis"
+  ## Alias declarations for resources outside the DocumentRoot
+  Alias /static/ "/var/lib/ermis/ermis-lbaas/ai_ermis/ai_ermis/staticfiles/"
+
+  ## Directories, there should at least be a declaration for /var/www/ermis
+
+  <Location "/krb">
+    Require valid-user
+    AuthType kerberos
+    AuthName "Kerberos Login"
+    RewriteEngine On
+    RewriteCond %{LA-U:REMOTE_USER} (.+)
+    RewriteRule .* - [E=RU:%1]
+    RequestHeader set X-Forwarded-User %{RU}e
+    ProxyPass  https://127.0.0.1:8080/lbweb
+    ProxyPassReverse https://127.0.0.1:8080/lbweb
+  </Location>
+
+  <Location "/redirect_uri">
+    Require claim cern_roles:goermis
+    AuthType openid-connect
+  </Location>
+
+  <Location "/lbweb">
+    Require claim cern_roles:goermis
+    AuthType openid-connect
+      ## Request Header rules
+            RequestHeader set x-forwarded-user %{oidc_claim_sub}e
+  </Location>
+
+  <Location "/u">
+    Require valid-user
+    AuthType Basic
+    AuthName "Admin Only Area"
+    AuthUserFile /var/www/.htpasswd
+    SSLOptions +StdEnvVars +FakeBasicAuth
+    SSLVerifyClient         optional
+    SSLUserName SSL_CLIENT_S_DN_CN
+    #SSLRequire %{SSL_CLIENT_S_DN_Email} =~ m/^[^@]*@cern\.ch$/
+    SSLRequireSSL
+  </Location>
+
+  <Location "/p">
+    Require valid-user
+    AuthType Kerberos
+    AuthName "Kerberos Login"
+    KrbMethodNegotiate      On
+    KrbMethodK5Passwd       On
+    KrbSaveCredentials      On
+    KrbLocalUserMapping     On
+    KrbAuthRealms           CERN.CH
+    Krb5Keytab              /etc/httpd/conf/HTTP.keytab
+    SSLRequireSSL
+  </Location>
+
+  ## Logging
+  ErrorLog "/var/log/httpd/goermis.cern.ch_error_ssl.log"
+  ServerSignature Off
+  CustomLog "/var/log/httpd/goermis.cern.ch_access_ssl.log" combined 
+  ## Rewrite rules
+  RewriteEngine On
+
+  RewriteRule "^/?$" "/lbweb/" [R]
+
+  RewriteRule "^/lbweb$" "/lbweb/" [R]
+
+  RewriteRule "^/lbweb/accounts/logout/" "/redirect_uri?logout=https://goermis.cern.ch" [R]
+
+
+  ## Server aliases
+  ServerAlias goermis
+
+  ## SSL directives
+  SSLEngine on
+  SSLCertificateFile      "/etc/httpd/conf/hostcert.pem"
+  SSLCertificateKeyFile   "/etc/httpd/conf/hostkey.pem"
+  SSLCertificateChainFile "/etc/httpd/conf/ca.pem"
+  SSLVerifyClient         optional
+  SSLCACertificateFile    "/etc/httpd/conf/ca.pem"
+  SSLVerifyDepth          3
+
+  # SSL Proxy directives
+  SSLProxyEngine On
+
+  ## Custom fragment
+  
+Include "/etc/httpd/conf/oidc_secrets.conf"
+#Proxy
+ProxyPreserveHost On
+SSLProxyEngine on
+
+#These two allow us to use the same certificate
+SSLProxyCheckPeerCN off
+SSLProxyCheckPeerName off
+
+ProxyPass / https://127.0.0.1:8080/
+ProxyPassReverse / https://127.0.0.1:8080/
+
+
+  OIDCProviderMetadataURL https://auth.cern.ch/auth/realms/cern/.well-known/openid-configuration
+  OIDCClientID all_ermis
+  OIDCRedirectURI https://goermis.cern.ch/redirect_uri
+  OIDCProviderTokenEndpointAuth client_secret_basic
+  OIDCRemoteUserClaim sub
+  OIDCRefreshAccessTokenBeforeExpiry 30
+  OIDCSessionInactivityTimeout 7200
+</VirtualHost>

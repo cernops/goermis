@@ -70,7 +70,6 @@ func init() {
 	} else {
 		log.Info("Failed to log to file, using default stderr")
 	}
-
 }
 
 //GetConf returns the Conf file

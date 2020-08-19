@@ -12,7 +12,7 @@ Name: ermis
 Version: #REPLACE_BY_VERSION#
 Release: #REPLACE_BY_RELEASE#%{?dist}
 
-Summary: CERN DNS ERMIS Web interface
+Summary: CERN LB DNS Web interface
 License: ASL 2.0
 URL: https://%{import_path}
 Source: %{name}-%{version}.tgz
@@ -37,7 +37,7 @@ GOPATH=$(pwd):%{gopath} go build -o ermis %{import_path}
 # main package binary
 install -d -p %{buildroot}/usr/sbin/ %{buildroot}/var/lib/ermis/ %{buildroot}/lib/systemd/system/
 install -p -m0755 ermis %{buildroot}/usr/sbin/ermis
-cp -r templates %{buildroot}/var/lib/ermis/
+cp -r staticfiles templates %{buildroot}/var/lib/ermis/
 install -p -m0644 config/systemd/ermis.service  %{buildroot}/lib/systemd/system
 
 %files
@@ -47,7 +47,9 @@ install -p -m0644 config/systemd/ermis.service  %{buildroot}/lib/systemd/system
 /lib/systemd/system/ermis.service
 
 %changelog
+* Fri Jul 03 2020 Pablo Saiz <pablo.saiz@cern.ch>           - 0.0.3
+- Include staticfiles
 * Mon May 25 2020 Pablo Saiz <pablo.saiz@cern.ch>           - 0.0.2
-- Include the service startup  
+- Include the service startup
 * Wed May 20 2020 Pablo Saiz <pablo.saiz@cern.ch>           - 0.0.1
 - First version

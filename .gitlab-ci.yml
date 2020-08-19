@@ -1,38 +1,43 @@
 ---
 image: gitlab-registry.cern.ch/linuxsupport/cc7-base:latest
 
-include: 
-  - project: lb-experts/golbclient
-    file: .gitlab-ci_koji.yml
+include:
+  - 'https://gitlab.cern.ch/linuxsupport/rpmci/raw/master/rpm-ci.yml'
   - project: lb-experts/golbclient
     file: .gitlab-ci_go.yml
     ref: psaiz_devel
 
-before_script:
-  - yum -y install rpm-build rpmdevtools
-  - mkdir -p /go/src/gitlab.cern.ch/lb-experts
-  - if [ -d /builds ] ;  then  export PREFIX=/builds  ;  fi
-  - ln -s $PREFIX/lb-experts/goermis /go/src/gitlab.cern.ch/lb-experts/goermis
-  - cd /go/src/gitlab.cern.ch/lb-experts/goermis
-  - export SPEC=$(ls *spec)
-  - RELEASE=`grep 'Release = "' main.go | awk -F \" '{print $2}'`
-  - VERSION=`grep 'Version = "' main.go | awk -F \" '{print $2}'`
-  - cat $SPEC | sed "s/#REPLACE_BY_VERSION#/$VERSION/" > $SPEC.tmp
-  - cat $SPEC.tmp | sed "s/#REPLACE_BY_RELEASE#/$RELEASE/" > $SPEC
-  - export PKG=$(rpm -q --specfile $SPEC --queryformat "%{name}-%{version}\n" | head -n 1)
-  - export PKG_REL7=$(rpm -q --define "dist .ai7" --specfile $SPEC --queryformat "%{name}-%{version}-%{release}\n" | head -n 1)
-  - export PKG_REL8=$(rpm -q --define "dist .el8" --specfile $SPEC --queryformat "%{name}-%{version}-%{release}\n" | head -n 1)
- 
-  
-.installGo12: &installGo12 |
-  mkdir /go12
-  yum -y install git gcc
-  curl https://dl.google.com/go/go1.12.17.linux-amd64.tar.gz  | tar -zxC /go12
-  ln -s /go12/go/bin/go /usr/bin/go12
-  export GOPATH=/go
-  go12 get ./...
+variables:
+  KOJI_TAG: 'lb'
+  KOJI_TAG_7: 'ai7'
 
+  BUILD_7: 'True'
+  BUILD_8: 'True'
 
+  DIST_8: .el8
+  DIST_7: .ai7
+  DIST_6: .ai6
+
+.patch_version: &patch_version |
+    RELEASE=`grep 'Release = "' main.go | awk -F \" '{print $2}'`
+    VERSION=`grep 'Version = "' main.go | awk -F \" '{print $2}'`
+    cat ermis.spec.tpl  | sed "s/#REPLACE_BY_VERSION#/$VERSION/" | sed "s/#REPLACE_BY_RELEASE#/$RELEASE/" > ermis.spec
+
+.rpm_deps:
+  before_script:
+    - *patch_version
+    - yum-builddep -y *.spec
+
+build_srpm7:
+  before_script:
+    - *patch_version
+    - yum-builddep -y --disableplugin=protectbase,priorities *.spec
+
+build_rpm7:
+  before_script:
+    - *patch_version
+    - yum-builddep -y --disableplugin=protectbase,priorities *.spec
+    
 behave:
   image: gitlab-registry.cern.ch/ai-config-team/ai-tools
   stage: test
@@ -45,19 +50,4 @@ behave:
     - printf "[tbag]\ntbag_hostname = woger.cern.ch\ntbag_port = 8201\ntbag_timeout = 15" >> /etc/ai/ai.conf
     - behave . -D ermistst=$ERMISTST -D ermists=$ERMISTS
 
-build_rpm:
-  stage: build_rpm
-  script:
-    - *installGo12
-    - cd $PREFIX/lb-experts/goermis
-    - go12 mod vendor
-    - mkdir SOURCES version
-    - tar zcvf SOURCES/$PKG.tgz  --exclude SOURCES --exclude .git --exclude .koji --exclude .gitlab-ci.yml --exclude go.mod --exclude go.sum --transform "s||$PKG/|" .
-    - rpmbuild -bs --define "_topdir $(pwd)" -D "dist .ai7" $SPEC
-    - rpmbuild -bs --define "_topdir $(pwd)" -D "dist .el8" $SPEC
-    - yum install -y golang
-    - rpmbuild -bb --define "_topdir $(pwd)" -D "dist .ai7" $SPEC
-  artifacts:
-    paths:
-      - SRPMS/
-    expire_in: 1 week
+

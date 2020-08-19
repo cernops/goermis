@@ -36,7 +36,7 @@ func New() *echo.Echo {
 	lbweb.POST("/modify_alias", api.ModifyAlias)
 	lbweb.GET("/checkname", api.CheckNameDNS)
 
-	lbterm := e.Group("/api/v1")
+	lbterm := e.Group("/lbweb/api/v1")
 	lbterm.Use(m.CheckAuthorization)
 	lbterm.GET("/aliases", api.GetAliases)
 	lbterm.GET("/aliases/:alias", api.GetAlias)

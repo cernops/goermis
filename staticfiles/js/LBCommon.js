@@ -42,7 +42,7 @@ function initialize_form(retrieveData, action) {
   //reset the form, some browser have a nasty habit of leaving stuff behind
   //clearForm();
   if (retrieveData) {
-    getData('https://goermis.cerncern.ch/api/v1/aliases');
+    getData('../api/v1/aliases');
 
   } else {
     loaderWindow('close');

@@ -29,10 +29,10 @@
     <div id="navbar">
         {{ if .Auth  }}
         <p>Logged in as {{.User}}</p>
-        <p><a id="logout" href="/sso_logout/">CERN SSO Logout</a></p>
+        <p><a id="logout" href="sso_logout">CERN SSO Logout</a></p>
         {{ else }}
         <p>Not authorized. To use the service, please log in</p>
-        <p><a id="login" href="/sso_login/">CERN SSO Login</a></p>
+        <p><a id="login" href="sso_login">CERN SSO Login</a></p>
         {{ end }}
     </div>
 
@@ -51,12 +51,12 @@
                             <ul class="menu clearfix">
                                 <li class="last expanded active-trail"><a href="/lbweb" class="active-trail">LBWeb</a>
                                     <ul class="menu clearfix">
-                                        <li class="first leaf active-trail"><a href="/lbweb/create/"
+                                        <li class="first leaf active-trail"><a href="create"
                                                 class="active-trail active">Add LB Alias</a></li>
-                                        <li class="leaf"><a href="/lbweb/modify">Modify LB Alias</a></li>
-                                        <li class="leaf"><a href="/lbweb/display">Display LB Alias</a></li>
-                                        <li class="last"><a href="/lbweb/delete">Delete LB Alias</a></li>
-                                        <li class="last leaf"><a href="/lbweb/logs">LB Alias Logs</a></li>
+                                        <li class="leaf"><a href="modify">Modify LB Alias</a></li>
+                                        <li class="leaf"><a href="display">Display LB Alias</a></li>
+                                        <li class="last"><a href="delete">Delete LB Alias</a></li>
+                                        <li class="last leaf"><a href="logs">LB Alias Logs</a></li>
                                     </ul>
                                 </li>
                             </ul>
