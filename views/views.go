@@ -2,14 +2,13 @@ package views
 
 import (
 	"errors"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/gommon/log"
+	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 	"html/template"
 	"io"
 	"os"
 	"path/filepath"
-
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/gommon/log"
-	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 )
 
 var (

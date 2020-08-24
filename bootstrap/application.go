@@ -28,7 +28,7 @@ type Config struct {
 		Sslmode   string
 	}
 	Soap struct {
-		SoapUser     string
+		SoapUser     string `yaml:"soap_user"`
 		SoapPassword string `yaml:"soap_password"`
 		SoapKeynameI string `yaml:"soap_keyname_i"`
 		SoapKeynameE string `yaml:"soap_keyname_e"`
