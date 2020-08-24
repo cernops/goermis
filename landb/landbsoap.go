@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/labstack/gommon/log"
 
@@ -26,20 +27,21 @@ type LandbSoap struct {
 	HostKey   string
 	URL       string
 	AuthToken string
+	CreatedAt time.Time
 	Client    *http.Client
 }
 
-var (
-	//Soap is the externally visible instance of Soap interface
-	Soap = LandbSoap{}
-)
+var soap LandbSoap
 
 func init() {
 	cfg := bootstrap.GetConf()
 	password := cfg.Soap.SoapPassword
 	decodedPass, err := base64.StdEncoding.DecodeString(password)
+	if err != nil {
+		log.Fatal("Error decoding SOAP password")
+	}
 
-	Soap = LandbSoap{
+	soap = LandbSoap{
 		Username:  cfg.Soap.SoapUser,
 		Password:  string(decodedPass),
 		Ca:        "/etc/ssl/certs/ca-bundle.crt",
@@ -49,12 +51,26 @@ func init() {
 		AuthToken: "",
 		Client:    &http.Client{}}
 
-	err = Soap.InitConnection()
+}
 
-	if err != nil {
-		log.Fatal("Error initiating SOAP interface")
-		//os.Exit(1)
+//Conn is nothing
+func Conn() *LandbSoap {
+	//Initiate a new connection only if there is no token or if token is in the limits of expiration
+	if soap.AuthToken == "" || tokenExpired(soap.CreatedAt) {
+		err := soap.InitConnection()
+		if err != nil {
+			log.Fatal("Error initiating SOAP interface")
+		}
 	}
+	return &soap
+}
+
+func tokenExpired(then time.Time) bool {
+	duration := time.Since(then)
+	if duration.Hours() >= 10 {
+		return true
+	}
+	return false
 }
 
 //InitConnection initiates a SOAP connection
@@ -134,6 +150,7 @@ func (landbself *LandbSoap) InitConnection() error {
 	}
 
 	landbself.AuthToken = authresult.Body.GetAuthTokenResponse.Token
+	landbself.CreatedAt = time.Now()
 	//fmt.Println("Token = " + landbself.AuthToken)
 
 	return nil

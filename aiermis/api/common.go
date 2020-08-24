@@ -1,16 +1,18 @@
-package models
+package api
 
 import (
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/asaskevich/govalidator"
+	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
+	"gitlab.cern.ch/lb-experts/goermis/aiermis/orm"
 )
 
-//DeleteEmpty filters an array for empty string values
-func DeleteEmpty(s []string) []string {
+func deleteEmpty(s []string) []string {
 	var r []string
 	for _, str := range s {
 		if str != "" {
@@ -31,14 +33,15 @@ func StringInSlice(a string, list []string) bool {
 }
 
 //getExistingCnames extracts the names of cnames for a certain alias
-func getExistingCnames(a Alias) (s []string) {
+func getExistingCnames(a orm.Alias) (s []string) {
 
 	for _, value := range a.Cnames {
-		s = append(s, value.CName)
+		s = append(s, value.Cname)
 	}
 	return s
 }
 
+//stringToInt converts a string to a int. It is used to hide error checks
 func stringToInt(s string) (i int) {
 	i, err := strconv.Atoi(s)
 	if err != nil {
@@ -47,17 +50,24 @@ func stringToInt(s string) (i int) {
 	return i
 }
 
-func nodesInMap(p Resource) map[string]bool {
+//nodesInMap puts the nodes in a map. The value is their privilege
+func nodesInMap(AllowedNodes interface{}, ForbiddenNodes interface{}) map[string]bool {
+	if AllowedNodes == nil {
+		AllowedNodes = ""
+	}
+	if ForbiddenNodes == nil {
+		ForbiddenNodes = ""
+	}
 
 	temp := make(map[string]bool)
 
-	modes := map[string]bool{
-		p.AllowedNodes:   false,
-		p.ForbiddenNodes: true,
+	modes := map[interface{}]bool{
+		AllowedNodes:   false,
+		ForbiddenNodes: true,
 	}
 	for k, v := range modes {
 		if k != "" {
-			for _, val := range DeleteEmpty(strings.Split(k, ",")) {
+			for _, val := range deleteEmpty(strings.Split(fmt.Sprintf("%v", k), ",")) {
 				temp[val] = v
 			}
 		}
@@ -66,13 +76,8 @@ func nodesInMap(p Resource) map[string]bool {
 	return temp
 }
 
-func prepareRelation(nodeID int, aliasID int, p bool) (r *AliasesNodes) {
-	r = &AliasesNodes{AliasID: aliasID, NodeID: nodeID, Blacklist: p}
-	return r
-}
-
-//CustomValidators adds our new tags in the govalidator
-func CustomValidators() {
+//ustomValidators adds our new tags in the govalidator
+func customValidators() {
 	govalidator.TagMap["nodes"] = govalidator.Validator(func(str string) bool {
 		if len(str) > 0 {
 			split := strings.Split(str, ",")
@@ -120,9 +125,53 @@ func CustomValidators() {
 				log.Error("Not valid hostgroup: " + str)
 				return false
 			}
-
+			return true
 		}
-		return true
+		return false
 	})
 
+}
+
+//MessageToUser renders the reply for the user
+func MessageToUser(c echo.Context, status int, message string, page string) error {
+	username := c.Request().Header.Get("X-Forwarded-User")
+	if message != "" {
+		if 200 <= status && status < 300 {
+			log.Info("[" + username + "]" + message)
+		} else {
+			log.Error("[" + username + "]" + message)
+		}
+	}
+
+	return c.Render(status, page, map[string]interface{}{
+		"Auth":    true,
+		"csrf":    c.Get("csrf"),
+		"User":    username,
+		"Message": message,
+	})
+}
+
+//Equal compares two slices . If they contain the same
+//elements (w/o order included), it returns true
+func Equal(string1, string2 string) bool {
+	slice1 := deleteEmpty(strings.Split(string1, ","))
+	slice2 := deleteEmpty(strings.Split(string2, ","))
+
+	if len(slice1) != len(slice2) {
+		return false
+	}
+	for _, v := range slice1 {
+		if !StringInSlice(v, slice2) {
+			return false
+		}
+	}
+	return true
+}
+func prepare(p *string) []string {
+	var s []string
+	if &p == nil {
+		return s
+	}
+	s = deleteEmpty(strings.Split(*p, ","))
+	return s
 }

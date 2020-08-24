@@ -37,4 +37,17 @@ build_rpm7:
   before_script:
     - *patch_version
     - yum-builddep -y --disableplugin=protectbase,priorities *.spec
+    
+behave:
+  image: gitlab-registry.cern.ch/ai-config-team/ai-tools
+  stage: test
+  allow_failure: false
+  script:
+    - yum -y install python2-behave krb5-workstation
+    - echo $ERMISTST_DECODED | kinit ermistst@CERN.CH
+    - klist
+    - cd  tests/behave
+    - printf "[tbag]\ntbag_hostname = woger.cern.ch\ntbag_port = 8201\ntbag_timeout = 15" >> /etc/ai/ai.conf
+    - behave . -D ermistst=$ERMISTST -D ermists=$ERMISTS
+
 
