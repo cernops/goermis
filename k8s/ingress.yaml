@@ -1,0 +1,14 @@
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: goermis
+spec:
+  rules:
+    - host: "*.cern.ch"
+      http:
+        paths:
+          - path: /lbweb
+            backend:
+              serviceName: goermis
+              servicePort: 8080
