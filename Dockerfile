@@ -10,7 +10,7 @@ FROM alpine:latest
 LABEL maintainer="Kristian Kouros <kristian.kouros@cern.ch>"
 WORKDIR /root/
 RUN  mkdir -p  /var/lib/ermis/ /var/log/ermis/
-COPY --from=builder   /go/bin/goermis   .
+COPY --from=builder   /go/bin/goermis   /
 COPY staticfiles      /var/lib/ermis/staticfiles
 COPY templates        /var/lib/ermis/templates
 EXPOSE 8080

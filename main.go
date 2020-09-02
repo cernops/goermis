@@ -48,8 +48,8 @@ func main() {
 			cfg.Certs.GoermisCert,
 			cfg.Certs.GoermisKey)
 		if !strings.HasSuffix(err.Error(), "bind: address already in use") {
-			//log.Fatal("Failed to start server: " + err.Error())
-			log.Info("Failed to start server: " + err.Error())
+			log.Fatal("Failed to start server: " + err.Error())
+
 		}
 	}()
 
@@ -61,8 +61,8 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := echo.Shutdown(ctx); err != nil {
-		//log.Fatal("Fatal error while shutting server down " + err.Error())
-		log.Info("Fatal error while shutting server down " + err.Error())
+		log.Fatal("Fatal error while shutting server down " + err.Error())
+
 	}
 
 }

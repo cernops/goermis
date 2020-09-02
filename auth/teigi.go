@@ -65,16 +65,16 @@ func GetConn() *UserAuth {
 func (l *UserAuth) InitConnection() error {
 	caCert, err := ioutil.ReadFile(l.authRogerCA)
 	if err != nil {
-		//log.Fatal(err)
-		log.Info(err)
+		log.Fatal(err)
+
 	}
 	caCertPool := x509.NewCertPool()
 	caCertPool.AppendCertsFromPEM(caCert)
 
 	cert, err := tls.LoadX509KeyPair(l.authRogerCert, l.authRogerCertKey)
 	if err != nil {
-		//log.Fatal(err)
-		log.Error(err)
+		log.Fatal(err)
+
 	}
 
 	l.Client = &http.Client{

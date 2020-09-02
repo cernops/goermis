@@ -46,7 +46,7 @@ type Config struct {
 }
 
 var (
-	configFileFlag = flag.String("config", "/run/secrets/config", "specify configuration file path")
+	configFileFlag = flag.String("config", "/usr/local/etc/config.yaml", "specify configuration file path")
 	debugLevel     = flag.Bool("debug", false, "display debug messages")
 )
 
@@ -76,8 +76,8 @@ func init() {
 func GetConf() *Config {
 	cfg, err := NewConfig(*configFileFlag)
 	if err != nil {
-		//log.Fatal(err)
-		log.Info(err)
+		log.Fatal(err)
+
 	}
 	return cfg
 }

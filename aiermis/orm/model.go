@@ -24,7 +24,7 @@ type (
 		Tenant           string    `  gorm:"type:longtext;not null" `
 		Hostgroup        string    ` gorm:"type:longtext;not null" `
 		User             string    ` gorm:"type:varchar(40);not null" `
-		TTL              int       `gorm:"type:smallint(6)"`
+		TTL              int       `gorm:"type:smallint(6);default:60;not null"`
 		LastModification time.Time `gorm:"type:date"`
 		Cnames           []Cname   ` gorm:"foreignkey:CnameAliasID" `
 		Nodes            []*Relation
