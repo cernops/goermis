@@ -40,14 +40,34 @@ build_rpm7:
     
 behave:
   image: gitlab-registry.cern.ch/ai-config-team/ai-tools
-  stage: test
+  stage: prebuild
   allow_failure: false
   script:
     - yum -y install python2-behave krb5-workstation
+    - cd  tests/behave
     - echo $ERMISTST_DECODED | kinit ermistst@CERN.CH
     - klist
-    - cd  tests/behave
-    - printf "[tbag]\ntbag_hostname = woger.cern.ch\ntbag_port = 8201\ntbag_timeout = 15" >> /etc/ai/ai.conf
     - behave . -D ermistst=$ERMISTST -D ermists=$ERMISTS
+
+landb:
+  image: gitlab-registry.cern.ch/ai-config-team/ai-tools
+  stage: prebuild
+  allow_failure: false
+  script:
+    - echo "READY TO DO THE SOAP CALL"
+    - mkdir -p /usr/local/etc /etc/httpd/conf/
+    - cp tests/landb/goermis.yaml /usr/local/etc/goermis.yaml
+    - sed -i -e "s/##REPLACE_BY_USER##/${SOAPUSER}/g" /usr/local/etc/goermis.yaml
+    - sed -i -e "s/##REPLACE_BY_PASSWORD##/${SOAPPASSWORD}/g" /usr/local/etc/goermis.yaml
+    - cd tests/landb
+    - yum-builddep -y --disableplugin=protectbase,priorities *.spec
+    - yum install -y golang gcc
+    - go version
+    - echo "$ERMISCERT" > /etc/httpd/conf/ermiscert.pem
+    - echo "$ERMISKEY" > /etc/httpd/conf/ermiskey.pem
+    - ls -al /etc/httpd/conf/
+    - chmod 600 /etc/httpd/conf/ermiscert.pem /etc/httpd/conf/ermiskey.pem
+    - go test .
+
 
 
