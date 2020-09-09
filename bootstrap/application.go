@@ -51,7 +51,8 @@ var (
 	debugLevel = flag.Bool("debug", false, "display debug messages")
 )
 
-func init() {
+//ParseFlags checks the command line arguments
+func ParseFlags() {
 	//Parse flags
 	flag.Parse()
 	//Init log in the bootstrap package, since its the first that its executed

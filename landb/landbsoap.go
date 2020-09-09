@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -33,7 +34,8 @@ type LandbSoap struct {
 
 var soap LandbSoap
 
-func init() {
+//Conn is nothing
+func Conn() *LandbSoap {
 	cfg := bootstrap.GetConf()
 	password := cfg.Soap.SoapPassword
 	decodedPass, err := base64.StdEncoding.DecodeString(password)
@@ -51,10 +53,13 @@ func init() {
 		AuthToken: "",
 		Client:    &http.Client{}}
 
-}
+	for _, file := range []string{soap.HostCert, soap.HostKey} {
+		if _, err := os.Stat(file); err != nil {
+			log.Fatalf("The certificate '%v' does not exist ", file)
+		}
 
-//Conn is nothing
-func Conn() *LandbSoap {
+	}
+
 	//Initiate a new connection only if there is no token or if token is in the limits of expiration
 	if soap.AuthToken == "" || tokenExpired(soap.CreatedAt) {
 		err := soap.InitConnection()
@@ -84,7 +89,7 @@ func (landbself *LandbSoap) InitConnection() error {
 
 	cert, err := tls.LoadX509KeyPair(landbself.HostCert, landbself.HostKey)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Error loading the certificate (%v): %v", landbself.HostCert, err)
 	}
 
 	landbself.Client = &http.Client{
@@ -156,8 +161,18 @@ func (landbself *LandbSoap) InitConnection() error {
 	return nil
 }
 
-func (landbself *LandbSoap) doSoap(payload []byte, soapAction, httpMethod string) bool {
-	req, err := http.NewRequest(httpMethod, landbself.URL, bytes.NewReader(payload))
+func (landbself *LandbSoap) doSoap(payloadBody string, soapAction, httpMethod string) bool {
+	payload := fmt.Sprintf(`
+<Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/">
+    <Header>
+        <Auth><token>%s</token></Auth>
+    </Header>
+	<Body>
+	    %s
+    </Body>
+</Envelope>`, landbself.AuthToken, payloadBody)
+
+	req, err := http.NewRequest(httpMethod, landbself.URL, bytes.NewReader([]byte(strings.TrimSpace(payload))))
 	if err != nil {
 		log.Fatal("Error on creating request object. ", err.Error())
 		return false
@@ -253,13 +268,8 @@ func (landbself *LandbSoap) doSoap(payload []byte, soapAction, httpMethod string
 
 //DNSDelegatedAdd is a function to add a DNS delegated Zone
 func (landbself *LandbSoap) DNSDelegatedAdd(domain, view, keyname, description, userdescription string) bool {
-	dnsDelegatedAddPayload := []byte(strings.TrimSpace(fmt.Sprintf(`
-<Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/">
-    <Header>
-        <Auth><token>%s</token></Auth>
-    </Header>
-    <Body>
-        <dnsDelegatedAdd xmlns="urn:NetworkService">
+	dnsDelegatedAddPayload := fmt.Sprintf(`
+	    <dnsDelegatedAdd xmlns="urn:NetworkService">
             <DNSDelegatedInput>
                 <Domain>%s</Domain>
                 <View>%s</View>
@@ -267,76 +277,45 @@ func (landbself *LandbSoap) DNSDelegatedAdd(domain, view, keyname, description, 
                 <Description>%s</Description>
                 <UserDescription>%s</UserDescription>
             </DNSDelegatedInput>
-        </dnsDelegatedAdd>
-    </Body>
-</Envelope>`, landbself.AuthToken, domain, view, keyname, description, userdescription)))
-	dnsDelegatedAddSoapAction := "dnsDelegatedAdd"
-	dnsDelegatedAddHTTPMethod := "POST"
+        </dnsDelegatedAdd> `, domain, view, keyname, description, userdescription)
 
-	return landbself.doSoap(dnsDelegatedAddPayload, dnsDelegatedAddSoapAction, dnsDelegatedAddHTTPMethod)
+	return landbself.doSoap(dnsDelegatedAddPayload, "dnsDelegatedAdd", "POST")
 
 }
 
 //DNSDelegatedAliasAdd adds aliases for a defined domain
 func (landbself *LandbSoap) DNSDelegatedAliasAdd(domain, view, alias string) bool {
-	dnsDelegatedAliasAddPayload := []byte(strings.TrimSpace(fmt.Sprintf(`
-<Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/">
-    <Header>
-        <Auth><token>%s</token></Auth>
-    </Header>
-    <Body>
+	dnsDelegatedAliasAddPayload := fmt.Sprintf(`
         <dnsDelegatedAliasAdd xmlns="urn:NetworkService">
             <Domain>%s</Domain>
             <View>%s</View>
             <Alias>%s</Alias>
-        </dnsDelegatedAliasAdd>
-    </Body>
-</Envelope>`, landbself.AuthToken, domain, view, alias)))
-	dnsDelegatedAliasAddSoapAction := "dnsDelegatedAliasAdd"
-	dnsDelegatedAliasAddHTTPMethod := "POST"
+        </dnsDelegatedAliasAdd>`, domain, view, alias)
 
-	return landbself.doSoap(dnsDelegatedAliasAddPayload, dnsDelegatedAliasAddSoapAction, dnsDelegatedAliasAddHTTPMethod)
+	return landbself.doSoap(dnsDelegatedAliasAddPayload, "dnsDelegatedAliasAdd", "POST")
 }
 
 //DNSDelegatedRemove deletes a domain from LANDB
 func (landbself *LandbSoap) DNSDelegatedRemove(domain, view string) bool {
-	dnsDelegatedRemovePayload := []byte(strings.TrimSpace(fmt.Sprintf(`
-<Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/">
-    <Header>
-        <Auth><token>%s</token></Auth>
-    </Header>
-    <Body>
+	dnsDelegatedRemovePayload := fmt.Sprintf(`
         <dnsDelegatedRemove xmlns="urn:NetworkService">
             <Domain>%s</Domain>
             <View>%s</View>
-        </dnsDelegatedRemove>
-    </Body>
-</Envelope>`, landbself.AuthToken, domain, view)))
-	dnsDelegatedRemoveSoapAction := "dnsDelegatedRemove"
-	dnsDelegatedRemoveHTTPMethod := "POST"
+        </dnsDelegatedRemove>`, domain, view)
 
-	return landbself.doSoap(dnsDelegatedRemovePayload, dnsDelegatedRemoveSoapAction, dnsDelegatedRemoveHTTPMethod)
+	return landbself.doSoap(dnsDelegatedRemovePayload, "dnsDelegatedRemove", "POST")
 }
 
 //DNSDelegatedAliasRemove deletes an alias for a defined domain
 func (landbself *LandbSoap) DNSDelegatedAliasRemove(domain, view, alias string) bool {
-	dnsDelegatedAliasRemovePayload := []byte(strings.TrimSpace(fmt.Sprintf(`
-<Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/">
-    <Header>
-        <Auth><token>%s</token></Auth>
-    </Header>
-    <Body>
+	dnsDelegatedAliasRemovePayload := fmt.Sprintf(`
         <dnsDelegatedAliasRemove xmlns="urn:NetworkService">
             <Domain>%s</Domain>
             <View>%s</View>
             <Alias>%s</Alias>
-        </dnsDelegatedAliasRemove>
-    </Body>
-</Envelope>`, landbself.AuthToken, domain, view, alias)))
-	dnsDelegatedAliasRemoveSoapAction := "dnsDelegatedAliasRemove"
-	dnsDelegatedAliasRemoveHTTPMethod := "POST"
+        </dnsDelegatedAliasRemove>`, domain, view, alias)
 
-	return landbself.doSoap(dnsDelegatedAliasRemovePayload, dnsDelegatedAliasRemoveSoapAction, dnsDelegatedAliasRemoveHTTPMethod)
+	return landbself.doSoap(dnsDelegatedAliasRemovePayload, "dnsDelegatedAliasRemove", "POST")
 }
 
 //SearchResult serves as a blueprint for the query response
@@ -377,9 +356,8 @@ func (landbself *LandbSoap) DNSDelegatedSearch(search string) []DNSDelegatedEntr
     </Body>
 </Envelope>`, landbself.AuthToken, search)))
 	dnsDelegatedSearchSoapAction := "dnsDelegatedSearch"
-	dnsDelegatedSearchHTTPMethod := "POST"
 
-	req, err := http.NewRequest(dnsDelegatedSearchHTTPMethod, landbself.URL, bytes.NewReader(dnsDelegatedSearchPayload))
+	req, err := http.NewRequest("POST", landbself.URL, bytes.NewReader(dnsDelegatedSearchPayload))
 	if err != nil {
 		log.Fatal("Error on creating request object. ", err.Error())
 		return []DNSDelegatedEntry{}
