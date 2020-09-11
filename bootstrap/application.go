@@ -45,7 +45,7 @@ type Config struct {
 }
 
 var (
-	configFileFlag = flag.String("config", "/usr/local/etc/config.yaml", "specify configuration file path")
+	configFileFlag = flag.String("config", "/usr/local/etc/goermis.yaml", "specify configuration file path")
 	//HomeFlag grabs the location of staticfiles & templates
 	HomeFlag   = flag.String("home", "/var/lib/ermis/", "specify statics path")
 	debugLevel = flag.Bool("debug", false, "display debug messages")
