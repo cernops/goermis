@@ -15,7 +15,6 @@ type Config struct {
 		AppName    string `yaml:"app_name"`
 		AppVersion string `yaml:"app_version"`
 		AppEnv     string `yaml:"app_env"`
-		
 	}
 	Database struct {
 		Adapter   string
@@ -47,10 +46,13 @@ type Config struct {
 
 var (
 	configFileFlag = flag.String("config", "/usr/local/etc/config.yaml", "specify configuration file path")
-	debugLevel     = flag.Bool("debug", false, "display debug messages")
+	//HomeFlag grabs the location of staticfiles & templates
+	HomeFlag   = flag.String("home", "/var/lib/ermis/", "specify statics path")
+	debugLevel = flag.Bool("debug", false, "display debug messages")
 )
 
-func init() {
+//ParseFlags checks the command line arguments
+func ParseFlags() {
 	//Parse flags
 	flag.Parse()
 	//Init log in the bootstrap package, since its the first that its executed

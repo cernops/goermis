@@ -24,6 +24,7 @@ const (
 )
 
 func main() {
+	bootstrap.ParseFlags()
 	log.Info("Service Started...")
 
 	// Echo instance
