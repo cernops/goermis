@@ -24,6 +24,9 @@ spec:
             - name: configfile
               mountPath: "/usr/local/etc/"
               readOnly: true
+            - name: ca-bundle
+              mountPath: "/etc/ssl/certs/"
+              readOnly: true
           ports:
             - containerPort: 8080
       volumes:
@@ -33,5 +36,8 @@ spec:
         - name: configfile
           secret:
             secretName: config
+        - name: ca-bundle
+          secret:
+            secretName: ca-bundle
       imagePullSecrets:
         - name: regcred
