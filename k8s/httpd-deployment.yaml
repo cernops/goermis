@@ -1,23 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: goermis
+  name: httpd-deployment
   labels:
-    app: goermis
+    app: httpd
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: goermis
+      app: httpd
   template:
     metadata:
       labels:
-        app: goermis
+        app: httpd
     spec:
       containers:
-        - name: goermis
-          image: gitlab-registry.cern.ch/lb-experts/goermis:latest
-          args: ["-config=/usr/local/etc/config.yaml"]
+        - name: httpd
+          image: gitlab-registry.cern.ch/lb-experts/goermis/httpd-proxy:latest
           volumeMounts:
             - name: ermis-certs
               mountPath: "/etc/ssl/certs/"

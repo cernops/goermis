@@ -8,14 +8,12 @@ RUN yum install -y \
     mkdir -p /var/www/ermis && \
     yum clean all 
 
-#COPY httpd/httpd.conf /etc/httpd/conf/
-COPY httpd/11-goermis.cern.ch.conf /etc/httpd/conf.d/
-COPY httpd/25-https-to-https-redirection.conf /etc/httpd/conf.d/
-COPY /entr.sh /
-RUN chmod +x entr.sh
+COPY httpd/11-goermis.cern.ch.conf httpd/25-https-to-https-redirection.conf /etc/httpd/conf.d/
+COPY conf.modules.puppet/* /etc/httpd/conf.modules.d/
+COPY httpd/httpd.conf /etc/httpd/conf 
 EXPOSE 80
 EXPOSE 443
-CMD ["/entr.sh"]
+CMD ["httpd", "-k", "start"]
 
 
 

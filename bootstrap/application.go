@@ -15,7 +15,7 @@ type Config struct {
 		AppName    string `yaml:"app_name"`
 		AppVersion string `yaml:"app_version"`
 		AppEnv     string `yaml:"app_env"`
-		Templates  string
+		
 	}
 	Database struct {
 		Adapter   string
