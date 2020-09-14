@@ -17,7 +17,9 @@ spec:
       containers:
         - name: goermis
           image: gitlab-registry.cern.ch/lb-experts/goermis:latest
-          args: ["-config=/usr/local/etc/config.yaml"]
+          args: 
+            - "-config=/usr/local/etc/goermis.yaml"
+            - "-home=/var/lib/ermis/"           
           volumeMounts:
             - name: ermis-certs
               mountPath: "/etc/ssl/certs/"
