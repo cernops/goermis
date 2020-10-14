@@ -42,7 +42,7 @@ function initialize_form(retrieveData, action) {
   //reset the form, some browser have a nasty habit of leaving stuff behind
   //clearForm();
   if (retrieveData) {
-    getData('../api/v1/aliases');
+    getData('../p/api/v1/alias/');
 
   } else {
     loaderWindow('close');
@@ -302,6 +302,7 @@ function writeFields(clusterObject) {
     $('#alias-log').prop("href", loglink);
     $('#alias-log').text(loglink);
   }
+
 
   $('#edit-submitted-advanced-cnames').val(clusterObject.getCNames());
   if (fastSelect != null) {

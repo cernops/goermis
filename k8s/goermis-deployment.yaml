@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: goermis-deployment
+  labels:
+    app: goermis
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: goermis
+  template:
+    metadata:
+      labels:
+        app: goermis
+    spec:
+      containers:
+        - name: goermis
+          image: gitlab-registry.cern.ch/lb-experts/goermis:latest
+          args: 
+            - "-config=/usr/local/etc/goermis.yaml"
+            - "-home=/var/lib/ermis/"           
+          volumeMounts:
+            - name: ermis-certs
+              mountPath: "/etc/ssl/certs/"
+              readOnly: true
+            - name: configfile
+              mountPath: "/usr/local/etc/"
+              readOnly: true
+          ports:
+            - containerPort: 8080
+      volumes:
+        - name: ermis-certs
+          secret:
+            secretName: ermis-certs
+        - name: configfile
+          secret:
+            secretName: config
+      imagePullSecrets:
+        - name: regcred

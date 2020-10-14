@@ -40,7 +40,7 @@ func (l *Group) CheckCud(username string) bool {
 	if isMemberOf(username, "ermis-lbaas-admins") {
 		return true
 	}
-	log.Info(username + " is not member of egroup")
+
 	return false
 
 }
@@ -65,14 +65,16 @@ func GetConn() *UserAuth {
 func (l *UserAuth) InitConnection() error {
 	caCert, err := ioutil.ReadFile(l.authRogerCA)
 	if err != nil {
-		return err
+		log.Fatal(err)
+
 	}
 	caCertPool := x509.NewCertPool()
 	caCertPool.AppendCertsFromPEM(caCert)
 
 	cert, err := tls.LoadX509KeyPair(l.authRogerCert, l.authRogerCertKey)
 	if err != nil {
-		return err
+		log.Fatal(err)
+
 	}
 
 	l.Client = &http.Client{

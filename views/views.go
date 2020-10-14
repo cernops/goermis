@@ -2,13 +2,14 @@ package views
 
 import (
 	"errors"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/gommon/log"
-	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 	"html/template"
 	"io"
 	"os"
 	"path/filepath"
+
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/gommon/log"
+	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 )
 
 var (
@@ -36,7 +37,8 @@ func (t *TemplateRegistry) Render(w io.Writer, name string, data interface{}, c 
 func readCurrentDir(dir string) []string {
 	file, err := os.Open(dir)
 	if err != nil {
-		log.Fatal("Failed opening directory")
+		//log.Fatal("Failed opening directory")
+		log.Info("Failed opening directory")
 
 	}
 	defer file.Close()

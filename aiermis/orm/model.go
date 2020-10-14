@@ -6,8 +6,9 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-//This is a the model of the DB relations. It is used
-//exclusevily by GORM
+/*This is a the model of the DB relations. It is used
+  exclusevily by GORM
+*/
 
 //Alias structure is a model for describing the alias
 type (
@@ -24,13 +25,17 @@ type (
 		Tenant           string    `  gorm:"type:longtext;not null" `
 		Hostgroup        string    ` gorm:"type:longtext;not null" `
 		User             string    ` gorm:"type:varchar(40);not null" `
-		TTL              int       `gorm:"type:smallint(6)"`
+		TTL              int       `gorm:"type:smallint(6);default:60;not null"`
 		LastModification time.Time `gorm:"type:date"`
 		Cnames           []Cname   ` gorm:"foreignkey:CnameAliasID" `
 		Nodes            []*Relation
 	}
 
-	//Relation testing
+	/*For future references, the many-to-many relation is not implemented
+	  in the default way,as in the gorm docs. The reason is the need for an
+	  extra column in the relation table*/
+
+	//Relation describes the many-to-many relation between nodes/aliases
 	Relation struct {
 		ID        int
 		Node      *Node
