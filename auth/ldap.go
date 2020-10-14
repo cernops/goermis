@@ -4,6 +4,7 @@ import (
 	"github.com/labstack/gommon/log"
 
 	"github.com/go-ldap/ldap/v3"
+	
 )
 
 const (
@@ -17,7 +18,7 @@ const (
 func initconnection() *ldap.Conn {
 	l, err := ldap.DialURL("ldap://xldap.cern.ch")
 	if err != nil {
-		log.Error(err)
+		log.Fatal(err)
 		return nil
 	}
 	return l

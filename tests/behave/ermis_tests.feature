@@ -71,6 +71,7 @@ Feature: Testing API calls for Ermis
      And the LB alias "exists"
       when we do a "delete" request
       then the object should "be deleted"
+
    Scenario: test if privileged user can create data if he/she has a valid kerberos ticket
      Given that we have a valid kerberos ticket of a user in "ermis-lbaas-admins" egroup
      And that we are "unauthorized" in the hostgroup

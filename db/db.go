@@ -25,12 +25,14 @@ func mysqlConn() {
 		err              error
 	)
 
-	connectionString = fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true", cfg.Database.Username, cfg.Database.Password, cfg.Database.Host, cfg.Database.Port, cfg.Database.Database)
+	connectionString = fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local", cfg.Database.Username, cfg.Database.Password, cfg.Database.Host, cfg.Database.Port, cfg.Database.Database)
 	if db, err = gorm.Open("mysql", connectionString); err != nil {
-		log.Panic("Database connection error")
+		//log.Panic("Database connection error")
+		log.Info("Conn err")
 	}
 	if err = db.DB().Ping(); err != nil {
-		log.Panic("Unreachable database")
+		//log.Panic("Unreachable database")
+		log.Info("Unreachable db")
 	}
 
 	//Keep the table names singular(maintain conformity with existing DB)

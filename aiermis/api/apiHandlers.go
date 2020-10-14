@@ -18,124 +18,103 @@ func init() {
 	customValidators()
 }
 
-//GetAliases returns a list of ALL aliases
-func GetAliases(c echo.Context) error {
+//GetAlias returns a list of ALL aliases
+func GetAlias(c echo.Context) error {
 
 	var (
 		list Objects
 		e    error
 	)
 	username := c.Request().Header.Get("X-Forwarded-User")
-	//If empty values provided,the MySQL query returns all aliases
-	if list.Objects, e = GetObjects("", ""); e != nil {
-		log.Error("[" + username + "] " + e.Error())
-		return echo.NewHTTPError(http.StatusBadRequest, e.Error())
-	}
-	defer c.Request().Body.Close()
-	//log.Info("[" + username + "]" + " List of aliases retrieved successfully")
-	return c.JSON(http.StatusOK, list)
-}
-
-//GetAlias queries for a specific alias
-func GetAlias(c echo.Context) error {
-	var (
-		list     Objects
-		e        error
-		tablerow string
-	)
-	//Get the name/ID of alias
-	username := c.Request().Header.Get("X-Forwarded-User")
-	param := c.Param("alias")
-	//Validate that the parameter is DNS-compatible
-	if !govalidator.IsDNSName(param) {
-		log.Error("[" + username + "] " + "Wrong type of query parameter.Expected alphanum, received " + param)
-		return echo.NewHTTPError(http.StatusBadRequest)
-	}
-
-	//Switch between name and ID query(enables user to ask by name or id)
-	if _, err := strconv.Atoi(c.Param("alias")); err == nil {
-		tablerow = "id"
+	param := c.QueryParam("alias_name")
+	if param == "" {
+		//If empty values provided,the MySQL query returns all aliases
+		if list.Objects, e = GetObjects("all"); e != nil {
+			log.Error("[" + username + "] " + e.Error())
+			return echo.NewHTTPError(http.StatusBadRequest, e.Error())
+		}
 	} else {
-		if !strings.HasSuffix(param, ".cern.ch") {
-			param = param + ".cern.ch"
+		//Validate that the parameter is DNS-compatible
+		if !govalidator.IsDNSName(param) {
+			log.Error("[" + username + "] " + "Wrong type of query parameter.Expected alphanum, received " + param)
+			return echo.NewHTTPError(http.StatusBadRequest)
 		}
 
-		tablerow = "alias_name"
-	}
+		if _, err := strconv.Atoi(param); err != nil {
+			if !strings.HasSuffix(param, ".cern.ch") {
+				param = param + ".cern.ch"
+			}
+		}
 
-	if list.Objects, e = GetObjects(string(param), tablerow); e != nil {
-		log.Error("[" + username + "]" + "Unable to get alias" + param + " : " + e.Error())
-		return echo.NewHTTPError(http.StatusBadRequest, e.Error())
+		if list.Objects, e = GetObjects(string(param)); e != nil {
+			log.Error("[" + username + "]" + "Unable to get alias" + param + " : " + e.Error())
+			return echo.NewHTTPError(http.StatusBadRequest, e.Error())
+		}
+
 	}
 	defer c.Request().Body.Close()
-	//log.Info("[" + username + "] " + "Alias" + param + " retrieved successfully")
 	return c.JSON(http.StatusOK, list)
-
 }
 
 //CreateAlias creates a new alias entry in the DB
 func CreateAlias(c echo.Context) error {
+	var temp Resource
 	username := c.Request().Header.Get("X-Forwarded-User")
-	//Struct r serves for getting request values and validate them
-	var r Resource
-	if err := c.Bind(&r); err != nil {
-		log.Warn("[" + username + "] " + "Failed to bind params " + err.Error())
+	if err := c.Bind(&temp); err != nil {
+		log.Warn("[" + c.Request().Header.Get("X-Forwarded-User") + "] " + "Failed to bind params " + err.Error())
 	}
-
-	//User is provided in the HEADER
-	r.User = username
-	defer c.Request().Body.Close()
+	temp.User = c.Request().Header.Get("X-Forwarded-User")
 
 	//Validate structure
-	if ok, err := govalidator.ValidateStruct(r); err != nil || ok == false {
+	if ok, err := govalidator.ValidateStruct(temp); err != nil || ok == false {
 		return MessageToUser(c, http.StatusBadRequest,
-			"Validation error for "+r.AliasName+" : "+err.Error(), "home.html")
+			"Validation error for "+temp.AliasName+" : "+err.Error(), "home.html")
 	}
 
 	//Default values and hydrate(domain,visibility)
-	r.DefaultAndHydrate()
+	temp.DefaultAndHydrate()
 	//Check for duplicates
-	alias, _ := GetObjects(r.AliasName, "alias_name")
+	alias, _ := GetObjects(temp.AliasName)
 	if alias != nil {
 		return MessageToUser(c, http.StatusConflict,
-			"Alias "+r.AliasName+" already exists ", "home.html")
+			"Alias "+temp.AliasName+" already exists ", "home.html")
 
 	}
 
-	log.Info("[" + username + "] " + "Ready to create a new alias " + r.AliasName)
+	log.Info("[" + username + "] " + "Ready to create a new alias " + temp.AliasName)
 	//Create object
-	if err := r.CreateObject(); err != nil {
+	if err := temp.CreateObject(); err != nil {
 		return MessageToUser(c, http.StatusBadRequest,
-			"Creation error for "+r.AliasName+" : "+err.Error(), "home.html")
+			"Creation error for "+temp.AliasName+" : "+err.Error(), "home.html")
 	}
 
 	return MessageToUser(c, http.StatusCreated,
-		r.AliasName+" created successfully ", "home.html")
+		temp.AliasName+" created successfully ", "home.html")
 
 }
 
 //DeleteAlias deletes the requested alias from the DB
 func DeleteAlias(c echo.Context) error {
+	var (
+		aliasToDelete string
+	)
 	username := c.Request().Header.Get("X-Forwarded-User")
-	var r Resource
 
-	//Bind request
-	if err := c.Bind(&r); err != nil {
-		log.Warn("[" + username + "] " + "Failed to bind params " + err.Error())
+	switch c.Request().Header.Get("Content-Type") {
+	case "application/json":
+		aliasToDelete = c.QueryParam("alias_name")
+	case "application/x-www-form-urlencoded":
+		aliasToDelete = c.FormValue("alias_name")
+
 	}
-
-	//User is provided in the HEADER
-	r.User = username
-	defer c.Request().Body.Close()
 	//Validate alias name only, since the rest of the struct will be empty when DELETE
-	if !govalidator.IsDNSName(r.AliasName) {
-		log.Warn("[" + username + "] " + "Wrong type of query parameter, expected Alias name, got :" + r.AliasName)
+	if !govalidator.IsDNSName(aliasToDelete) {
+		log.Warn("[" + username + "] " + "Wrong type of query parameter, expected Alias name, got :" + aliasToDelete)
 		return echo.NewHTTPError(http.StatusBadRequest)
 	}
-
-	alias, err := GetObjects(r.AliasName, "alias_name")
+	alias, err := GetObjects(aliasToDelete)
 	if err != nil {
-		log.Error("[" + username + "] " + "Failed to retrieve alias " + r.AliasName + " : " + err.Error())
+		log.Error("[" + username + "] " + "Failed to retrieve alias " + aliasToDelete + " : " + err.Error())
 	}
 	defer c.Request().Body.Close()
 
@@ -145,10 +124,10 @@ func DeleteAlias(c echo.Context) error {
 
 		}
 		return MessageToUser(c, http.StatusOK,
-			r.AliasName+" deleted successfully ", "home.html")
+			aliasToDelete+" deleted successfully ", "home.html")
 
 	}
-	return MessageToUser(c, http.StatusNotFound, r.AliasName+" not found", "home.html")
+	return MessageToUser(c, http.StatusNotFound, aliasToDelete+" not found", "home.html")
 
 }
 
@@ -158,14 +137,23 @@ func ModifyAlias(c echo.Context) error {
 	//Kermis allows us to change lots of fields.Since we don't know what
 	//fields change each time, we get the existing object from DB and update
 	//only the changed fields one-by-one.
-	var temp Resource
+	var (
+		param string
+		temp  Resource
+	)
 	username := c.Request().Header.Get("X-Forwarded-User")
 	//Bind request to the temp Resource
 	if err := c.Bind(&temp); err != nil {
-		log.Warn("[" + username + "] " + "Failed to bind params " + err.Error())
+		log.Warn("[" + c.Request().Header.Get("X-Forwarded-User") + "] " + "Failed to bind params " + err.Error())
 	}
+	if c.Request().Method == "PATCH" {
+		param = c.Param("id")
+	} else {
+		param = temp.AliasName
+	}
+
 	//After we bind request, we use the alias name for retrieving its profile from DB
-	alias, err := GetObjects(temp.AliasName, "alias_name")
+	alias, err := GetObjects(param)
 	if err != nil {
 		log.Error("[" + username + "] " + "Failed to retrieve alias " + temp.AliasName + " : " + err.Error())
 		return err

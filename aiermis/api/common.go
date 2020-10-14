@@ -96,6 +96,7 @@ func customValidators() {
 		return true
 	})
 
+	//govalidator.TagMap["cnames"] = govalidator.Iterator(func(str interface{},index int)  {
 	govalidator.TagMap["cnames"] = govalidator.Validator(func(str string) bool {
 
 		if len(str) > 0 {
@@ -156,7 +157,6 @@ func MessageToUser(c echo.Context, status int, message string, page string) erro
 func Equal(string1, string2 string) bool {
 	slice1 := deleteEmpty(strings.Split(string1, ","))
 	slice2 := deleteEmpty(strings.Split(string2, ","))
-
 	if len(slice1) != len(slice2) {
 		return false
 	}

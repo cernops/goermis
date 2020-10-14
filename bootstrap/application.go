@@ -61,15 +61,17 @@ func ParseFlags() {
 	} else {
 		log.SetLevel(2)
 	}
+
+	//Init log in the bootstrap package, since its the first that its executed
+
 	log.SetHeader("${time_rfc3339} ${level} ${short_file} ${line} ")
 	file, err := os.OpenFile(GetConf().Log.LoggingFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err == nil {
 		log.SetOutput(file)
 		log.Info("File set as logger output")
 	} else {
-		log.Info("Failed to log to file, using default stderr")
+		log.Info("Failed to log to file, using default stderr" + err.Error())
 	}
-	log.Info("Init of the application")
 }
 
 //GetConf returns the Conf file
@@ -77,6 +79,7 @@ func GetConf() *Config {
 	cfg, err := NewConfig(*configFileFlag)
 	if err != nil {
 		log.Fatal(err)
+
 	}
 	return cfg
 }

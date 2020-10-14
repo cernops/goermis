@@ -22,7 +22,7 @@ func (r Resource) createInDNS() error {
 
 	//Double-check that DNS doesn't contain such an alias
 	if len(entries) == 0 {
-		log.Info("Preparing to add " + r.AliasName + " in DNS")
+		log.Info("[" + r.User + "]" + "Preparing to add " + r.AliasName + " in DNS")
 		//If view is external, we need to create two entries in DNS
 		views := make(map[string]string)
 		views["internal"] = cfg.Soap.SoapKeynameI
@@ -34,11 +34,11 @@ func (r Resource) createInDNS() error {
 		for view, keyname := range views {
 			//If alias creation succeeds, then we proceed with the rest
 			if landbsoap.Conn().DNSDelegatedAdd(r.AliasName, view, keyname, "Created by:"+r.User, "goermis") {
-				log.Info(r.AliasName + "/" + view + "has been created")
+				log.Info("[" + r.User + "]" + r.AliasName + "/" + view + "has been created")
 				//If alias is created successfully and there are also cnames...
 				if r.Cname != "" {
 					if r.createCnamesDNS(view) {
-						log.Info("Cnames added in DNS for alias " + r.AliasName + "/" + view)
+						log.Info("[" + r.User + "]" + "Cnames added in DNS for alias " + r.AliasName + "/" + view)
 					} else {
 						return errors.New("Failed to create cnames")
 					}
@@ -62,7 +62,7 @@ func (r Resource) deleteFromDNS() error {
 
 	entries := landbsoap.Conn().DNSDelegatedSearch(strings.Split(r.AliasName, ".")[0])
 	if len(entries) != 0 {
-		log.Info("Preparing to delete " + r.AliasName + " from DNS")
+		log.Info("[" + r.User + "]" + "Preparing to delete " + r.AliasName + " from DNS")
 		var views []string
 		views = append(views, "internal")
 		if StringInSlice(r.External, []string{"external", "yes"}) {
@@ -70,7 +70,7 @@ func (r Resource) deleteFromDNS() error {
 		}
 		for _, view := range views {
 			if landbsoap.Conn().DNSDelegatedRemove(r.AliasName, view) {
-				log.Info(r.AliasName + "/" + view + " has been deleted ")
+				log.Info("[" + r.User + "]" + r.AliasName + "/" + view + " has been deleted ")
 			} else {
 				return errors.New("Failed to delete " + r.AliasName + "/" + view + " from DNS. Rolling Back")
 
@@ -107,11 +107,9 @@ func (r Resource) UpdateDNS(oldObject Resource) (err error) {
 
 //createCnamesDNS adds a list of cnames in the defined alias/view.
 func (r Resource) createCnamesDNS(view string) bool {
-
 	cnames := deleteEmpty(strings.Split(r.Cname, ","))
-
 	for _, cname := range cnames {
-		log.Info("Adding in DNS the cname " + cname)
+		log.Info("[" + r.User + "]" + "Adding in DNS the cname " + cname)
 		if !landbsoap.Conn().DNSDelegatedAliasAdd(r.AliasName, view, cname) {
 			return false
 		}
@@ -124,7 +122,7 @@ func (r Resource) updateView(oldObject Resource) error {
 	oview := oldObject.External
 	nview := r.External
 	alias := oldObject.AliasName
-	log.Info("Visibility has changed from " + oview + " to " + nview)
+	log.Info("[" + r.User + "]" + "Visibility has changed from " + oview + " to " + nview)
 	//Changing view from internal to external
 	if StringInSlice(nview, []string{"yes", "external"}) && StringInSlice(oview, []string{"no", "internal"}) {
 		//Create the external visibility

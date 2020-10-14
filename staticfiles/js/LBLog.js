@@ -11,7 +11,7 @@
 
         $(document).ready(function () {
                 loaderWindow();
-                getData('../api/v1/aliases');
+                getData('../p/api/v1/alias/');
 
                 $('#clusterList').change(function () {
                         location = $('#clusterList').val();

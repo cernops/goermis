@@ -122,25 +122,28 @@ func findHostgroup(c echo.Context) (newHg string, oldHg string, err error) {
 
 	//Kermis and Behave tests send Content-Type = application/json
 	if c.Request().Header.Get("Content-Type") == "application/json" {
-		// Read body
-		raw, err := ioutil.ReadAll(c.Request().Body)
-		if err != nil {
-			return "", "", err
+		if c.Request().Method == "DELETE" {
+			aliasToquery = c.QueryParam("alias_name")
+		} else {
+			// Read body
+			raw, err := ioutil.ReadAll(c.Request().Body)
+			if err != nil {
+				return "", "", err
+			}
+
+			//Restore body, so we can bind again in the handlers
+			c.Request().Body = ioutil.NopCloser(bytes.NewBuffer(raw))
+
+			// Unmarshal body of request
+			var b body
+			err = json.Unmarshal(raw, &b)
+			if err != nil {
+				return "", "", err
+			}
+			//Set values we need
+			aliasToquery = b.Alias
+			newHg = b.Hostgroup
 		}
-
-		//Restore body, so we can bind again in the handlers
-		c.Request().Body = ioutil.NopCloser(bytes.NewBuffer(raw))
-
-		// Unmarshal body of request
-		var b body
-		err = json.Unmarshal(raw, &b)
-		if err != nil {
-			return "", "", err
-		}
-		//Set values we need
-		aliasToquery = b.Alias
-		newHg = b.Hostgroup
-
 		//UI sends Content-Type x-www-form-urlencoded
 	} else if c.Request().Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
 		newHg = c.FormValue("hostgroup")
@@ -148,7 +151,7 @@ func findHostgroup(c echo.Context) (newHg string, oldHg string, err error) {
 	}
 
 	//Get the hostgroup that is registered for the same alias.
-	alias, _ := api.GetObjects(aliasToquery, "alias_name")
+	alias, _ := api.GetObjects(aliasToquery)
 	if alias != nil {
 		oldHg = alias[0].Hostgroup
 	}

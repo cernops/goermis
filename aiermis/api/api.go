@@ -2,9 +2,8 @@ package api
 
 import (
 	"errors"
-	"strings"
-
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/jinzhu/copier"
@@ -19,27 +18,30 @@ var (
 	cfg = bootstrap.GetConf()
 )
 
+/*form tags --> for binding the form fields,
+valid tag--> validation rules, extra funcs in the common.go file*/
+
 //Resource deals with the output from the queries
 type (
 	Resource struct {
-		ID               int       `form:"alias_id" json:"alias_id" valid:"required,numeric"`
-		AliasName        string    `form:"alias_name" json:"alias_name"  valid:"required,dns"`
-		Behaviour        string    `form:"behaviour" json:"behaviour" valid:"-"`
-		BestHosts        int       `form:"best_hosts" json:"best_hosts" valid:"required,int,best_hosts"`
-		Clusters         string    `form:"clusters" json:"clusters"  valid:"alphanum"`
-		ForbiddenNodes   string    `form:"ForbiddenNodes" json:"ForbiddenNodes" gorm:"not null" valid:"optional,nodes" `
-		AllowedNodes     string    `form:"AllowedNodes" json:"AllowedNodes"  gorm:"not null" valid:"optional,nodes"`
-		Cname            string    `form:"cnames" json:"cnames"   gorm:"not null" valid:"optional,cnames"`
-		External         string    `form:"external" json:"external"  valid:"required,in(yes|no|internal|external)"`
-		Hostgroup        string    `form:"hostgroup" json:"hostgroup"  valid:"required,hostgroup"`
-		LastModification time.Time `form:"last_modification" json:"last_modification"  valid:"-"`
-		Metric           string    `form:"metric" json:"metric"  valid:"in(cmsfrontier|minino|minimum|),optional"`
-		PollingInterval  int       `form:"polling_interval" json:"polling_interval" valid:"numeric"`
-		Tenant           string    `form:"tenant" json:"tenant"  valid:"optional,alphanum"`
-		TTL              int       `form:"ttl" json:"ttl,omitempty"  valid:"numeric,optional"`
-		User             string    `form:"user" json:"user"  valid:"optional,alphanum"`
-		Statistics       string    `form:"statistics" json:"statistics"  valid:"alpha"`
-		URI              string    `valid:"-"`
+		ID               int       `form:"alias_id"          json:"alias_id"          valid:"required,numeric"`
+		AliasName        string    `form:"alias_name"        json:"alias_name"        valid:"required,dns"`
+		Behaviour        string    `form:"behaviour"         json:"behaviour"         valid:"-"`
+		BestHosts        int       `form:"best_hosts"        json:"best_hosts"        valid:"required,int,best_hosts"`
+		Clusters         string    `form:"clusters"          json:"clusters"          valid:"alphanum"`
+		ForbiddenNodes   string    `form:"ForbiddenNodes"    json:"ForbiddenNodes"    valid:"optional,nodes"   gorm:"not null"`
+		AllowedNodes     string    `form:"AllowedNodes"      json:"AllowedNodes"      valid:"optional,nodes"   gorm:"not null"`
+		Cname            string    `form:"cnames"            json:"cnames"            valid:"optional,cnames"  gorm:"not null"`
+		External         string    `form:"external"          json:"external"          valid:"required,in(yes|no|internal|external)"`
+		Hostgroup        string    `form:"hostgroup"         json:"hostgroup"         valid:"required,hostgroup"`
+		LastModification time.Time `form:"last_modification" json:"last_modification" valid:"-"`
+		Metric           string    `form:"metric"            json:"metric"            valid:"in(cmsfrontier|minino|minimum|),optional"`
+		PollingInterval  int       `form:"polling_interval"  json:"polling_interval"  valid:"numeric"`
+		Tenant           string    `form:"tenant"            json:"tenant"            valid:"optional,alphanum"`
+		TTL              int       `form:"ttl"               json:"ttl,omitempty"     valid:"numeric,optional"`
+		User             string    `form:"user"              json:"user"              valid:"optional,alphanum"`
+		Statistics       string    `form:"statistics"        json:"statistics"        valid:"alpha"`
+		ResourceURI      string    `valid:"-"                json:"resource_uri"`
 	}
 	//Objects holds multiple result structs
 	Objects struct {
@@ -52,59 +54,80 @@ type (
 // A) GET object(s)
 
 //GetObjects return list of aliases if no parameters are passed or a single alias if parameters are given
-func GetObjects(param string, tablerow string) (b []Resource, err error) {
-
-	if param == "" && tablerow == "" {
-		q = "SELECT a.id, alias_name, behaviour, best_hosts, clusters, " +
-			"COALESCE(GROUP_CONCAT(distinct case when r.blacklist = 1 then n.node_name else null end),'') AS ForbiddenNodes, " +
-			"COALESCE(GROUP_CONCAT(distinct case when r.blacklist = 0 then n.node_name else null end),'') AS AllowedNodes, " +
-			"COALESCE(GROUP_CONCAT(distinct cname),'') AS cname, external,  a.hostgroup, a.last_modification, metric, polling_interval,tenant,ttl, user, statistics " +
-			"FROM ermis_api_alias a " +
-			"LEFT join ermis_api_cname c on ( a.id=c.cname_alias_id) " +
-			"LEFT JOIN ermis_api_relation r on (a.id=r.alias_id) " +
-			"LEFT JOIN ermis_api_node n on (n.id=r.node_id) " +
-			"GROUP BY a.id, alias_name, behaviour, best_hosts, clusters,  external, a.hostgroup, " +
-			"a.last_modification, metric, polling_interval, statistics, tenant, ttl, user ORDER BY alias_name"
+func GetObjects(param string) (temp []Resource, err error) {
+	var (
+		query []orm.Alias
+	)
+	//Preload bottom-to-top, starting with the Relations & Nodes first
+	nodes := con.Preload("Nodes")
+	nodes = nodes.Preload("Nodes.Node")
+	if param == "all" {
+		err = nodes.Preload("Cnames").Find(&query).Error
 
 	} else {
-		q = "SELECT a.id, alias_name, behaviour, best_hosts, clusters, " +
-			"COALESCE(GROUP_CONCAT(distinct case when r.blacklist = 1 then n.node_name else null end),'') AS ForbiddenNodes," +
-			"COALESCE(GROUP_CONCAT(distinct case when r.blacklist = 0 then n.node_name else null end),'') AS AllowedNodes, " +
-			"COALESCE(GROUP_CONCAT(distinct cname),'') AS cname, external,  a.hostgroup, a.last_modification, metric, polling_interval,tenant,ttl, user, statistics " +
-			"FROM ermis_api_alias a " +
-			"LEFT JOIN ermis_api_cname c on ( a.id=c.cname_alias_id) " +
-			"LEFT JOIN ermis_api_relation r on (a.id=alias_id) " +
-			"LEFT JOIN ermis_api_node n on (n.id=r.node_id) " +
-			"where a." + tablerow + " = " + "'" + param + "' " +
-			"GROUP BY a.id, alias_name, behaviour, best_hosts, clusters,  external, a.hostgroup, " +
-			"a.last_modification, metric, polling_interval, statistics, tenant, ttl, user ORDER BY alias_name"
+		err = nodes.
+			Preload("Cnames").
+			Where("id=?", param).Or("alias_name=?", param).
+			First(&query).Error
+
 	}
-
-	rows, err := con.Raw(q).Rows()
-
 	if err != nil {
-		return b, errors.New("Failed in query: " + err.Error())
+		return nil, errors.New("Failed in query: " + err.Error())
 
 	}
-	defer rows.Close()
-	for rows.Next() {
-		var result Resource
-		//Fill the struct with the results of the DB query
-		err := rows.Scan(&result.ID, &result.AliasName, &result.Behaviour, &result.BestHosts, &result.Clusters,
-			&result.ForbiddenNodes, &result.AllowedNodes, &result.Cname, &result.External, &result.Hostgroup,
-			&result.LastModification, &result.Metric, &result.PollingInterval,
-			&result.Tenant, &result.TTL, &result.User, &result.Statistics)
 
-		//Infer the URI value
-		result.URI = "api/v1/" + strconv.Itoa(result.ID)
+	return parse(query), nil
 
-		if err != nil {
-			return b, errors.New("Failed in scanning query results with err: " +
-				err.Error())
+}
+
+func parse(queryResults []orm.Alias) (parsed []Resource) {
+	for _, element := range queryResults {
+		var temp Resource
+		//The ones that are the same
+		temp.ID = element.ID
+		temp.AliasName = element.AliasName
+		temp.Behaviour = element.Behaviour
+		temp.BestHosts = element.BestHosts
+		temp.Clusters = element.Clusters
+		temp.Hostgroup = element.Hostgroup
+		temp.External = element.External
+		temp.LastModification = element.LastModification
+		temp.Metric = element.Metric
+		temp.PollingInterval = element.PollingInterval
+		temp.TTL = element.TTL
+		temp.Tenant = element.Tenant
+		temp.ResourceURI = "/p/api/v1/alias/" + strconv.Itoa(element.ID)
+		temp.User = element.User
+		temp.Statistics = element.Statistics
+
+		//The cnames
+		if len(element.Cnames) != 0 {
+			var tmpslice []string
+			for _, v := range element.Cnames {
+				tmpslice = append(tmpslice, v.Cname)
+			}
+			temp.Cname = strings.Join(tmpslice, ",")
 		}
-		b = append(b, result)
+
+		//The nodes
+		if len(element.Nodes) != 0 {
+			var tmpallowed []string
+			var tmpforbidden []string
+			for _, v := range element.Nodes {
+				if v.Blacklist == true {
+					tmpforbidden = append(tmpforbidden, v.Node.NodeName)
+				} else {
+					tmpallowed = append(tmpallowed, v.Node.NodeName)
+				}
+
+			}
+			temp.AllowedNodes = strings.Join(tmpallowed, ",")
+			temp.ForbiddenNodes = strings.Join(tmpforbidden, ",")
+
+		}
+		parsed = append(parsed, temp)
 	}
-	return b, nil
+	return parsed
 }
 
 // B) Create single object
@@ -119,6 +142,7 @@ func (r Resource) CreateObject() (err error) {
 	//Copier fills Alias struct with the values from Resource struct
 	copier.Copy(&a, &r)
 	//Cnames are treated seperately, because they will be created using their struct
+
 	cnames := deleteEmpty(strings.Split(r.Cname, ","))
 
 	//Create object in the DB with transactions, if smth goes wrong its rolledback
@@ -132,7 +156,7 @@ func (r Resource) CreateObject() (err error) {
 		//If it fails to create alias in DNS, we delete from DB what we created in the previous step.
 		//The r struct has ID=0, because ID is assigned after creation
 		//For that reason, we retrieve the object from DB for deletion
-		alias, _ := GetObjects(r.AliasName, "alias_name")
+		alias, _ := GetObjects(r.AliasName)
 		alias[0].DeleteObject()
 		return err
 	}
@@ -191,7 +215,7 @@ func (r Resource) DeleteObject() (err error) {
 func (r Resource) ModifyObject() (err error) {
 
 	//First, lets get once more the old values.We need the cnames and nodes for comparison
-	oldObject, _ := GetObjects(r.AliasName, "alias_name")
+	oldObject, _ := GetObjects(r.AliasName)
 
 	//Let's update in DB the single-valued fields that do not require iteration/comparisson
 	if err = con.Model(&orm.Alias{}).Where("id = ?", r.ID).UpdateColumns(
@@ -272,6 +296,7 @@ func (r Resource) UpdateNodes(new map[string]bool, old map[string]bool) (err err
 func (r Resource) UpdateCnames(oldObject Resource) (err error) {
 
 	//Split string and delete any possible empty values
+
 	newCnames := deleteEmpty(strings.Split(r.Cname, ","))
 	exCnames := deleteEmpty(strings.Split(oldObject.Cname, ","))
 	if len(newCnames) > 0 {
