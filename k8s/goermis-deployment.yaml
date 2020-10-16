@@ -15,6 +15,24 @@ spec:
         app: goermis
     spec:
       containers:
+        - name: httpd
+          image: gitlab-registry.cern.ch/lb-experts/k8s/httpd:psaiz_devel
+          imagePullPolicy: "Always"
+          volumeMounts:
+            - name: oidc
+              mountPath: "/etc/httpd/conf_ssl/"
+              readOnly: true
+            - name: ermis-certs
+              mountPath: "/etc/httpd/ssl/"
+              readOnly: true
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                 - /bin/sh
+                 - -c
+                 - cp /etc/httpd/conf_ssl/oidc_secrets.conf /etc/httpd/conf
+          command: ["sleep","3600"]
         - name: goermis
           image: gitlab-registry.cern.ch/lb-experts/goermis:latest
           args: 
@@ -36,5 +54,11 @@ spec:
         - name: configfile
           secret:
             secretName: config
+        - name: oidc
+          secret: 
+            secretName: oidc-conf
+            items: 
+              - key: oidc_secrets.conf
+                path: oidc_secrets.conf
       imagePullSecrets:
-        - name: regcred
+        - name: regcred-lb-experts
