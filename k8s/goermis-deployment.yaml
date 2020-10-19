@@ -25,19 +25,12 @@ spec:
             - name: ermis-certs
               mountPath: "/etc/httpd/ssl/"
               readOnly: true
-          lifecycle:
-            postStart:
-              exec:
-                command:
-                 - cp
-                 - /etc/httpd/conf_ssl/oidc_secrets.conf
-                 - /etc/httpd/conf/
-#          command: ["sleep","3600"]
+          command: ["/bin/bash","-c", "cp /etc/httpd/conf_ssl/oidc_secrets.conf /etc/httpd/conf/; httpd -D FOREGROUND"]
+#          command: ["sleep", "3600"]
         - name: goermis
-          image: gitlab-registry.cern.ch/lb-experts/goermis:latest
-          args: 
-            - "-config=/usr/local/etc/goermis.yaml"
-            - "-home=/var/lib/ermis/"           
+          image: gitlab-registry.cern.ch/lb-experts/goermis:httpd
+          imagePullPolicy: "Always"
+
           volumeMounts:
             - name: ermis-certs
               mountPath: "/etc/ssl/certs/"
@@ -47,6 +40,8 @@ spec:
               readOnly: true
           ports:
             - containerPort: 8080
+          command: ["sleep","3600"]
+
       volumes:
         - name: ermis-certs
           secret:
