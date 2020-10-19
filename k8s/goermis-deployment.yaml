@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: httpd
-          image: gitlab-registry.cern.ch/lb-experts/k8s/httpd:psaiz_devel
+          image: gitlab-registry.cern.ch/lb-experts/k8s/httpd:master
           imagePullPolicy: "Always"
           volumeMounts:
             - name: oidc
