@@ -1,4 +1,4 @@
-FROM cern/cc8-base
+FROM cern/c8-base
 WORKDIR /root/
 LABEL maintainer="Kristian Kouros <kristian.kouros@cern.ch>"
 RUN  mkdir -p  /var/lib/ermis/ /var/log/ermis/
