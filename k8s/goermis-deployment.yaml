@@ -29,10 +29,10 @@ spec:
             postStart:
               exec:
                 command:
-                 - /bin/sh
-                 - -c
-                 - cp /etc/httpd/conf_ssl/oidc_secrets.conf /etc/httpd/conf
-          command: ["sleep","3600"]
+                 - cp
+                 - /etc/httpd/conf_ssl/oidc_secrets.conf
+                 - /etc/httpd/conf/
+#          command: ["sleep","3600"]
         - name: goermis
           image: gitlab-registry.cern.ch/lb-experts/goermis:latest
           args: 
