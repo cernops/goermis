@@ -9,26 +9,24 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
 	"gitlab.cern.ch/lb-experts/goermis/aiermis/api"
-	"gitlab.cern.ch/lb-experts/goermis/auth"
 )
 
 //CheckAuthorization checks if user is in the egroup and if he is allowed to create in the hostgroup
 func CheckAuthorization(nextHandler echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-
-		//Get username from the Header
 		username := c.Request().Header.Get("X-Forwarded-User")
-
-		if username != "" {
-			var d auth.Group
+		if username != api.GetUsername() {
+			api.SetUser(username)
+		}
+		if api.GetUsername() != "" {
 			//Ermis-lbaas-admins are superusers
-			if d.CheckCud(username) {
+			if api.IsSuperuser() {
 				return nextHandler(c)
 				//If user is not in the egroup but method is GET, proceed to the next handler
 			} else if c.Request().Method == "GET" {
 				return nextHandler(c)
 			} else {
-				return askTeigi(c, nextHandler, username)
+				return askTeigi(c, nextHandler, api.GetUsername())
 			}
 		}
 		return api.MessageToUser(c, http.StatusUnauthorized,
@@ -42,12 +40,6 @@ func askTeigi(c echo.Context, nextHandler echo.HandlerFunc, username string) err
 		authInOldHg bool
 	)
 
-	//Teigi connection
-	conn := auth.GetConn()
-	if err := conn.InitConnection(); err != nil {
-		return api.MessageToUser(c, http.StatusBadRequest, "Failed to initiate teigi connection", "home.html")
-
-	}
 	//We extract the hostgroup values from the Req Body and the one in DB, for the same alias.
 	newHg, oldHg, err := findHostgroup(c)
 	if err != nil {
@@ -59,10 +51,10 @@ func askTeigi(c echo.Context, nextHandler echo.HandlerFunc, username string) err
 	//In this step we check username , against both hostgroups.
 	//We need this step to prevent unauthorized alias movements.
 	if newHg != "" {
-		authInNewHg = conn.CheckWithForeman(username, newHg)
+		authInNewHg = api.StringInSlice(newHg, api.GetUsersHostgroups())
 	}
 	if oldHg != "" {
-		authInOldHg = conn.CheckWithForeman(username, oldHg)
+		authInOldHg = api.StringInSlice(oldHg, api.GetUsersHostgroups())
 	}
 
 	switch c.Request().Method {
@@ -71,39 +63,39 @@ func askTeigi(c echo.Context, nextHandler echo.HandlerFunc, username string) err
 		//...and there is no hostgroup field in the Request,allow to PATCH other fields
 		//if the user is authorized in the old hostgroup
 		if newHg == "" && authInOldHg {
-			log.Info("[" + username + "] Authorized by teigi for PATCH, using existing hostgroup")
+			log.Info("[" + api.GetUsername() + "] Authorized by teigi for PATCH, using existing hostgroup")
 			return nextHandler(c)
 			//When PATCH-ing hostgroup value itself, verify user in both hostgroups
 		} else if authInNewHg && authInOldHg {
-			log.Info("[" + username + "] Authorized by teigi for PATCH, using both hg")
+			log.Info("[" + api.GetUsername() + "] Authorized by teigi for PATCH, using both hg")
 			return nextHandler(c)
 		}
 		return api.MessageToUser(c, http.StatusUnauthorized,
-			username+" is unauthorized to PATCH in hostgroup "+oldHg, "home.html")
+			api.GetUsername()+" is unauthorized to PATCH in hostgroup "+oldHg, "home.html")
 		//2.In case method is POST...
 	case "POST":
 		//Here we authorize the creation of new aliases(no hostgroup value in DB),
 		// if teigi gives the OK for the new hostgroup value.
 		if authInNewHg && oldHg == "" {
-			log.Info("[" + username + "] Authorized by teigi to POST new alias")
+			log.Info("[" + api.GetUsername() + "] Authorized by teigi to POST new alias")
 			return nextHandler(c)
 
 			//When modifying , check both hostgroups
 		} else if authInNewHg && authInOldHg {
-			log.Info("[" + username + "] Authorized by teigi for POST")
+			log.Info("[" + api.GetUsername() + "] Authorized by teigi for POST")
 			return nextHandler(c)
 		}
 		return api.MessageToUser(c, http.StatusUnauthorized,
-			username+" is unauthorized to POST in hostgroup "+oldHg, "home.html")
+			api.GetUsername()+" is unauthorized to POST in hostgroup "+oldHg, "home.html")
 		// 3.In case method is DELETE...
 	case "DELETE":
 		//We make sure user is auth in the existing hg
 		if authInOldHg {
-			log.Info("[" + username + "] Authorized by teigi for DELETE")
+			log.Info("[" + api.GetUsername() + "] Authorized by teigi for DELETE")
 			return nextHandler(c)
 		}
 		return api.MessageToUser(c, http.StatusUnauthorized,
-			username+" is unauthorized to DELETE from hostgroup "+oldHg, "home.html")
+			api.GetUsername()+" is unauthorized to DELETE from hostgroup "+oldHg, "home.html")
 	default:
 		return api.MessageToUser(c, http.StatusMethodNotAllowed,
 			"Method "+c.Request().Method, "home.html")
@@ -119,7 +111,6 @@ func findHostgroup(c echo.Context) (newHg string, oldHg string, err error) {
 	var (
 		aliasToquery string
 	)
-
 	//Kermis and Behave tests send Content-Type = application/json
 	if c.Request().Header.Get("Content-Type") == "application/json" {
 		if c.Request().Method == "DELETE" {

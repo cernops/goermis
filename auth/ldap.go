@@ -4,7 +4,6 @@ import (
 	"github.com/labstack/gommon/log"
 
 	"github.com/go-ldap/ldap/v3"
-	
 )
 
 const (

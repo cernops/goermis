@@ -51,6 +51,8 @@ function LBCluster() {
 	this.setCluster = setCluster;
 	this.clearCluster = clearCluster;
 
+
+
 	function getName() {
 		return name;
 	}
@@ -88,6 +90,7 @@ function LBCluster() {
 		setHostgroup(hostgroup);
 		setCNames(cnames);
 		setTmpCNames(cnames);
+		
 	}
 
 	function showCluster() {

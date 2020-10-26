@@ -26,7 +26,7 @@ func (r Resource) createInDNS() error {
 		//If view is external, we need to create two entries in DNS
 		views := make(map[string]string)
 		views["internal"] = cfg.Soap.SoapKeynameI
-		if StringInSlice(r.External, []string{"external", "yes"}) {
+		if r.External == "yes" {
 			views["external"] = cfg.Soap.SoapKeynameE
 		}
 
@@ -65,7 +65,7 @@ func (r Resource) deleteFromDNS() error {
 		log.Info("[" + r.User + "]" + "Preparing to delete " + r.AliasName + " from DNS")
 		var views []string
 		views = append(views, "internal")
-		if StringInSlice(r.External, []string{"external", "yes"}) {
+		if r.External == "yes" {
 			views = append(views, "external")
 		}
 		for _, view := range views {
@@ -124,7 +124,7 @@ func (r Resource) updateView(oldObject Resource) error {
 	alias := oldObject.AliasName
 	log.Info("[" + r.User + "]" + "Visibility has changed from " + oview + " to " + nview)
 	//Changing view from internal to external
-	if StringInSlice(nview, []string{"yes", "external"}) && StringInSlice(oview, []string{"no", "internal"}) {
+	if nview == "yes" && oview == "no" {
 		//Create the external visibility
 		if landbsoap.Conn().DNSDelegatedAdd(alias, "external", cfg.Soap.SoapKeynameE, "Created by:"+r.User, "goermis") {
 			//Make a copy the cnames from the existing internal DNS entry to the external one
@@ -136,7 +136,7 @@ func (r Resource) updateView(oldObject Resource) error {
 
 		}
 
-	} else if StringInSlice(nview, []string{"no", "internal"}) && StringInSlice(oview, []string{"yes", "external"}) {
+	} else if nview == "no" && oview == "yes" {
 		//If fails to delete external view...
 		if !landbsoap.Conn().DNSDelegatedRemove(alias, "external") {
 			//...add again what we just deleted
@@ -164,7 +164,7 @@ func (r Resource) updateCnamesInDNS(oldCnames string) error {
 	//We use the new one to minimize the number of variables.
 	var views []string
 	views = append(views, "internal")
-	if StringInSlice(r.External, []string{"external", "yes"}) {
+	if r.External == "yes" {
 		views = append(views, "external")
 	}
 
