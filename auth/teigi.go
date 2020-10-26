@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-	"strings"
 	"time"
 
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
@@ -28,10 +27,9 @@ type UserAuth struct {
 	authRogerTimeout int
 	Client           *http.Client
 }
-type message struct {
-	Authorized bool
-	Hostgroup  string
-	Requestor  string
+
+type pwnMsg struct {
+	Hostgroup []string
 }
 
 //CheckCud checks a user if he is member of egroup
@@ -46,11 +44,11 @@ func (l *Group) CheckCud(username string) bool {
 }
 
 //GetConn prepares the initial structure for starting a connection
-func GetConn() *UserAuth {
+func GetConn(url string) *UserAuth {
 	var (
 		cfg  = bootstrap.GetConf()
 		conn = &UserAuth{
-			authRogerBaseURL: "https://woger.cern.ch:8202/authz/v1/hostgroup/",
+			authRogerBaseURL: url,
 			authRogerCert:    cfg.Certs.GoermisCert,
 			authRogerCertKey: cfg.Certs.GoermisKey,
 			authRogerCA:      cfg.Certs.CACert,
@@ -73,7 +71,7 @@ func (l *UserAuth) InitConnection() error {
 
 	cert, err := tls.LoadX509KeyPair(l.authRogerCert, l.authRogerCertKey)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
 
 	}
 
@@ -89,41 +87,50 @@ func (l *UserAuth) InitConnection() error {
 	return nil
 }
 
-//CheckWithForeman authorizes a user
-func (l *UserAuth) CheckWithForeman(username string, group string) bool {
-	var m message
-	URL := l.authRogerBaseURL + strings.Split(group, "/")[0] + "/username/" + username + "/"
-	log.Info("[" + username + "] Querying teigi for authorization. url = " + URL)
+//PwnHg queries teigi for the hostgroups where user is owner/memeber/privileged
+func (l *UserAuth) PwnHg(username string) []string {
+	var m pwnMsg
+	URL := l.authRogerBaseURL + username + "/"
+	log.Info("[" + username + "] Querying teigi for your hostgroups. url = " + URL)
 	req, err := http.NewRequest("GET", URL, nil)
 	if err != nil {
 		log.Error("Error on creating request object. ", err.Error())
-		return false
+
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 	resp, err := l.Client.Do(req)
 	if err != nil {
-		log.Error("["+username+"] Error on dispatching authorization request to teigi ", err.Error())
-		return false
+		log.Error("["+username+"] Error on dispatching pwn request to teigi ", err.Error())
+
 	}
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Error("["+username+"]Error reading Body of Request ", err.Error())
-		return false
+
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusUnauthorized {
 		log.Error("["+username+"]User not authorized.Status Code: ", resp.StatusCode)
-		return false
+
 	}
 	if err = json.Unmarshal(data, &m); err != nil {
+
 		log.Error("["+username+"]Error on unmarshalling response from teigi ", err.Error())
-		return false
 	}
-	if m.Authorized {
-		log.Info("[" + username + "]Foreman authorized user with hostgroup " + m.Hostgroup)
-		return true
+	return m.Hostgroup
+
+}
+
+//GetPwn returns a list of hostgroups where the user is owner or privileged
+func GetPwn(username string) (pwnedHg []string) {
+	conn := GetConn("https://woger.cern.ch:8202/pwn/v1/owner/")
+	if err := conn.InitConnection(); err != nil {
+		log.Error("Error while contacting: https://woger.cern.ch:8202/pwn/v1/owner/" + err.Error())
+		return
+
 	}
-	return false
+	pwnedHg = conn.PwnHg(username)
+	return
 
 }

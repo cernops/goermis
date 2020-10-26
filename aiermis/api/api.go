@@ -32,7 +32,7 @@ type (
 		ForbiddenNodes   string    `form:"ForbiddenNodes"    json:"ForbiddenNodes"    valid:"optional,nodes"   gorm:"not null"`
 		AllowedNodes     string    `form:"AllowedNodes"      json:"AllowedNodes"      valid:"optional,nodes"   gorm:"not null"`
 		Cname            string    `form:"cnames"            json:"cnames"            valid:"optional,cnames"  gorm:"not null"`
-		External         string    `form:"external"          json:"external"          valid:"required,in(yes|no|internal|external)"`
+		External         string    `form:"external"          json:"external"          valid:"required,in(yes|no)"`
 		Hostgroup        string    `form:"hostgroup"         json:"hostgroup"         valid:"required,hostgroup"`
 		LastModification time.Time `form:"last_modification" json:"last_modification" valid:"-"`
 		Metric           string    `form:"metric"            json:"metric"            valid:"in(cmsfrontier|minino|minimum|),optional"`
@@ -41,7 +41,8 @@ type (
 		TTL              int       `form:"ttl"               json:"ttl,omitempty"     valid:"numeric,optional"`
 		User             string    `form:"user"              json:"user"              valid:"optional,alphanum"`
 		Statistics       string    `form:"statistics"        json:"statistics"        valid:"alpha"`
-		ResourceURI      string    `valid:"-"                json:"resource_uri"`
+		ResourceURI      string    `                         json:"resource_uri"      valid:"-"`
+		Pwned            bool      `                          json:"pwned"            valid:"-"`
 	}
 	//Objects holds multiple result structs
 	Objects struct {
@@ -62,20 +63,19 @@ func GetObjects(param string) (temp []Resource, err error) {
 	nodes := con.Preload("Nodes")
 	nodes = nodes.Preload("Nodes.Node")
 	if param == "all" {
-		err = nodes.Preload("Cnames").Find(&query).Error
+		err = nodes.Preload("Cnames").Order("alias_name").Find(&query).Error
 
 	} else {
 		err = nodes.
 			Preload("Cnames").
 			Where("id=?", param).Or("alias_name=?", param).
-			First(&query).Error
+			Order("alias_name").First(&query).Error
 
 	}
 	if err != nil {
 		return nil, errors.New("Failed in query: " + err.Error())
 
 	}
-
 	return parse(query), nil
 
 }
@@ -125,6 +125,16 @@ func parse(queryResults []orm.Alias) (parsed []Resource) {
 			temp.ForbiddenNodes = strings.Join(tmpforbidden, ",")
 
 		}
+
+		//Set the pwn value(true/false)
+		//Sole purpose of pwned field is to be used in the UI for alias filtering
+		//Ermis-lbaas-admins are superusers
+		if IsSuperuser() {
+			temp.Pwned = true
+		} else {
+			temp.Pwned = StringInSlice(temp.Hostgroup, GetUsersHostgroups())
+		}
+
 		parsed = append(parsed, temp)
 	}
 	return parsed

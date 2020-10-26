@@ -42,7 +42,7 @@ function initialize_form(retrieveData, action) {
   //reset the form, some browser have a nasty habit of leaving stuff behind
   //clearForm();
   if (retrieveData) {
-    getData('../p/api/v1/alias/');
+    getData('../p/api/v1/alias/', mode);
 
   } else {
     loaderWindow('close');
@@ -58,37 +58,33 @@ function initialize_form(retrieveData, action) {
   toggleEditing(!retrieveData, action);
   checkSubmit();
 }
-function getClusterNames(aliasData) {
-
-  var clusterNames = [];
-
+function loadClusterList(aliasData,mode) {
+  $("#clusterList").append($("<option></option>").text(SelectInitVal));
+  if (mode === 'display'){
   jQuery.each(aliasData, function (index, element) {
-    clusterNames.push(element.alias_name.toLowerCase());
-  });
-
-  clusterNames.sort();
-  clusterNames.unshift(SelectInitVal);
-  return clusterNames;
-}
-
-function loadClusterList(array) {
-  var clusterNames = array;
-  jQuery.each(clusterNames, function (index, element) {
     $("#clusterList")
       .append($("<option></option>")
         .attr(element, index)
-        .text(element));
+        .text(element.alias_name));
   });
+}else {
+  jQuery.each(aliasData, function (index, element) {
+    $("#clusterList")
+      .append($("<option></option>")
+        .attr(element, index)
+        .text(element.alias_name).prop("disabled",!element.pwned));
+  });
+
+}
 }
 
 //Grabs the data from the API
-function getData(URI) {
+function getData(URI, mode) {
   $.get(URI, { format: 'json', limit: 0 }, function (result) {
     jQuery.each(result.objects, function (index, element) {
       aliasData.push(element);
     });
-    ClusterNameList = getClusterNames(aliasData);
-    loadClusterList(ClusterNameList);
+    loadClusterList(aliasData, mode);
     loaderWindow('close');
   });
 }

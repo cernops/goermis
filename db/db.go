@@ -69,6 +69,6 @@ func ManagerDB() *gorm.DB {
 // Print - Log Formatter
 func (*GormLogger) Print(v ...interface{}) {
 	//Print out only the issued sql command v[3] and the values v[4]
-	log.Info(fmt.Sprintf("%v Value(s):%v\n", v[3], v[4]))
+	log.Debug(fmt.Sprintf("%v Value(s):%v\n", v[3], v[4]))
 
 }

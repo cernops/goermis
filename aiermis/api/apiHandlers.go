@@ -9,6 +9,7 @@ import (
 	"github.com/asaskevich/govalidator"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
+
 	"gitlab.cern.ch/lb-experts/goermis/aiermis/orm"
 	"gitlab.cern.ch/lb-experts/goermis/db"
 )
@@ -25,7 +26,7 @@ func GetAlias(c echo.Context) error {
 		list Objects
 		e    error
 	)
-	username := c.Request().Header.Get("X-Forwarded-User")
+	username := GetUsername()
 	param := c.QueryParam("alias_name")
 	if param == "" {
 		//If empty values provided,the MySQL query returns all aliases
@@ -59,11 +60,14 @@ func GetAlias(c echo.Context) error {
 //CreateAlias creates a new alias entry in the DB
 func CreateAlias(c echo.Context) error {
 	var temp Resource
-	username := c.Request().Header.Get("X-Forwarded-User")
+	username := GetUsername()
 	if err := c.Bind(&temp); err != nil {
-		log.Warn("[" + c.Request().Header.Get("X-Forwarded-User") + "] " + "Failed to bind params " + err.Error())
+		log.Warn("[" + username + "] " + "Failed to bind params " + err.Error())
 	}
-	temp.User = c.Request().Header.Get("X-Forwarded-User")
+	temp.User = username
+
+	//Default values and hydrate(domain,visibility)
+	temp.DefaultAndHydrate()
 
 	//Validate structure
 	if ok, err := govalidator.ValidateStruct(temp); err != nil || ok == false {
@@ -71,8 +75,6 @@ func CreateAlias(c echo.Context) error {
 			"Validation error for "+temp.AliasName+" : "+err.Error(), "home.html")
 	}
 
-	//Default values and hydrate(domain,visibility)
-	temp.DefaultAndHydrate()
 	//Check for duplicates
 	alias, _ := GetObjects(temp.AliasName)
 	if alias != nil {
@@ -98,7 +100,7 @@ func DeleteAlias(c echo.Context) error {
 	var (
 		aliasToDelete string
 	)
-	username := c.Request().Header.Get("X-Forwarded-User")
+	username := GetUsername()
 
 	switch c.Request().Header.Get("Content-Type") {
 	case "application/json":
@@ -141,7 +143,7 @@ func ModifyAlias(c echo.Context) error {
 		param string
 		temp  Resource
 	)
-	username := c.Request().Header.Get("X-Forwarded-User")
+	username := GetUsername()
 	//Bind request to the temp Resource
 	if err := c.Bind(&temp); err != nil {
 		log.Warn("[" + c.Request().Header.Get("X-Forwarded-User") + "] " + "Failed to bind params " + err.Error())
@@ -151,7 +153,6 @@ func ModifyAlias(c echo.Context) error {
 	} else {
 		param = temp.AliasName
 	}
-
 	//After we bind request, we use the alias name for retrieving its profile from DB
 	alias, err := GetObjects(param)
 	if err != nil {
@@ -162,8 +163,13 @@ func ModifyAlias(c echo.Context) error {
 	//UPDATE changed fields in the retrieved struct for that alias.
 	//This helps in validation, since we don't know what fields are changing every time
 	if temp.External != "" {
-		alias[0].External = temp.External
+		if StringInSlice(temp.External, []string{"yes", "external"}) {
+			alias[0].External = "yes"
+		} else {
+			alias[0].External = "no"
+		}
 	}
+
 	if temp.BestHosts != 0 {
 		alias[0].BestHosts = temp.BestHosts
 	}
@@ -184,7 +190,7 @@ func ModifyAlias(c echo.Context) error {
 		alias[0].TTL = temp.TTL
 	}
 	//These three fields are updated even if value is empty
-	//because empty values are part of the update in their case
+	//because,in their case, empty values are part of the update
 	alias[0].ForbiddenNodes = temp.ForbiddenNodes
 	alias[0].AllowedNodes = temp.AllowedNodes
 	alias[0].Cname = temp.Cname
