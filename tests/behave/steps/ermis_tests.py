@@ -1,22 +1,19 @@
 # pylint: disable=line-too-long,missing-docstring,invalid-name,broad-except,function-redefined,superfluous-parens
-from subprocess import Popen, PIPE, check_output
-import json
 import base64
+import json
 import re
-
-
+import sys
 from os import chmod, remove
 from os.path import isfile
-
 from shutil import copyfile
+from subprocess import PIPE, Popen, check_output, run
 
 import requests
-
 # from behave import step
 from requests_kerberos import HTTPKerberosAuth
+
 url = "https://goermis.cern.ch/p/api/v1/alias/"
-#url = "https://aiermis.cern.ch/p/api/v1/alias/"
-# url = "https://lxbrf24b05.cern.ch/p/api/v1/alias/"
+# url = "https://aiermis.cern.ch/p/api/v1/alias/"
 headers = {'content-type': 'application/json',
            'Accept': 'application/json', "WWW-Authenticate": "Negotiate"}
 cafile = '/etc/ssl/certs/CERN-bundle.pem'
@@ -28,17 +25,16 @@ KERBEROS_FILENAME = ""
 
 
 def getacct(context, username):
-    (Output, err) = Popen(['tbag', 'show', '--hg', 'ailbd',
-                           username], stdout=PIPE, stderr=PIPE).communicate()
+    (Output, err) = Popen(['tbag', 'show', '--hg', 'ailbd',username], stdout=PIPE, stderr=PIPE).communicate()
     if err:
         password = context.config.userdata[username]
-        print(password)
     else:
         password = json.loads(Output)['secret']
     print("Got the password of the user %s" % username)
-    (Output, err) = Popen(['klist'], stdout=PIPE, stderr=PIPE).communicate()
-    print ("GOT %s and %s" % (Output, err))
-    return '%s\n' % base64.b64decode(password)
+    (Output, err) = Popen(['klist'],
+                          stdout=PIPE, stderr=PIPE).communicate()
+    print("GOT %s and %s" % (Output, err))
+    return base64.b64decode(password)
 
 
 @given('that we have a valid kerberos ticket of a user in "{n}" egroup')  # pylint: disable=undefined-variable
@@ -46,13 +42,12 @@ def step_impl(context, n):  # pylint: disable=unused-argument
     if n == "ermis-lbaas-admins":
         kinit = Popen(['kinit', 'ermistst'], stdin=PIPE,
                       stdout=PIPE, stderr=PIPE)
-        kinit.stdin.write(getacct(context, "ermistst"))
-        kinit.wait()
+        kinit.communicate(getacct(context, "ermistst"))
+
     elif n == "other":
         kinit = Popen(['kinit', 'ermists'], stdin=PIPE,
                       stdout=PIPE, stderr=PIPE)
-        kinit.stdin.write(getacct(context, "ermists"))
-        kinit.wait()
+        kinit.communicate(getacct(context, "ermists"))
     else:
         assert False
     assert True
@@ -83,7 +78,7 @@ def step_impl(context, existence):
     except Exception as e:
         print(str(e))
         assert False
-    print (context.response)
+    print(context.response)
     data = context.response.json()
     print(data["objects"])
     if existence == "exists":
@@ -100,12 +95,12 @@ def step_impl(context, existence):
     except Exception as e:
         print(str(e))
         assert False
-    print (context.response)
+    print(context.response)
     data = context.response.json()
     allowed = str(data['objects'][0]['AllowedNodes'])
     forbidden = str(data['objects'][0]['ForbiddenNodes'])
-    print (allowed)
-    print (forbidden)
+    print(allowed)
+    print(forbidden)
     if existence == "exists":
         assert node in allowed or node in forbidden
     elif existence == "does not exist":
@@ -153,10 +148,10 @@ def step_impl(context, req):  # pylint:disable=too-many-branches,too-many-statem
                        "polling_interval": 300, "statistics": "none", "clusters": "none", "tenant": "", "hostgroup": context.hostgroup}
             context.response = requests.post(url, data=json.dumps(
                 payload), headers=headers, auth=HTTPKerberosAuth(), verify=cafile)
-            print (json.dumps(payload))
+            print(json.dumps(payload))
             print("WE HAVE DONE THE POST REQUEST")
-            print (url)
-            print (headers)
+            print(url)
+            print(headers)
             print(context.response)
         elif req == "delete":
             params = {'alias_name': example_alias_name}
@@ -230,7 +225,7 @@ def step_impl(context, n):
 
 @then('the object should "{req}"')  # pylint: disable=undefined-variable
 def step_impl(context, req):  # pylint:disable=too-many-branches,too-many-statements
-    #print (context.response.status_code)
+    # print (context.response.status_code)
     if req == "be created":
         assert context.response.status_code == 201, "code %d not expected" % context.response.status_code
     elif req == "not be created":
@@ -243,7 +238,7 @@ def step_impl(context, req):  # pylint:disable=too-many-branches,too-many-statem
                                             'alias_name': example_alias_name},  headers=headers, auth=HTTPKerberosAuth(), verify=cafile)
             data = context.response.json()
         except Exception as e:
-            print (str(e))
+            print(str(e))
             assert False
         assert data[u'objects'][0][u'best_hosts'] == 32
     elif req == "have node":
@@ -252,7 +247,7 @@ def step_impl(context, req):  # pylint:disable=too-many-branches,too-many-statem
                                             'alias_name': example_alias_name},  headers=headers, auth=HTTPKerberosAuth(), verify=cafile)
             data = context.response.json()
         except Exception as e:
-            print (str(e))
+            print(str(e))
             assert False
         assert data[u'objects'][0][u'AllowedNodes'] == 'test1.cern.ch'
     elif req == "have updated nodes":
@@ -261,7 +256,7 @@ def step_impl(context, req):  # pylint:disable=too-many-branches,too-many-statem
                                             'alias_name': example_alias_name},  headers=headers, auth=HTTPKerberosAuth(), verify=cafile)
             data = context.response.json()
         except Exception as e:
-            print (str(e))
+            print(str(e))
             assert False
         assert data[u'objects'][0][u'ForbiddenNodes'] == 'test1.cern.ch'
     elif req == "not have node":
@@ -270,7 +265,7 @@ def step_impl(context, req):  # pylint:disable=too-many-branches,too-many-statem
                                             'alias_name': example_alias_name},  headers=headers, auth=HTTPKerberosAuth(), verify=cafile)
             data = context.response.json()
         except Exception as e:
-            print (str(e))
+            print(str(e))
             assert False
         assert data[u'objects'][0][u'ForbiddenNodes'] == ""
     else:
@@ -279,8 +274,9 @@ def step_impl(context, req):  # pylint:disable=too-many-branches,too-many-statem
 
 @given('that we have a kerberos token')  # pylint: disable=undefined-variable
 def step_impl(context):
-    klist_output = check_output(["klist"])
-    info = re.search(r'Ticket cache: FILE:(\S*)$', klist_output, re.M)
+    klist_output = run(["klist"], stdout=PIPE)
+    info = re.search(r'Ticket cache: FILE:(\S*)$',
+                     klist_output.stdout.decode('utf-8'), re.M)
     if info:
         context.kerberos_filename = info.group(1)
         global KERBEROS_FILENAME  # pylint: disable=global-statement
@@ -296,7 +292,7 @@ def step_impl(context):
     context.temporary_filename = "/tmp/behave_token"
     print(context.kerberos_filename)
     copyfile(context.kerberos_filename, context.temporary_filename)
-    chmod(context.temporary_filename, 0600)
+    chmod(context.temporary_filename, 0o600)
     assert True
 
 
@@ -315,7 +311,7 @@ def step_impl(context):
 def step_impl(context):
     copyfile(context.temporary_filename, KERBEROS_FILENAME)
     remove(context.temporary_filename)
-    chmod(KERBEROS_FILENAME, 0600)
+    chmod(KERBEROS_FILENAME, 0o600)
     # and, in case we are in afs, restore as well the afs tokens
     if isfile('/usr/bin/aklog'):
         check_output(['/usr/bin/aklog'])

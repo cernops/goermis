@@ -18,7 +18,7 @@ import (
 func (r Resource) createInDNS() error {
 
 	//check for existing aliases in DNS with the same name
-	entries := landbsoap.Conn().DNSDelegatedSearch(strings.Split(r.AliasName, ".")[0])
+	entries := landbsoap.Conn().DNSDelegatedSearch(strings.Split(r.AliasName, ".")[0] + "*")
 
 	//Double-check that DNS doesn't contain such an alias
 	if len(entries) == 0 {
@@ -60,7 +60,7 @@ func (r Resource) createInDNS() error {
 
 func (r Resource) deleteFromDNS() error {
 
-	entries := landbsoap.Conn().DNSDelegatedSearch(strings.Split(r.AliasName, ".")[0])
+	entries := landbsoap.Conn().DNSDelegatedSearch(strings.Split(r.AliasName, ".")[0] + "*")
 	if len(entries) != 0 {
 		log.Info("[" + r.User + "]" + "Preparing to delete " + r.AliasName + " from DNS")
 		var views []string

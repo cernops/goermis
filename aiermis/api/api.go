@@ -24,7 +24,7 @@ valid tag--> validation rules, extra funcs in the common.go file*/
 //Resource deals with the output from the queries
 type (
 	Resource struct {
-		ID               int       `form:"alias_id"          json:"alias_id"          valid:"required,numeric"`
+		ID               int       `form:"alias_id"          json:"alias_id"          valid:"-"`
 		AliasName        string    `form:"alias_name"        json:"alias_name"        valid:"required,dns"`
 		Behaviour        string    `form:"behaviour"         json:"behaviour"         valid:"-"`
 		BestHosts        int       `form:"best_hosts"        json:"best_hosts"        valid:"required,int,best_hosts"`
@@ -148,7 +148,6 @@ func (r Resource) CreateObject() (err error) {
 
 	//We use ORM struct here, so that we are able to create the relations
 	var a orm.Alias
-
 	//Copier fills Alias struct with the values from Resource struct
 	copier.Copy(&a, &r)
 	//Cnames are treated seperately, because they will be created using their struct

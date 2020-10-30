@@ -43,7 +43,8 @@ behave:
   stage: prebuild
   allow_failure: false
   script:
-    - yum -y install python2-behave krb5-workstation
+    - yum -y install krb5-workstation gcc python3-devel krb5-devel python3-requests python3-requests-kerberos
+    - pip3 install behave 
     - cd  tests/behave
     - echo $ERMISTST_DECODED | kinit ermistst@CERN.CH
     - klist
@@ -54,13 +55,14 @@ landb:
   stage: prebuild
   allow_failure: false
   script:
+    - *patch_version
     - echo "READY TO DO THE SOAP CALL"
     - mkdir -p /usr/local/etc /etc/httpd/conf/
     - cp tests/landb/goermis.yaml /usr/local/etc/goermis.yaml
     - sed -i -e "s/##REPLACE_BY_USER##/${SOAPUSER}/g" /usr/local/etc/goermis.yaml
     - sed -i -e "s/##REPLACE_BY_PASSWORD##/${SOAPPASSWORD}/g" /usr/local/etc/goermis.yaml
-    - cd tests/landb
-    - yum-builddep -y --disableplugin=protectbase,priorities *.spec
+    #- cd tests/landb
+    - dnf builddep -y  *.spec
     - yum install -y golang gcc
     - go version
     - echo "$ERMISCERT" > /etc/httpd/conf/ermiscert.pem
