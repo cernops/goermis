@@ -63,7 +63,7 @@ func GetConn(url string) *UserAuth {
 func (l *UserAuth) InitConnection() error {
 	caCert, err := ioutil.ReadFile(l.authRogerCA)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
 
 	}
 	caCertPool := x509.NewCertPool()
@@ -91,32 +91,32 @@ func (l *UserAuth) InitConnection() error {
 func (l *UserAuth) PwnHg(username string) []string {
 	var m pwnMsg
 	URL := l.authRogerBaseURL + username + "/"
-	log.Info("[" + username + "] Querying teigi for your hostgroups. url = " + URL)
+	log.Info("[" + username + "] Querying teigi for user's hostgroups. url = " + URL)
 	req, err := http.NewRequest("GET", URL, nil)
 	if err != nil {
 		log.Error("Error on creating request object. ", err.Error())
-
+		return []string{}
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 	resp, err := l.Client.Do(req)
 	if err != nil {
 		log.Error("["+username+"] Error on dispatching pwn request to teigi ", err.Error())
-
+		return []string{}
 	}
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Error("["+username+"]Error reading Body of Request ", err.Error())
-
+		return []string{}
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusUnauthorized {
 		log.Error("["+username+"]User not authorized.Status Code: ", resp.StatusCode)
-
+		return []string{}
 	}
 	if err = json.Unmarshal(data, &m); err != nil {
-
 		log.Error("["+username+"]Error on unmarshalling response from teigi ", err.Error())
+		return []string{}
 	}
 	return m.Hostgroup
 
@@ -127,10 +127,11 @@ func GetPwn(username string) (pwnedHg []string) {
 	conn := GetConn("https://woger.cern.ch:8202/pwn/v1/owner/")
 	if err := conn.InitConnection(); err != nil {
 		log.Error("Error while contacting: https://woger.cern.ch:8202/pwn/v1/owner/" + err.Error())
-		return
+		return []string{}
 
 	}
 	pwnedHg = conn.PwnHg(username)
 	return
+
 
 }

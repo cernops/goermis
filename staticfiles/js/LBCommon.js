@@ -58,24 +58,24 @@ function initialize_form(retrieveData, action) {
   toggleEditing(!retrieveData, action);
   checkSubmit();
 }
-function loadClusterList(aliasData,mode) {
+function loadClusterList(aliasData, mode) {
   $("#clusterList").append($("<option></option>").text(SelectInitVal));
-  if (mode === 'display'){
-  jQuery.each(aliasData, function (index, element) {
-    $("#clusterList")
-      .append($("<option></option>")
-        .attr(element, index)
-        .text(element.alias_name));
-  });
-}else {
-  jQuery.each(aliasData, function (index, element) {
-    $("#clusterList")
-      .append($("<option></option>")
-        .attr(element, index)
-        .text(element.alias_name).prop("disabled",!element.pwned));
-  });
+  if (mode === 'display') {
+    jQuery.each(aliasData, function (index, element) {
+      $("#clusterList")
+        .append($("<option></option>")
+          .attr(element, index)
+          .text(element.alias_name));
+    });
+  } else {
+    jQuery.each(aliasData, function (index, element) {
+      $("#clusterList")
+        .append($("<option></option>")
+          .attr(element, index)
+          .text(element.alias_name).prop("disabled", !element.pwned));
+    });
 
-}
+  }
 }
 
 //Grabs the data from the API

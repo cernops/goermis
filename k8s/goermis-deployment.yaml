@@ -28,20 +28,30 @@ spec:
           command: ["/bin/bash","-c", "cp /etc/httpd/conf_ssl/oidc_secrets.conf /etc/httpd/conf/; httpd -D FOREGROUND"]
 #          command: ["sleep", "3600"]
         - name: goermis
-          image: gitlab-registry.cern.ch/lb-experts/goermis:httpd
-          imagePullPolicy: "Always"
-
+          image: gitlab-registry.cern.ch/lb-experts/goermis:test
+          imagePullPolicy: "Always"          
           volumeMounts:
-            - name: ermis-certs
-              mountPath: "/etc/ssl/certs/"
-              readOnly: true
-            - name: configfile
-              mountPath: "/usr/local/etc/"
-              readOnly: true
+          - name: ermis-certs
+            mountPath: "/etc/ssl/certs/"
+            readOnly: true
+          - name: configfile
+            mountPath: "/usr/local/etc/"
+            readOnly: true
           ports:
-            - containerPort: 8080
-          command: ["sleep","3600"]
-
+          - containerPort: 8080
+        - name: httpd
+          image: gitlab-registry.cern.ch/lb-experts/k8s/httpd:master
+          imagePullPolicy: "Always" 
+          volumeMounts:
+          - name: oidc
+            mountPath: "/etc/httpd/conf_ssl/"
+            readOnly: true
+          - name: cluster-certs
+            mountPath: "/etc/httpd/ssl/"
+            readOnly: true
+          ports:
+          - containerPort: 443
+          command: ["/bin/bash","-c", "cp /etc/httpd/conf_ssl/oidc_secrets.conf /etc/httpd/conf/; httpd -D FOREGROUND"]
       volumes:
         - name: ermis-certs
           secret:
@@ -49,11 +59,21 @@ spec:
         - name: configfile
           secret:
             secretName: config
+        - name: cluster-certs
+          secret:
+            secretName: cluster-certs
         - name: oidc
           secret: 
             secretName: oidc-conf
             items: 
-              - key: oidc_secrets.conf
-                path: oidc_secrets.conf
+            - key: oidc_secrets.conf
+              path: oidc_secrets.conf
       imagePullSecrets:
-        - name: regcred-lb-experts
+      - name: regcred-lb-experts
+
+  
+      
+
+          
+
+      

@@ -65,10 +65,10 @@ func CreateAlias(c echo.Context) error {
 		log.Warn("[" + username + "] " + "Failed to bind params " + err.Error())
 	}
 	temp.User = username
+	defer c.Request().Body.Close()
 
 	//Default values and hydrate(domain,visibility)
 	temp.DefaultAndHydrate()
-
 	//Validate structure
 	if ok, err := govalidator.ValidateStruct(temp); err != nil || ok == false {
 		return MessageToUser(c, http.StatusBadRequest,
@@ -153,6 +153,7 @@ func ModifyAlias(c echo.Context) error {
 	} else {
 		param = temp.AliasName
 	}
+
 	//After we bind request, we use the alias name for retrieving its profile from DB
 	alias, err := GetObjects(param)
 	if err != nil {
