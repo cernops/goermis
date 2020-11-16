@@ -136,6 +136,7 @@ func customValidators() {
 //MessageToUser renders the reply for the user
 func MessageToUser(c echo.Context, status int, message string, page string) error {
 	username := c.Request().Header.Get("X-Forwarded-User")
+	httphost := c.Request().Header.Get("X-Forwarded-Host")
 	if message != "" {
 		if 200 <= status && status < 300 {
 			log.Info("[" + username + "]" + message)
@@ -149,6 +150,7 @@ func MessageToUser(c echo.Context, status int, message string, page string) erro
 		"csrf":    c.Get("csrf"),
 		"User":    username,
 		"Message": message,
+		"Host": httphost,
 	})
 }
 

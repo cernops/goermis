@@ -29,10 +29,10 @@
     <div id="navbar">
         {{ if .Auth  }}
         <p>Logged in as {{.User}}</p>
-        <p><a id="logout" href="sso_logout">CERN SSO Logout</a></p>
+        {{- $url := printf "%s%s/%s%s" "https://" .Host "redirect_uri?logout=https://" .Host  -}}
+        <p><a id="logout" href={{$url}}>CERN SSO Logout</a>
         {{ else }}
         <p>Not authorized. To use the service, please log in</p>
-        <p><a id="login" href="sso_login">CERN SSO Login</a></p>
         {{ end }}
     </div>
 
