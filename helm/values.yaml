@@ -1,0 +1,76 @@
+
+
+replicaCount: 2
+
+deployment:
+  imagePullSecrets: "regcred-lb-experts"
+  app: "goermis"   
+  containers:
+  - name: "httpd"
+    imagePullPolicy: "Always"  
+    repository: "gitlab-registry.cern.ch/lb-experts/k8s/httpd"
+    tag: "krb5"
+    port:  443
+    secret:
+    - name: "oidc"
+      mountPath: "/etc/httpd/conf_ssl/"
+      readOnly:  "true"
+    - name: "cluster-certs"
+      mountPath: "/etc/httpd/ssl/"
+      readOnly: "true"
+    command: '["/bin/bash","-c", "cp /etc/httpd/conf_ssl/oidc_secrets.conf /etc/httpd/conf/; httpd -D FOREGROUND"]'
+  - name: "goermis"
+    imagePullPolicy: "Always"  
+    repository: "gitlab-registry.cern.ch/lb-experts/goermis"
+    tag: "test"
+    port: 8080
+    secret:
+    - name: "ermis-certs"
+      mountPath: "/etc/ssl/certs/"
+      readOnly:  "true"
+    - name: "configfile"
+      mountPath: "/usr/local/etc/"
+      readOnly: "true"
+    command: {}
+
+
+ingress:
+  enabled: true
+  namespace: "default"
+  name: "ingress"
+  annotations: 
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "https"
+  hosts:
+    - host: "goermisk8s.cern.ch"
+      paths: 
+        - path: /
+          pathType: "Prefix"
+          serviceName: service
+          servicePort: 443
+      
+  tls: 
+    -  hosts:
+        -   goermisk8s.cern.ch
+
+service:
+  name: service
+  type: ClusterIP
+  port: 443
+  targetPort: 443
+  protocol: TCP
+
+volumes:
+- name: ermis-certs
+  secretName: ermis-certs
+- name: configfile
+  secretName: config
+- name: cluster-certs
+  secretName: cluster-certs
+- name: oidc 
+  secretName: oidc-conf
+  items: 
+  - key: oidc_secrets.conf
+    path: oidc_secrets.conf
