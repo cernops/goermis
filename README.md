@@ -1,1 +1,1 @@
-Prototype of AIErmis-LBaaS in GOlang
+Prototype of aiermis-lbaas in Golang

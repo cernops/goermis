@@ -133,5 +133,4 @@ func GetPwn(username string) (pwnedHg []string) {
 	pwnedHg = conn.PwnHg(username)
 	return
 
-
 }
