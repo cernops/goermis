@@ -42,16 +42,22 @@ $(document).ready(function(){
     cnamesChanged($("#edit-submitted-advanced-cnames").val(),newCluster);
   });
 
+  $("#edit-submitted-alarms").change(function () {
+    alarmsChanged($("#edit-submitted-alarms").val(), newCluster);
+  });
+
 	$('#edit-submit').click(function(event){
     event.preventDefault();
     //Before submitting , check for dublicates
     var TableData = $("#myTable").getTableData()
+    var alarmsData = $("#myAlerts").getTableData();
     if(hasDuplicate(TableData) == true) {
       $('#edit-submit').prop("disabled",true); //If dublicate, display error and disable submit button
       $("#nodes-name-status").html('<img src="/staticfiles/js/custom/images/dialog-error.png"</img> There is node name duplicate ! <a href="http://configdocs.web.cern.ch/configdocs/dnslb/index.html"><img alt="Help" src="/staticfiles/js/custom/images/help-browser.png"</img></a>');
       return
     } else if(hasDuplicate(TableData) == false){
       HostsAdded(TableData,newCluster); //If no dublicate, proceed with submission
+      AlarmsAdded(alertsData, newCluster);
       $('#edit-submit').prop("disabled",false);
       $("#nodes-name-status").html("");
       submitForm('modify', newCluster);
