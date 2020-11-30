@@ -150,7 +150,7 @@ func MessageToUser(c echo.Context, status int, message string, page string) erro
 		"csrf":    c.Get("csrf"),
 		"User":    username,
 		"Message": message,
-		"Host": httphost,
+		"Host":    httphost,
 	})
 }
 

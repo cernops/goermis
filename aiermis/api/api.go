@@ -42,7 +42,8 @@ type (
 		User             string    `form:"user"              json:"user"              valid:"optional,alphanum"`
 		Statistics       string    `form:"statistics"        json:"statistics"        valid:"alpha"`
 		ResourceURI      string    `                         json:"resource_uri"      valid:"-"`
-		Pwned            bool      `                          json:"pwned"            valid:"-"`
+		Pwned            bool      `                         json:"pwned"             valid:"-"`
+		Alarms           string    `form:"alarms"              json:"alarms"             valid:"-"`
 	}
 	//Objects holds multiple result structs
 	Objects struct {
@@ -60,16 +61,21 @@ func GetObjects(param string) (temp []Resource, err error) {
 		query []orm.Alias
 	)
 	//Preload bottom-to-top, starting with the Relations & Nodes first
-	nodes := con.Preload("Nodes")
-	nodes = nodes.Preload("Nodes.Node")
+	nodes := con.Preload("Nodes")       //Relations
+	nodes = nodes.Preload("Nodes.Node") //From the relations, we find the node names then
 	if param == "all" {
-		err = nodes.Preload("Cnames").Order("alias_name").Find(&query).Error
+		err = nodes.
+			Preload("Cnames").
+			Preload("Alarms").
+			Order("alias_name").
+			Find(&query).Error
 
 	} else {
 		err = nodes.
 			Preload("Cnames").
 			Where("id=?", param).Or("alias_name=?", param).
-			Order("alias_name").First(&query).Error
+			Order("alias_name").
+			First(&query).Error
 
 	}
 	if err != nil {
@@ -148,10 +154,12 @@ func (r Resource) CreateObject() (err error) {
 
 	//We use ORM struct here, so that we are able to create the relations
 	var a orm.Alias
-	//Copier fills Alias struct with the values from Resource struct
+	/*Copier fills Alias struct with the values from Resource struct
+	This is possible because during creation there are no complex relations present
+	(alarms/nodes are in the modification handler) */
 	copier.Copy(&a, &r)
-	//Cnames are treated seperately, because they will be created using their struct
 
+	//Cnames are treated seperately, because they will be created using their struct
 	cnames := deleteEmpty(strings.Split(r.Cname, ","))
 
 	//Create object in the DB with transactions, if smth goes wrong its rolledback
@@ -159,6 +167,7 @@ func (r Resource) CreateObject() (err error) {
 		return err
 	}
 
+	//DNS
 	//createInDNS will create the alias and cnames in DNS.//
 	if err := r.createInDNS(); err != nil {
 
@@ -175,7 +184,7 @@ func (r Resource) CreateObject() (err error) {
 }
 
 //DefaultAndHydrate prepares the object with default values and domain before CREATE
-func (r *Resource) DefaultAndHydrate() {
+func (r *Resource) defaultAndHydrate() {
 	//Populate the struct with the default values
 	r.Behaviour = "mindless"
 	r.Metric = "cmsfrontier"
@@ -243,16 +252,16 @@ func (r Resource) ModifyObject() (err error) {
 	}
 
 	//1.Update cnames in DB
-	if err = r.UpdateCnames(oldObject[0]); err != nil {
+	if err = r.updateCnames(oldObject[0]); err != nil {
 		return err
 	}
-	/*2.Update nodes for r object with new nodes(nodesToMap converts string to map,
+	/*2.Update nodes for r object with new nodes(nodesInMap converts string to map,
 	  where value indicates privilege allowed/forbidden)*/
 
 	newNodesMap := nodesInMap(r.AllowedNodes, r.ForbiddenNodes)
 	oldNodesMap := nodesInMap(oldObject[0].AllowedNodes, oldObject[0].ForbiddenNodes)
 
-	if err = r.UpdateNodes(newNodesMap, oldNodesMap); err != nil {
+	if err = r.updateNodes(newNodesMap, oldNodesMap); err != nil {
 		return err
 	}
 
@@ -265,13 +274,18 @@ func (r Resource) ModifyObject() (err error) {
 		return err
 	}
 
+	//4.Update alarms
+	if err = r.updateAlarms(oldObject[0]); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 /////////// Logical sub-functions of UPDATE///////////
 
 //UpdateNodes updates alias with new nodes in DB
-func (r Resource) UpdateNodes(new map[string]bool, old map[string]bool) (err error) {
+func (r Resource) updateNodes(new map[string]bool, old map[string]bool) (err error) {
 	for name := range old {
 		if _, ok := new[name]; !ok {
 			if err = orm.DeleteNodeTransactions(r.ID, name); err != nil {
@@ -302,7 +316,7 @@ func (r Resource) UpdateNodes(new map[string]bool, old map[string]bool) (err err
 }
 
 //UpdateCnames updates cnames in DB
-func (r Resource) UpdateCnames(oldObject Resource) (err error) {
+func (r Resource) updateCnames(oldObject Resource) (err error) {
 
 	//Split string and delete any possible empty values
 
@@ -339,5 +353,9 @@ func (r Resource) UpdateCnames(oldObject Resource) (err error) {
 			}
 		}
 	}
+	return nil
+}
+
+func (r Resource) updateAlarms(oldObject Resource) (err error) {
 	return nil
 }

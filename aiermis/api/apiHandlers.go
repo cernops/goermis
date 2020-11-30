@@ -68,7 +68,7 @@ func CreateAlias(c echo.Context) error {
 	defer c.Request().Body.Close()
 
 	//Default values and hydrate(domain,visibility)
-	temp.DefaultAndHydrate()
+	temp.defaultAndHydrate()
 	//Validate structure
 	if ok, err := govalidator.ValidateStruct(temp); err != nil || ok == false {
 		return MessageToUser(c, http.StatusBadRequest,
@@ -148,13 +148,14 @@ func ModifyAlias(c echo.Context) error {
 	if err := c.Bind(&temp); err != nil {
 		log.Warn("[" + c.Request().Header.Get("X-Forwarded-User") + "] " + "Failed to bind params " + err.Error())
 	}
+	//Here we distignuish between kermis PATCH and UI form binding
 	if c.Request().Method == "PATCH" {
 		param = c.Param("id")
 	} else {
 		param = temp.AliasName
 	}
 
-	//After we bind request, we use the alias name for retrieving its profile from DB
+	//We use the alias name for retrieving its profile from DB
 	alias, err := GetObjects(param)
 	if err != nil {
 		log.Error("[" + username + "] " + "Failed to retrieve alias " + temp.AliasName + " : " + err.Error())
@@ -190,11 +191,12 @@ func ModifyAlias(c echo.Context) error {
 	if temp.TTL != 0 {
 		alias[0].TTL = temp.TTL
 	}
-	//These three fields are updated even if value is empty
+	//These four fields are updated even if value is empty
 	//because,in their case, empty values are part of the update
 	alias[0].ForbiddenNodes = temp.ForbiddenNodes
 	alias[0].AllowedNodes = temp.AllowedNodes
 	alias[0].Cname = temp.Cname
+	alias[0].Alarms = temp.Alarms
 
 	//Validate the object alias , with the now-updated fields
 	if ok, err := govalidator.ValidateStruct(alias[0]); err != nil || ok == false {
