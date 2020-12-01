@@ -1,29 +1,30 @@
 app:
-   app_name: --change--
-   app_version: --change--
-   app_env: --change--
+   app_name:       --change--  
+   app_version:    --change--
+   app_env:        --change--
 
 database:
-   adapter: --change--
-   database: --change--
-   username: --change--
-   password: --change--
-   host: --change--
-   port: --change--  
-   idle_conns: --change--
-   open_conns: --change--
-   sslmode: --change--
+   adapter:        --change--
+   database:       --change--
+   username:       --change--
+   password:       --change--
+   host:           --change--
+   port:           --change--  
+   idle_conns:     --change--
+   open_conns:     --change--
+   sslmode:        --change--
 soap:   
-   soap_user: --change--
-   soap_password: --change--
+   soap_user:      --change--
+   soap_password:  --change--
    soap_keyname_e: --change--
    soap_keyname_i: --change--
-   soap_url: --change--
+   soap_url:       --change--
 certs:
-   goermis_cert: --change--
-   goermis_key: --change--
-   ca_cert: --change--
+   goermis_cert:   --change--
+   goermis_key:    --change--
+   ca_cert:        --change--
 log:  
-  logging_file: --change--
+  logging_file:    --change--
+  stdout:          --change--   
 
   
