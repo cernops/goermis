@@ -25,16 +25,20 @@ KERBEROS_FILENAME = ""
 
 
 def getacct(context, username):
-    (Output, err) = Popen(['tbag', 'show', '--hg', 'ailbd',username], stdout=PIPE, stderr=PIPE).communicate()
-    if err:
+
+    try:
+        (Output, err) = Popen(['tbag', 'show', '--hg', 'ailbd',
+                               username], stdout=PIPE, stderr=PIPE).communicate()
+    except:
         password = context.config.userdata[username]
     else:
         password = json.loads(Output)['secret']
-    print("Got the password of the user %s" % username)
-    (Output, err) = Popen(['klist'],
-                          stdout=PIPE, stderr=PIPE).communicate()
-    print("GOT %s and %s" % (Output, err))
-    return base64.b64decode(password)
+    finally:
+        print("Got the password of the user %s" % username)
+        (Output, err) = Popen(['klist'],
+                              stdout=PIPE, stderr=PIPE).communicate()
+        print("GOT %s and %s" % (Output, err))
+        return base64.b64decode(password)
 
 
 @given('that we have a valid kerberos ticket of a user in "{n}" egroup')  # pylint: disable=undefined-variable
