@@ -107,6 +107,13 @@ func DeleteTransactions(name string, ID int) (err error) {
 			return errors.New("Failed to delete cnames from DB with error: " + err.Error())
 		}
 
+		//Delete alarms
+		if err = tx.Where("alarm_alias_id= ?", ID).
+			Delete(&Alarm{}).
+			Error; err != nil {
+			return errors.New("Failed to delete alarms from DB with error: " + err.Error())
+		}
+
 		//Finally delete alias
 		if err = tx.Where("alias_name = ?", name).
 			Delete(&Alias{}).
