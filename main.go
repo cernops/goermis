@@ -34,7 +34,7 @@ func main() {
 	views.InitViews(echo)
 
 	//Create and keep up to date DB tables
-	autoCreateTables(&orm.Alias{}, &orm.Node{}, &orm.Cname{}, &orm.Relation{})
+	autoCreateTables(&orm.Alias{}, &orm.Node{}, &orm.Cname{}, &orm.Alarm{}, &orm.Relation{})
 	autoMigrateTables()
 
 	/* Start server
@@ -92,6 +92,6 @@ func autoCreateTables(values ...interface{}) error {
 
 // autoMigrateTables: migrate table columns using GORM. Will not delete/change types for security reasons
 func autoMigrateTables() {
-	db.ManagerDB().AutoMigrate(&orm.Alias{}, &orm.Node{}, &orm.Cname{}, &orm.Relation{})
+	db.ManagerDB().AutoMigrate(&orm.Alias{}, &orm.Node{}, &orm.Cname{}, &orm.Alarm{}, &orm.Relation{})
 
 }

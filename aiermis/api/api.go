@@ -73,6 +73,7 @@ func GetObjects(param string) (temp []Resource, err error) {
 	} else {
 		err = nodes.
 			Preload("Cnames").
+			Preload("Alarms").
 			Where("id=?", param).Or("alias_name=?", param).
 			Order("alias_name").
 			First(&query).Error
@@ -113,6 +114,16 @@ func parse(queryResults []orm.Alias) (parsed []Resource) {
 				tmpslice = append(tmpslice, v.Cname)
 			}
 			temp.Cname = strings.Join(tmpslice, ",")
+		}
+
+		//The alarms
+		if len(element.Alarms) != 0 {
+			var tmpslice []string
+			for _, v := range element.Alarms {
+				alarm := v.Name + ":" + v.Recipient + ":" + v.Parameter
+				tmpslice = append(tmpslice, alarm)
+			}
+			temp.Alarms = strings.Join(tmpslice, ",")
 		}
 
 		//The nodes
@@ -357,5 +368,40 @@ func (r Resource) updateCnames(oldObject Resource) (err error) {
 }
 
 func (r Resource) updateAlarms(oldObject Resource) (err error) {
+	//Split string and delete any possible empty values
+
+	newAlarms := deleteEmpty(strings.Split(r.Alarms, ","))
+	exAlarms := deleteEmpty(strings.Split(oldObject.Alarms, ","))
+	if len(newAlarms) > 0 {
+		for _, value := range exAlarms {
+			if !StringInSlice(value, newAlarms) {
+				if err = orm.DeleteAlarmTransactions(r.ID, value); err != nil {
+					return errors.New("Failed to delete existing alarm " +
+						value + " while updating, with error: " + err.Error())
+				}
+			}
+		}
+
+		for _, value := range newAlarms {
+			if value == "" {
+				continue
+			}
+			if !StringInSlice(value, exAlarms) {
+				if err = orm.AddAlarmTransactions(r.ID, value); err != nil {
+					return errors.New("Failed to add new alarm " +
+						value + " while updating, with error: " + err.Error())
+				}
+			}
+
+		}
+
+	} else {
+		for _, value := range exAlarms {
+			if err = orm.DeleteAlarmTransactions(r.ID, value); err != nil {
+				return errors.New("Failed to delete alarm " +
+					value + " while purging all, with error: " + err.Error())
+			}
+		}
+	}
 	return nil
 }

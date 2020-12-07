@@ -53,7 +53,7 @@ type (
 		Alias        string       `  gorm:"type:varchar(40);not null" `
 		Name         string       `  gorm:"type:varchar(20);not null" `
 		Recipient    string       `  gorm:"type:varchar(40);not null" `
-		Parameter    int          `  gorm:"type:smallint(6);not null" `
+		Parameter    string       `  gorm:"type:varchar(20);not null" `
 		Active       bool         `  gorm:"type:varchar(15);not null" `
 		LastCheck    sql.NullTime `  gorm:"type:date"`
 		LastActive   sql.NullTime `  gorm:"type:date"`
