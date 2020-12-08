@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-deployment
+  labels:
+    {{- include "ermis.labels" . | nindent 4 }}
+    app: {{.Values.deployment.app}}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{.Values.deployment.app}}
+  template:
+    metadata:
+      labels:
+        app: {{.Values.deployment.app}}
+    spec:
+      containers:
+        {{- range .Values.deployment.containers }}
+        - name: {{.name | quote}}
+          image: "{{.repository }}:{{.tag}}"
+          imagePullPolicy: {{.imagePullPolicy}} 
+          ports:
+            - containerPort: {{.port}}         
+          volumeMounts:
+            {{- range .secret }}
+          - name: {{.name}}
+            mountPath: {{.mountPath}}
+            readOnly: {{.readOnly}}
+            {{- end}}
+         
+          {{- if .command }}
+          command: {{.command}}
+          {{- end}}
+          {{- end}}
+      volumes:
+        {{- range .Values.volumes }}
+        - name: {{.name}}
+          secret:
+            secretName: {{.secretName}}
+        {{- if .items }}
+            items:
+              {{- range .items }}
+            - key: {{.key}}
+              path: {{.path}}
+        {{- end}}
+        {{- end}}
+        {{- end}}
+      imagePullSecrets:
+      - name: {{.Values.deployment.imagePullSecrets}}
