@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"flag"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/labstack/gommon/log"
@@ -41,6 +42,7 @@ type Config struct {
 	}
 	Log struct {
 		LoggingFile string `yaml:"logging_file"`
+		Stdout      bool
 	}
 }
 
@@ -66,12 +68,19 @@ func ParseFlags() {
 
 	log.SetHeader("${time_rfc3339} ${level} ${short_file} ${line} ")
 	file, err := os.OpenFile(GetConf().Log.LoggingFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err == nil {
-		log.SetOutput(file)
-		log.Info("File set as logger output")
-	} else {
-		log.Info("Failed to log to file, using default stderr" + err.Error())
+	if err != nil {
+		log.Error("Failed to log to file, using default stderr" + err.Error())
 	}
+	if GetConf().Log.Stdout {
+		log.Info("File and console set as output")
+		mw := io.MultiWriter(os.Stdout, file)
+		log.SetOutput(mw)
+	} else {
+		log.Info("File set as logger output")
+		log.SetOutput(file)
+
+	}
+
 }
 
 //GetConf returns the Conf file

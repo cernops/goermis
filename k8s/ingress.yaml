@@ -1,5 +1,5 @@
 ---
-    apiVersion:  extensions/v1beta1
+    apiVersion:   networking.k8s.io/v1
     kind: Ingress
     metadata:
       name: goermis-ingress
@@ -15,9 +15,12 @@
           http:
             paths:
             - path: /
+              pathType: Prefix
               backend:
-                serviceName: goermis-service
-                servicePort: 443
+                  service:
+                    name: goermis-service
+                    port: 
+                      number: 443
         tls:
         - hosts:
           - goermisk8s.cern.ch
