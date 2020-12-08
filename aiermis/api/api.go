@@ -120,7 +120,13 @@ func parse(queryResults []orm.Alias) (parsed []Resource) {
 		if len(element.Alarms) != 0 {
 			var tmpslice []string
 			for _, v := range element.Alarms {
-				alarm := v.Name + ":" + v.Recipient + ":" + v.Parameter
+				alarm := v.Name + ":" +
+					v.Recipient + ":" +
+					v.Parameter + ":" +
+					strconv.FormatBool(v.Active)
+				if v.LastActive.Valid {
+					alarm += ":" + v.LastActive.Time.String()
+				}
 				tmpslice = append(tmpslice, alarm)
 			}
 			temp.Alarms = strings.Join(tmpslice, ",")
@@ -387,7 +393,7 @@ func (r Resource) updateAlarms(oldObject Resource) (err error) {
 				continue
 			}
 			if !StringInSlice(value, exAlarms) {
-				if err = orm.AddAlarmTransactions(r.ID, value); err != nil {
+				if err = orm.AddAlarmTransactions(r.ID, r.AliasName, value); err != nil {
 					return errors.New("Failed to add new alarm " +
 						value + " while updating, with error: " + err.Error())
 				}

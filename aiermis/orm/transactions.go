@@ -251,10 +251,11 @@ func DeleteCnameTransactions(aliasID int, cname string) error {
 }
 
 //AddAlarmTransactions appends an alarm
-func AddAlarmTransactions(aliasID int, alarm string) error {
+func AddAlarmTransactions(aliasID int, aliasName string, alarm string) error {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
 		//parametes[0] --> alarm name ; parameters[1] --> recipient;
 		//parameters[1] --> threshold parameter
+		//Checking if we can actually create it by making sure there is no duplicate
 		parameters := strings.Split(alarm, ":")
 		if !cgorm.ManagerDB().
 			NewRecord(&Alarm{
@@ -267,6 +268,7 @@ func AddAlarmTransactions(aliasID int, alarm string) error {
 			Association("Alarms").
 			Append(&Alarm{
 				Name:      parameters[0],
+				Alias:     aliasName,
 				Recipient: parameters[1],
 				Parameter: parameters[2]}).
 			Error; err != nil {
