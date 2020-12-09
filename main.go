@@ -40,8 +40,9 @@ func main() {
 	//Alarms periodic check/update
 	log.Info("24 hours passed, preparing to execution check alarms")
 	ticker := time.NewTicker(24 * time.Hour)
-	//done channel can be used to stop the ticker.
-	//It is not used for now
+	/*done channel can be used to stop the ticker if needed,
+	by issuing the command "done<-true". For now, it runs constantly */
+	done := make(chan bool)
 	go func() {
 		for {
 			select {
