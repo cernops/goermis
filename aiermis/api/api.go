@@ -2,11 +2,13 @@ package api
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/jinzhu/copier"
+	"gitlab.cern.ch/lb-experts/goermis/aiermis/common"
 	"gitlab.cern.ch/lb-experts/goermis/aiermis/orm"
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 	"gitlab.cern.ch/lb-experts/goermis/db"
@@ -122,7 +124,7 @@ func parse(queryResults []orm.Alias) (parsed []Resource) {
 			for _, v := range element.Alarms {
 				alarm := v.Name + ":" +
 					v.Recipient + ":" +
-					v.Parameter + ":" +
+					strconv.Itoa(v.Parameter) + ":" +
 					strconv.FormatBool(v.Active)
 				if v.LastActive.Valid {
 					alarm += ":" + v.LastActive.Time.String()
@@ -155,7 +157,7 @@ func parse(queryResults []orm.Alias) (parsed []Resource) {
 		if IsSuperuser() {
 			temp.Pwned = true
 		} else {
-			temp.Pwned = StringInSlice(temp.Hostgroup, GetUsersHostgroups())
+			temp.Pwned = common.StringInSlice(temp.Hostgroup, GetUsersHostgroups())
 		}
 
 		parsed = append(parsed, temp)
@@ -177,7 +179,7 @@ func (r Resource) CreateObject() (err error) {
 	copier.Copy(&a, &r)
 
 	//Cnames are treated seperately, because they will be created using their struct
-	cnames := deleteEmpty(strings.Split(r.Cname, ","))
+	cnames := common.DeleteEmpty(strings.Split(r.Cname, ","))
 
 	//Create object in the DB with transactions, if smth goes wrong its rolledback
 	if err := orm.CreateTransactions(a, cnames); err != nil {
@@ -215,10 +217,10 @@ func (r *Resource) defaultAndHydrate() {
 	if !strings.HasSuffix(r.AliasName, ".cern.ch") {
 		r.AliasName = r.AliasName + ".cern.ch"
 	}
-	if StringInSlice(strings.ToLower(r.External), []string{"yes", "external"}) {
+	if common.StringInSlice(strings.ToLower(r.External), []string{"yes", "external"}) {
 		r.External = "yes"
 	}
-	if StringInSlice(strings.ToLower(r.External), []string{"no", "internal"}) {
+	if common.StringInSlice(strings.ToLower(r.External), []string{"no", "internal"}) {
 		r.External = "no"
 	}
 }
@@ -337,11 +339,11 @@ func (r Resource) updateCnames(oldObject Resource) (err error) {
 
 	//Split string and delete any possible empty values
 
-	newCnames := deleteEmpty(strings.Split(r.Cname, ","))
-	exCnames := deleteEmpty(strings.Split(oldObject.Cname, ","))
+	newCnames := common.DeleteEmpty(strings.Split(r.Cname, ","))
+	exCnames := common.DeleteEmpty(strings.Split(oldObject.Cname, ","))
 	if len(newCnames) > 0 {
 		for _, value := range exCnames {
-			if !StringInSlice(value, newCnames) {
+			if !common.StringInSlice(value, newCnames) {
 				if err = orm.DeleteCnameTransactions(r.ID, value); err != nil {
 					return errors.New("Failed to delete existing cname " +
 						value + " while updating, with error: " + err.Error())
@@ -353,7 +355,7 @@ func (r Resource) updateCnames(oldObject Resource) (err error) {
 			if value == "" {
 				continue
 			}
-			if !StringInSlice(value, exCnames) {
+			if !common.StringInSlice(value, exCnames) {
 				if err = orm.AddCnameTransactions(r.ID, value); err != nil {
 					return errors.New("Failed to add new cname " +
 						value + " while updating, with error: " + err.Error())
@@ -376,11 +378,11 @@ func (r Resource) updateCnames(oldObject Resource) (err error) {
 func (r Resource) updateAlarms(oldObject Resource) (err error) {
 	//Split string and delete any possible empty values
 
-	newAlarms := deleteEmpty(strings.Split(r.Alarms, ","))
-	exAlarms := deleteEmpty(strings.Split(oldObject.Alarms, ","))
+	newAlarms := common.DeleteEmpty(strings.Split(r.Alarms, ","))
+	exAlarms := common.DeleteEmpty(strings.Split(oldObject.Alarms, ","))
 	if len(newAlarms) > 0 {
 		for _, value := range exAlarms {
-			if !StringInSlice(value, newAlarms) {
+			if !common.StringInSlice(value, newAlarms) {
 				if err = orm.DeleteAlarmTransactions(r.ID, value); err != nil {
 					return errors.New("Failed to delete existing alarm " +
 						value + " while updating, with error: " + err.Error())
@@ -392,7 +394,7 @@ func (r Resource) updateAlarms(oldObject Resource) (err error) {
 			if value == "" {
 				continue
 			}
-			if !StringInSlice(value, exAlarms) {
+			if !common.StringInSlice(value, exAlarms) {
 				if err = orm.AddAlarmTransactions(r.ID, r.AliasName, value); err != nil {
 					return errors.New("Failed to add new alarm " +
 						value + " while updating, with error: " + err.Error())
@@ -410,4 +412,30 @@ func (r Resource) updateAlarms(oldObject Resource) (err error) {
 		}
 	}
 	return nil
+}
+
+//nodesInMap puts the nodes in a map. The value is their privilege
+func nodesInMap(AllowedNodes interface{}, ForbiddenNodes interface{}) map[string]bool {
+	if AllowedNodes == nil {
+		AllowedNodes = ""
+	}
+	if ForbiddenNodes == nil {
+		ForbiddenNodes = ""
+	}
+
+	temp := make(map[string]bool)
+
+	modes := map[interface{}]bool{
+		AllowedNodes:   false,
+		ForbiddenNodes: true,
+	}
+	for k, v := range modes {
+		if k != "" {
+			for _, val := range common.DeleteEmpty(strings.Split(fmt.Sprintf("%v", k), ",")) {
+				temp[val] = v
+			}
+		}
+	}
+
+	return temp
 }

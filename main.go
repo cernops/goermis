@@ -10,6 +10,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/gommon/log"
 	"gitlab.cern.ch/lb-experts/goermis/aiermis/orm"
+	"gitlab.cern.ch/lb-experts/goermis/alarms"
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 	"gitlab.cern.ch/lb-experts/goermis/db"
 	"gitlab.cern.ch/lb-experts/goermis/router"
@@ -32,11 +33,27 @@ func main() {
 
 	//Initiate template views
 	views.InitViews(echo)
-
 	//Create and keep up to date DB tables
 	autoCreateTables(&orm.Alias{}, &orm.Node{}, &orm.Cname{}, &orm.Alarm{}, &orm.Relation{})
 	autoMigrateTables()
 
+	//Alarms periodic check/update
+	log.Info("24 hours passed, preparing to execution check alarms")
+	ticker := time.NewTicker(24 * time.Hour)
+	//done channel can be used to stop the ticker.
+	//It is not used for now
+	go func() {
+		for {
+			select {
+			case <-done:
+				ticker.Stop()
+				return
+			case <-ticker.C:
+				alarms.PeriodicAlarmCheck()
+			}
+		}
+	}()
+	log.Info("Alarms updated")
 	/* Start server
 	       Error handling is done a bit differently in this situation. The reason is that
 		   when server is restarted we force it to reuse the same socket. Despite being successfully

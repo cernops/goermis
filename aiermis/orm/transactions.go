@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/jinzhu/gorm"
+	"gitlab.cern.ch/lb-experts/goermis/aiermis/common"
 	cgorm "gitlab.cern.ch/lb-experts/goermis/db"
 )
 
@@ -270,7 +271,7 @@ func AddAlarmTransactions(aliasID int, aliasName string, alarm string) error {
 				Name:      parameters[0],
 				Alias:     aliasName,
 				Recipient: parameters[1],
-				Parameter: parameters[2]}).
+				Parameter: common.StringToInt(parameters[2])}).
 			Error; err != nil {
 			tx.Rollback()
 			return err

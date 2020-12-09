@@ -1,7 +1,6 @@
 package alarms
 
 import (
-	"database/sql"
 	"fmt"
 	"net"
 	"net/smtp"
@@ -10,62 +9,55 @@ import (
 	"github.com/labstack/gommon/log"
 	"github.com/miekg/dns"
 	"gitlab.cern.ch/lb-experts/goermis/aiermis/orm"
+	"gitlab.cern.ch/lb-experts/goermis/db"
 )
 
 const dnsManager = "137.138.28.176"
 
-//CheckAlarms periodically makes sure that the thresholds are respected.
+//PeriodicAlarmCheck periodically makes sure that the thresholds are respected.
 //Otherwise notifies by e-mail and updates the DB
-func CheckAlarms() {
-	var alarm orm.Alarm
-	err := db.ManagerDB().Preload("Alarms").Find(&alarm)
-	// Prepare statement for reading data
-	stmtOut, err := db.Prepare("SELECT w.id, alias_name, name, recipient, parameter, active, last_active" +
-		" FROM ermis_api_alias a  join ermis_api_alert w on  (a.id =w.alias_id) ")
-	if err != nil {
-		panic(err.Error()) // proper error handling instead of panic in your app
+func PeriodicAlarmCheck() {
+	var alarms []orm.Alarm
+	if err := db.ManagerDB().Find(&alarms).
+		Error; err != nil {
+		log.Error("Could not retrieve alarms", err.Error())
 	}
-	defer stmtOut.Close()
+	//updateAlert := db.ManagerDB().Raw("UPDATE ermis_api_alert set active = ?, last_active=?, last_check =?  where id =?")
+	//updateNullAlert, err := db.ManagerDB().Raw("UPDATE ermis_api_alert set active = ?, last_check =?  where id =?")
 
-	updateAlert := db.ManagerDB().Raw("UPDATE ermis_api_alert set active = ?, last_active=?, last_check =?  where id =?")
-	updateNullAlert, err := db.ManagerDB().Raw("UPDATE ermis_api_alert set active = ?, last_check =?  where id =?")
-
-	rows, err := stmtOut.Query()
-	defer rows.Close()
-	var myAlert Alert
-	for rows.Next() {
-		myAlert.LastCheck.Time = time.Now()
-		err := rows.Scan(&myAlert.ID, &myAlert.Alias, &myAlert.Name, &myAlert.Recipient, &myAlert.Parameter, &myAlert.Active, &myAlert.LastActive)
-		if err != nil {
-			panic(err.Error())
-		}
-		newActive := false
-		if checkAlarm(myAlert.Alias, myAlert.Name, myAlert.Parameter) {
-			log.Warning("The alert should be active")
-			newActive = true
-			if !myAlert.Active {
-				log.Info("The alert was not active before. Let's send the notification")
-				myAlert.LastActive = myAlert.LastCheck
-				myAlert.LastActive.Valid = true
-				sendNotification(myAlert.Alias, myAlert.Recipient, myAlert.Name, myAlert.Parameter)
-			}
-		}
-
-		var a sql.Result
-		log.Info(fmt.Sprintf("%+v\n", myAlert))
-
-		if myAlert.LastActive.Valid {
-			a, err = updateAlert.Exec(newActive, myAlert.LastActive.Time, myAlert.LastCheck.Time, myAlert.ID)
-		} else {
-			a, err = updateNullAlert.Exec(newActive, myAlert.LastCheck.Time, myAlert.ID)
-		}
-
-		if err != nil {
-			log.Error(fmt.Sprintf("Error updating the alert: %v and %v", err, a))
+	for _, alarm := range alarms {
+		if err := processThis(alarm); err != nil {
+			log.Error(fmt.Sprintf("Error updating the alert: %v and %v", err, alarm))
 		}
 	}
 }
 
+func processThis(alarm orm.Alarm) (err error) {
+	alarm.LastCheck.Time = time.Now()
+	newActive := false
+	if checkAlarm(alarm.Alias, alarm.Name, alarm.Parameter) {
+		log.Warn("The alert should be active")
+		newActive = true
+		if !alarm.Active {
+			log.Info("The alert was not active before. Let's send the notification")
+			alarm.LastActive = alarm.LastCheck
+			alarm.LastActive.Valid = true
+			sendNotification(alarm.Alias, alarm.Recipient, alarm.Name, alarm.Parameter)
+		}
+	}
+
+	if alarm.LastActive.Valid {
+		err = db.ManagerDB().Model(&alarm).Updates(orm.Alarm{
+			Active:     newActive,
+			LastActive: alarm.LastActive,
+			LastCheck:  alarm.LastCheck}).Error
+	} else {
+		err = db.ManagerDB().Model(&alarm).Updates(orm.Alarm{
+			Active:    newActive,
+			LastCheck: alarm.LastCheck}).Error
+	}
+	return err
+}
 func sendNotification(alias, recipient, name string, parameter int) {
 	log.Info(fmt.Sprintf("Sending a notification to %v that the alert %s on %s has been triggered (less than %d nodes)", recipient, alias, name, parameter))
 	msg := []byte("To: " + alias + "\r\n" +
