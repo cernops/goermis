@@ -49,7 +49,7 @@ type (
 	//Alarm describes the one to many relation between an alias and its alarms
 	Alarm struct {
 		ID           int          `  gorm:"auto_increment;primary_key" `
-		AlarmAliasID int          `  gorm:"not null;unique" `
+		AlarmAliasID int          `  gorm:"not null" `
 		Alias        string       `  gorm:"type:varchar(40);not null" `
 		Name         string       `  gorm:"type:varchar(20);not null" `
 		Recipient    string       `  gorm:"type:varchar(40);not null" `
