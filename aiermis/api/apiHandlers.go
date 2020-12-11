@@ -7,11 +7,11 @@ import (
 	"strings"
 
 	"github.com/asaskevich/govalidator"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
 
 	"gitlab.cern.ch/lb-experts/goermis/aiermis/common"
-	"gitlab.cern.ch/lb-experts/goermis/aiermis/orm"
 	"gitlab.cern.ch/lb-experts/goermis/db"
 )
 
@@ -48,14 +48,15 @@ func GetAlias(c echo.Context) error {
 			}
 		}
 
-		if list.Objects, e = GetObjects(string(param)); e != nil {
+		if queryResults, e := GetObjects(string(param)); e != nil {
 			log.Error("[" + username + "]" + "Unable to get alias" + param + " : " + e.Error())
 			return echo.NewHTTPError(http.StatusBadRequest, e.Error())
 		}
 
 	}
+	spew.Dump(list)
 	defer c.Request().Body.Close()
-	return c.JSON(http.StatusOK, list)
+	return c.JSON(http.StatusOK, parse(queryResults))
 }
 
 //CreateAlias creates a new alias entry in the DB
@@ -67,7 +68,6 @@ func CreateAlias(c echo.Context) error {
 	}
 	temp.User = username
 	defer c.Request().Body.Close()
-
 	//Default values and hydrate(domain,visibility)
 	temp.defaultAndHydrate()
 	//Validate structure
@@ -78,15 +78,17 @@ func CreateAlias(c echo.Context) error {
 
 	//Check for duplicates
 	alias, _ := GetObjects(temp.AliasName)
-	if alias != nil {
+	if len(alias) != 0 {
 		return common.MessageToUser(c, http.StatusConflict,
 			"Alias "+temp.AliasName+" already exists ", "home.html")
 
 	}
 
+	object := translate(temp)
+
 	log.Info("[" + username + "] " + "Ready to create a new alias " + temp.AliasName)
 	//Create object
-	if err := temp.CreateObject(); err != nil {
+	if err := object.CreateObject(); err != nil {
 		return common.MessageToUser(c, http.StatusBadRequest,
 			"Creation error for "+temp.AliasName+" : "+err.Error(), "home.html")
 	}
@@ -96,6 +98,7 @@ func CreateAlias(c echo.Context) error {
 
 }
 
+/*
 //DeleteAlias deletes the requested alias from the DB
 func DeleteAlias(c echo.Context) error {
 	var (
@@ -217,6 +220,7 @@ func ModifyAlias(c echo.Context) error {
 		alias[0].AliasName+" updated Successfully", "home.html")
 
 }
+*/
 
 //CheckNameDNS checks if an alias or cname already exist in DB or DNS server
 func CheckNameDNS(c echo.Context) error {
@@ -228,10 +232,10 @@ func CheckNameDNS(c echo.Context) error {
 
 	aliasToResolve := c.QueryParam("hostname")
 	//Search cnames with the same name
-	con.Model(&orm.Cname{}).Where("cname=?", aliasToResolve).Count(&result)
+	con.Model(&Cname{}).Where("cname=?", aliasToResolve).Count(&result)
 	if result == 0 {
 		//Search aliases
-		con.Model(&orm.Alias{}).Where("alias_name=?", aliasToResolve+".cern.ch").Count(&result)
+		con.Model(&Alias{}).Where("alias_name=?", aliasToResolve+".cern.ch").Count(&result)
 	}
 	if result == 0 {
 		r, _ := net.LookupHost(aliasToResolve)

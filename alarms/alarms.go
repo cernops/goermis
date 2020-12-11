@@ -8,7 +8,7 @@ import (
 
 	"github.com/labstack/gommon/log"
 	"github.com/miekg/dns"
-	"gitlab.cern.ch/lb-experts/goermis/aiermis/orm"
+	"gitlab.cern.ch/lb-experts/goermis/aiermis/api"
 	"gitlab.cern.ch/lb-experts/goermis/db"
 )
 
@@ -17,7 +17,7 @@ const dnsManager = "137.138.28.176"
 //PeriodicAlarmCheck periodically makes sure that the thresholds are respected.
 //Otherwise notifies by e-mail and updates the DB
 func PeriodicAlarmCheck() {
-	var alarms []orm.Alarm
+	var alarms []api.Alarm
 	if err := db.ManagerDB().Find(&alarms).
 		Error; err != nil {
 		log.Error("Could not retrieve alarms", err.Error())
@@ -32,7 +32,7 @@ func PeriodicAlarmCheck() {
 	}
 }
 
-func processThis(alarm orm.Alarm) (err error) {
+func processThis(alarm api.Alarm) (err error) {
 	alarm.LastCheck.Time = time.Now()
 	newActive := false
 	if checkAlarm(alarm.Alias, alarm.Name, alarm.Parameter) {
@@ -47,12 +47,12 @@ func processThis(alarm orm.Alarm) (err error) {
 	}
 
 	if alarm.LastActive.Valid {
-		err = db.ManagerDB().Model(&alarm).Updates(orm.Alarm{
+		err = db.ManagerDB().Model(&alarm).Updates(api.Alarm{
 			Active:     newActive,
 			LastActive: alarm.LastActive,
 			LastCheck:  alarm.LastCheck}).Error
 	} else {
-		err = db.ManagerDB().Model(&alarm).Updates(orm.Alarm{
+		err = db.ManagerDB().Model(&alarm).Updates(api.Alarm{
 			Active:    newActive,
 			LastCheck: alarm.LastCheck}).Error
 	}

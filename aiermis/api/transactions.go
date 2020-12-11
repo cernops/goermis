@@ -1,4 +1,4 @@
-package orm
+package api
 
 import (
 	"errors"
@@ -12,7 +12,7 @@ import (
 )
 
 //CreateTransactions creates a new DB entry and its cname relations, with transactions
-func CreateTransactions(a Alias, cnames []string) (err error) {
+func CreateTransactions(a Alias) (err error) {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
 
 		// check new object's primary key
@@ -25,27 +25,27 @@ func CreateTransactions(a Alias, cnames []string) (err error) {
 			return errors.New(a.AliasName + " creation in DB failed with error: " +
 				err.Error())
 		}
+		/*
+			if len(cnames) > 0 {
+				for _, cname := range cnames {
+					if !cgorm.ManagerDB().
+						NewRecord(&Cname{
+							Cname: cname}) {
+						return errors.New("Blank primary key for cname")
+					}
 
-		if len(cnames) > 0 {
-			for _, cname := range cnames {
-				if !cgorm.ManagerDB().
-					NewRecord(&Cname{
-						Cname: cname}) {
-					return errors.New("Blank primary key for cname")
-				}
-
-				if err = tx.Model(&a).
-					Association("Cnames").
-					Append(&Cname{
-						Cname: cname}).
-					Error; err != nil {
-					tx.Rollback()
-					return errors.New(cname + " creation in DB failed with error: " +
-						err.Error())
+					if err = tx.Model(&a).
+						Association("Cnames").
+						Append(&Cname{
+							Cname: cname}).
+						Error; err != nil {
+						tx.Rollback()
+						return errors.New(cname + " creation in DB failed with error: " +
+							err.Error())
+					}
 				}
 			}
-		}
-
+		*/
 		return nil
 	})
 

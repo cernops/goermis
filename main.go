@@ -9,7 +9,7 @@ import (
 
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/gommon/log"
-	"gitlab.cern.ch/lb-experts/goermis/aiermis/orm"
+	"gitlab.cern.ch/lb-experts/goermis/aiermis/api"
 	"gitlab.cern.ch/lb-experts/goermis/alarms"
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 	"gitlab.cern.ch/lb-experts/goermis/db"
@@ -34,7 +34,7 @@ func main() {
 	//Initiate template views
 	views.InitViews(echo)
 	//Create and keep up to date DB tables
-	autoCreateTables(&orm.Alias{}, &orm.Node{}, &orm.Cname{}, &orm.Alarm{}, &orm.Relation{})
+	autoCreateTables(&api.Alias{}, &api.Node{}, &api.Cname{}, &api.Alarm{}, &api.Relation{})
 	autoMigrateTables()
 
 	//Alarms periodic check/update
@@ -110,6 +110,6 @@ func autoCreateTables(values ...interface{}) error {
 
 // autoMigrateTables: migrate table columns using GORM. Will not delete/change types for security reasons
 func autoMigrateTables() {
-	db.ManagerDB().AutoMigrate(&orm.Alias{}, &orm.Node{}, &orm.Cname{}, &orm.Alarm{}, &orm.Relation{})
+	db.ManagerDB().AutoMigrate(&api.Alias{}, &api.Node{}, &api.Cname{}, &api.Alarm{}, &api.Relation{})
 
 }

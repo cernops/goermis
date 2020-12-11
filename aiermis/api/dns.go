@@ -1,14 +1,6 @@
 package api
 
-import (
-	"errors"
-	"strings"
-
-	"github.com/labstack/gommon/log"
-	"gitlab.cern.ch/lb-experts/goermis/aiermis/common"
-	landbsoap "gitlab.cern.ch/lb-experts/goermis/landb"
-)
-
+/*
 /////////////////////////DNS EQUIVALENT METHODS/////////////////////////
 //DNS functions are responsible for creating/updating and deleting aliases and their cnames in DNS.
 
@@ -37,7 +29,7 @@ func (r Resource) createInDNS() error {
 			if landbsoap.Conn().DNSDelegatedAdd(r.AliasName, view, keyname, "Created by:"+r.User, "goermis") {
 				log.Info("[" + r.User + "]" + r.AliasName + "/" + view + "has been created")
 				//If alias is created successfully and there are also cnames...
-				if r.Cname != "" {
+				if len(r.Cname) != 0 {
 					if r.createCnamesDNS(view) {
 						log.Info("[" + r.User + "]" + "Cnames added in DNS for alias " + r.AliasName + "/" + view)
 					} else {
@@ -213,3 +205,4 @@ func (r Resource) updateCnamesInDNS(oldCnames string) error {
 	return nil
 
 }
+*/
