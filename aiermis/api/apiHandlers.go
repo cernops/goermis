@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/asaskevich/govalidator"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
 
@@ -24,14 +23,14 @@ func init() {
 func GetAlias(c echo.Context) error {
 
 	var (
-		list Objects
-		e    error
+		queryResults []Alias
+		e            error
 	)
 	username := GetUsername()
 	param := c.QueryParam("alias_name")
 	if param == "" {
 		//If empty values provided,the MySQL query returns all aliases
-		if list.Objects, e = GetObjects("all"); e != nil {
+		if queryResults, e = GetObjects("all"); e != nil {
 			log.Error("[" + username + "] " + e.Error())
 			return echo.NewHTTPError(http.StatusBadRequest, e.Error())
 		}
@@ -48,13 +47,12 @@ func GetAlias(c echo.Context) error {
 			}
 		}
 
-		if queryResults, e := GetObjects(string(param)); e != nil {
+		if queryResults, e = GetObjects(string(param)); e != nil {
 			log.Error("[" + username + "]" + "Unable to get alias" + param + " : " + e.Error())
 			return echo.NewHTTPError(http.StatusBadRequest, e.Error())
 		}
 
 	}
-	spew.Dump(list)
 	defer c.Request().Body.Close()
 	return c.JSON(http.StatusOK, parse(queryResults))
 }
@@ -68,8 +66,6 @@ func CreateAlias(c echo.Context) error {
 	}
 	temp.User = username
 	defer c.Request().Body.Close()
-	//Default values and hydrate(domain,visibility)
-	temp.defaultAndHydrate()
 	//Validate structure
 	if ok, err := govalidator.ValidateStruct(temp); err != nil || ok == false {
 		return common.MessageToUser(c, http.StatusBadRequest,
@@ -84,7 +80,7 @@ func CreateAlias(c echo.Context) error {
 
 	}
 
-	object := translate(temp)
+	object := sanitazeInCreation(temp)
 
 	log.Info("[" + username + "] " + "Ready to create a new alias " + temp.AliasName)
 	//Create object
@@ -136,6 +132,7 @@ func DeleteAlias(c echo.Context) error {
 	return common.MessageToUser(c, http.StatusNotFound, aliasToDelete+" not found", "home.html")
 
 }
+*/
 
 //ModifyAlias modifes cnames, nodes, hostgroup and best_hosts parameters
 func ModifyAlias(c echo.Context) error {
@@ -150,8 +147,9 @@ func ModifyAlias(c echo.Context) error {
 	username := GetUsername()
 	//Bind request to the temp Resource
 	if err := c.Bind(&temp); err != nil {
-		log.Warn("[" + c.Request().Header.Get("X-Forwarded-User") + "] " + "Failed to bind params " + err.Error())
+		log.Warn("[" + username + "] " + "Failed to bind params " + err.Error())
 	}
+	temp.User = username
 	//Here we distignuish between kermis PATCH and UI form binding
 	if c.Request().Method == "PATCH" {
 		param = c.Param("id")
@@ -165,62 +163,27 @@ func ModifyAlias(c echo.Context) error {
 		log.Error("[" + username + "] " + "Failed to retrieve alias " + temp.AliasName + " : " + err.Error())
 		return err
 	}
+	sanitazed := sanitazeInUpdate(alias[0], temp)
 
-	//UPDATE changed fields in the retrieved struct for that alias.
-	//This helps in validation, since we don't know what fields are changing every time
-	if temp.External != "" {
-		if common.StringInSlice(temp.External, []string{"yes", "external"}) {
-			alias[0].External = "yes"
-		} else {
-			alias[0].External = "no"
-		}
-	}
-
-	if temp.BestHosts != 0 {
-		alias[0].BestHosts = temp.BestHosts
-	}
-	if temp.Metric != "" {
-		alias[0].Metric = temp.Metric
-	}
-	if temp.PollingInterval != 0 {
-		alias[0].PollingInterval = temp.PollingInterval
-	}
-	if temp.Hostgroup != "" {
-		alias[0].Hostgroup = temp.Hostgroup
-	}
-	if temp.Tenant != "" {
-		alias[0].Tenant = temp.Tenant
-	}
-
-	if temp.TTL != 0 {
-		alias[0].TTL = temp.TTL
-	}
-	//These four fields are updated even if value is empty
-	//because,in their case, empty values are part of the update
-	alias[0].ForbiddenNodes = temp.ForbiddenNodes
-	alias[0].AllowedNodes = temp.AllowedNodes
-	alias[0].Cname = temp.Cname
-	alias[0].Alarms = temp.Alarms
 
 	//Validate the object alias , with the now-updated fields
-	if ok, err := govalidator.ValidateStruct(alias[0]); err != nil || ok == false {
-		return common.MessageToUser(c, http.StatusBadRequest,
-			"Validation error for alias "+alias[0].AliasName+" : "+err.Error(), "home.html")
-	}
+	//if ok, err := govalidator.ValidateStruct(alias[0]); err != nil || ok == false {
+	//	return common.MessageToUser(c, http.StatusBadRequest,
+	//		"Validation error for alias "+alias[0].AliasName+" : "+err.Error(), "home.html")
+	//}
 
 	defer c.Request().Body.Close()
 
 	// Call the modifier
-	if err := alias[0].ModifyObject(); err != nil {
+	if err := sanitazed.ModifyObject(); err != nil {
 		return common.MessageToUser(c, http.StatusBadRequest,
-			"Update error for alias "+alias[0].AliasName+" : "+err.Error(), "home.html")
+			"Update error for alias "+sanitazed.AliasName+" : "+err.Error(), "home.html")
 	}
 
 	return common.MessageToUser(c, http.StatusAccepted,
-		alias[0].AliasName+" updated Successfully", "home.html")
+		sanitazed.AliasName+" updated Successfully", "home.html")
 
 }
-*/
 
 //CheckNameDNS checks if an alias or cname already exist in DB or DNS server
 func CheckNameDNS(c echo.Context) error {

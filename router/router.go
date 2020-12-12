@@ -33,7 +33,7 @@ func New() *echo.Echo {
 	lbweb.GET("/logs", api.LogsHandler)
 	lbweb.POST("/new_alias", api.CreateAlias)
 	//lbweb.POST("/delete_alias", api.DeleteAlias)
-	//lbweb.POST("/modify_alias", api.ModifyAlias)
+	lbweb.POST("/modify_alias", api.ModifyAlias)
 	lbweb.GET("/checkname", api.CheckNameDNS)
 
 	lbterm := e.Group("/p/api/v1")
@@ -41,7 +41,7 @@ func New() *echo.Echo {
 	lbterm.GET("/alias/", api.GetAlias)
 	//lbterm.DELETE("/alias/", api.DeleteAlias)
 	//lbterm.POST("/alias/", api.CreateAlias)
-	//lbterm.PATCH("/alias/:id/", api.ModifyAlias)
+	lbterm.PATCH("/alias/:id/", api.ModifyAlias)
 
 	return e
 }

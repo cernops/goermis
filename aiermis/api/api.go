@@ -89,9 +89,9 @@ type (
 	//dBFunc type which accept *gorm.DB and return error, used for transactions
 	dBFunc func(tx *gorm.DB) error
 
-	//Objects holds multiple result structs
-	Objects struct {
-		List []Alias `json:"objects"`
+	//List holds multiple result structs
+	List struct {
+		Objects []Resource
 	}
 )
 
@@ -132,10 +132,10 @@ func GetObjects(param string) (query []Alias, err error) {
 // B) Create single object
 
 //CreateObject creates an alias
-func (r Alias) CreateObject() (err error) {
+func (alias Alias) CreateObject() (err error) {
 
 	//Create object in the DB with transactions, if smth goes wrong its rolledback
-	if err := CreateTransactions(r); err != nil {
+	if err := CreateTransactions(alias); err != nil {
 		return err
 	}
 
@@ -176,15 +176,18 @@ func (r Resource) DeleteObject() (err error) {
 	return nil
 
 }
-
+*/
 // D) MODIFY single object
 
 //ModifyObject modifies aliases and its associations
-func (r Resource) ModifyObject() (err error) {
+func (alias Alias) ModifyObject() (err error) {
 
-	//First, lets get once more the old values.We need the cnames and nodes for comparison
-	oldObject, _ := GetObjects(r.AliasName)
+	err = con.Session().Updates(&alias).Error
+	return err
 
+}
+
+/*
 	//Let's update in DB the single-valued fields that do not require iteration/comparisson
 	if err = con.Model(&orm.Alias{}).Where("id = ?", r.ID).UpdateColumns(
 		map[string]interface{}{
@@ -206,8 +209,8 @@ func (r Resource) ModifyObject() (err error) {
 		return err
 	}
 	/*2.Update nodes for r object with new nodes(nodesInMap converts string to map,
-	  where value indicates privilege allowed/forbidden)*/ /*
-
+	  where value indicates privilege allowed/forbidden)*/
+/*
 	newNodesMap := nodesInMap(r.AllowedNodes, r.ForbiddenNodes)
 	oldNodesMap := nodesInMap(oldObject[0].AllowedNodes, oldObject[0].ForbiddenNodes)
 
@@ -232,6 +235,7 @@ func (r Resource) ModifyObject() (err error) {
 	return nil
 }
 
+/*
 /////////// Logical sub-functions of UPDATE///////////
 
 //UpdateNodes updates alias with new nodes in DB

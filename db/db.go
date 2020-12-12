@@ -37,7 +37,6 @@ func mysqlConn() {
 
 	//Keep the table names singular(maintain conformity with existing DB)
 	db.SingularTable(true)
-
 	//Customize table names according to existing DB tables(alternative solution is to rename tables in DB)
 	gorm.DefaultTableNameHandler = func(db *gorm.DB, defaultTableName string) string {
 		return "ermis_api_" + defaultTableName
@@ -69,7 +68,7 @@ func ManagerDB() *gorm.DB {
 //Print - Log Formatter
 func (*GormLogger) Print(v ...interface{}) {
 	//Print out only the issued sql command v[3] and the values v[4]
-	if len(v) > 0 {
+	if len(v) > 3 {
 		log.Debug(fmt.Sprintf("%v Value(s):%v\n", v[3], v[4]))
 	} else {
 		log.Debug(fmt.Sprintf("%v", v))
