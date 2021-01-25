@@ -16,4 +16,6 @@ require (
 	github.com/miekg/dns v1.1.35
 	golang.org/x/sys v0.0.0-20201027090413-e1471140ff15 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
+	gorm.io/driver/mysql v1.0.3
+	gorm.io/gorm v1.20.8
 )
