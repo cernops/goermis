@@ -18,23 +18,28 @@ headers = {'content-type': 'application/json',
            'Accept': 'application/json', "WWW-Authenticate": "Negotiate"}
 cafile = '/etc/ssl/certs/CERN-bundle.pem'
 example_alias_name = "test-alias-behave05.cern.ch"
-node = 'test1.cern.ch'
+node = "test1.cern.ch"
+alarm = "minimum:lb-experts@cern.ch:1"
 
 
 KERBEROS_FILENAME = ""
 
 
 def getacct(context, username):
-    (Output, err) = Popen(['tbag', 'show', '--hg', 'ailbd',username], stdout=PIPE, stderr=PIPE).communicate()
-    if err:
+
+    try:
+        (Output, err) = Popen(['tbag', 'show', '--hg', 'ailbd',
+                               username], stdout=PIPE, stderr=PIPE).communicate()
+    except:
         password = context.config.userdata[username]
     else:
         password = json.loads(Output)['secret']
-    print("Got the password of the user %s" % username)
-    (Output, err) = Popen(['klist'],
-                          stdout=PIPE, stderr=PIPE).communicate()
-    print("GOT %s and %s" % (Output, err))
-    return base64.b64decode(password)
+    finally:
+        print("Got the password of the user %s" % username)
+        (Output, err) = Popen(['klist'],
+                              stdout=PIPE, stderr=PIPE).communicate()
+        print("GOT %s and %s" % (Output, err))
+        return base64.b64decode(password)
 
 
 @given('that we have a valid kerberos ticket of a user in "{n}" egroup')  # pylint: disable=undefined-variable
@@ -51,6 +56,7 @@ def step_impl(context, n):  # pylint: disable=unused-argument
     else:
         assert False
     assert True
+
 
 
 @given('that we are "{n}" in the hostgroup')  # pylint: disable=undefined-variable
@@ -105,6 +111,25 @@ def step_impl(context, existence):
         assert node in allowed or node in forbidden
     elif existence == "does not exist":
         assert node not in allowed and node not in forbidden
+
+
+@given('the Alarm "{existence}"')  # pylint: disable=undefined-variable
+def step_impl(context, existence):
+    try:
+        context.response = requests.get(url, params={
+                                        'alias_name': example_alias_name},  headers=headers, auth=HTTPKerberosAuth(), verify=cafile)
+    except Exception as e:
+        print(str(e))
+        assert False
+    print(context.response)
+    data = context.response.json()
+    r_alarms = str(data['objects'][0]['alarms'])
+    if existence == "exists":
+        assert r_alarms != ""
+    elif existence == "does not exist":
+        assert r_alarms == ""
+
+
 
 
 @when('we do a "{req}" request')  # pylint:disable=undefined-variable
@@ -196,6 +221,43 @@ def step_impl(context, req):  # pylint:disable=too-many-branches,too-many-statem
                        "polling_interval": 300, "statistics": "none", "clusters": "none", "tenant": "", "hostgroup": alias_hostgroup}
             context.response = requests.patch(url + str(alias_id) + "/", data=json.dumps(
                 payload), headers=headers, auth=HTTPKerberosAuth(), verify=cafile)
+        
+        elif req == "create alarm":
+            context.response = requests.get(url, params={
+                                            'alias_name': example_alias_name}, headers=headers, auth=HTTPKerberosAuth(), verify=cafile)
+            data = context.response.json()
+            alias_id = data['objects'][0]['alias_id']
+            alias_hostgroup = data['objects'][0]['hostgroup']
+            payload = {"alarms": alarm, "alias_name": example_alias_name, "behaviour": "mindless", "best_hosts": 2,
+                       "external": "external", "metric": "minino",
+                       "polling_interval": 300, "statistics": "none", "clusters": "none", "tenant": "", "hostgroup": alias_hostgroup}
+            context.response = requests.patch(url + str(alias_id) + "/", data=json.dumps(
+                payload), headers=headers, auth=HTTPKerberosAuth(), verify=cafile)
+        
+        elif req == "update alarm":
+            context.response = requests.get(url, params={
+                'alias_name': example_alias_name}, headers=headers, auth=HTTPKerberosAuth(), verify=cafile)
+            data = context.response.json()
+            alias_id = data['objects'][0]['alias_id']
+            alias_hostgroup = data['objects'][0]['hostgroup']
+            payload = {"alarms": "minimum:lbd-experts@cern.ch:2", "alias_name": example_alias_name, "behaviour": "mindless", "best_hosts": 2,
+                       "external": "external", "metric": "minino",
+                       "polling_interval": 300, "statistics": "none", "clusters": "none", "tenant": "", "hostgroup": alias_hostgroup}
+            context.response = requests.patch(url + str(alias_id) + "/", data=json.dumps(
+                payload), headers=headers, auth=HTTPKerberosAuth(), verify=cafile)
+        
+        elif req == "delete alarm":
+            context.response = requests.get(
+                url, params={'alias_name': example_alias_name}, headers=headers, auth=HTTPKerberosAuth(), verify=cafile)
+            data = context.response.json()
+            alias_id = data['objects'][0]['alias_id']
+            alias_hostgroup = data['objects'][0]['hostgroup']
+            payload = {"alarms": "", "alias_name": example_alias_name, "behaviour": "mindless", "best_hosts": 2,
+                       "external": "external", "metric": "minino",
+                       "polling_interval": 300, "statistics": "none", "clusters": "none", "tenant": "", "hostgroup": alias_hostgroup}
+            context.response = requests.patch(url + str(alias_id) + "/", data=json.dumps(
+                payload), headers=headers, auth=HTTPKerberosAuth(), verify=cafile)
+
         else:
             assert False
     except Exception as e:  # pylint: disable=broad-except
@@ -268,8 +330,51 @@ def step_impl(context, req):  # pylint:disable=too-many-branches,too-many-statem
             print(str(e))
             assert False
         assert data[u'objects'][0][u'ForbiddenNodes'] == ""
+    
+    elif req == "have alarm":
+        try:
+            context.response = requests.get(url, params={
+                                            'alias_name': example_alias_name},  headers=headers, auth=HTTPKerberosAuth(), verify=cafile)
+            data = context.response.json()
+        except Exception as e:
+            print(str(e))
+            assert False
+        r_alarm =data[u'objects'][0][u'alarms']
+        #Keep only the first 3 parts of the alarm
+        alarm_trunc = ":".join(r_alarm.split(":", 3)[:3])
+        assert alarm_trunc == alarm
+    
+    elif req == "not have alarm":
+        try:
+            context.response = requests.get(url, params={
+                                            'alias_name': example_alias_name},  headers=headers, auth=HTTPKerberosAuth(), verify=cafile)
+            data = context.response.json()
+        except Exception as e:
+            print(str(e))
+            assert False
+        r_alarm =data[u'objects'][0][u'alarms']
+        #Keep only the first 3 parts of the alarm
+        alarm_trunc = ":".join(r_alarm.split(":", 3)[:3])
+        assert alarm_trunc == ""
+    
+    elif req == "have updated alarm":
+        try:
+            context.response = requests.get(url, params={
+                                            'alias_name': example_alias_name},  headers=headers, auth=HTTPKerberosAuth(), verify=cafile)
+            data = context.response.json()
+        except Exception as e:
+            print(str(e))
+            assert False
+        r_alarm =data[u'objects'][0][u'alarms']
+        #Keep only the first 3 parts of the alarm
+        alarm_trunc = ":".join(r_alarm.split(":", 3)[:3])
+        assert alarm_trunc == "minimum:lbd-experts@cern.ch:2"
+
+    
     else:
         assert False
+
+
 
 
 @given('that we have a kerberos token')  # pylint: disable=undefined-variable

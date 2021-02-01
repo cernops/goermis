@@ -18,8 +18,6 @@ Feature: Testing API calls for Ermis
       then we get a "200" back
 
 
-
-
   Scenario: test if unprivileged user can create data if he/she has a valid kerberos ticket
      Given that we have a valid kerberos ticket of a user in "other" egroup
      And that we are "unauthorized" in the hostgroup
@@ -64,6 +62,30 @@ Feature: Testing API calls for Ermis
      And the Node "exists"
       when we do a "delete node" request
       then the object should "not have node"
+   
+   Scenario: test if hostgroup admin can create alarm if he/she has a valid kerberos ticket
+     Given that we have a valid kerberos ticket of a user in "other" egroup
+     And that we are "admin" in the hostgroup
+     And the LB alias "exists"
+     And the Alarm "does not exist"
+      when we do a "create alarm" request
+      then the object should "have alarm"
+
+  Scenario: test if hostgroup admin can update alarm if he/she has a valid kerberos ticket
+     Given that we have a valid kerberos ticket of a user in "other" egroup
+     And that we are "admin" in the hostgroup
+     And the LB alias "exists"
+     And the Alarm "exists"
+      when we do a "update alarm" request
+      then the object should "have updated alarm"
+
+   Scenario: test if hostgroup admin can delete alarm if he/she has a valid kerberos ticket
+     Given that we have a valid kerberos ticket of a user in "other" egroup
+     And that we are "admin" in the hostgroup
+     And the LB alias "exists"
+     And the Alarm "exists"
+      when we do a "delete alarm" request
+      then the object should "not have alarm"
 
    Scenario: test if hostgroup admin can delete data if he/she has a valid kerberos ticket
      Given that we have a valid kerberos ticket of a user in "other" egroup
@@ -79,7 +101,7 @@ Feature: Testing API calls for Ermis
       when we do a "post" request
       then the object should "be created"
 
-       Scenario: test if privileged user can create node if he/she has a valid kerberos ticket
+   Scenario: test if privileged user can create node if he/she has a valid kerberos ticket
      Given that we have a valid kerberos ticket of a user in "ermis-lbaas-admins" egroup
      And that we are "unauthorized" in the hostgroup
      And the LB alias "exists"
@@ -87,7 +109,7 @@ Feature: Testing API calls for Ermis
       when we do a "create node" request
       then the object should "have node"
 
-       Scenario: test if privileged user can create node if he/she has a valid kerberos ticket
+   Scenario: test if privileged user can update node if he/she has a valid kerberos ticket
      Given that we have a valid kerberos ticket of a user in "ermis-lbaas-admins" egroup
      And that we are "unauthorized" in the hostgroup
      And the LB alias "exists"
@@ -96,7 +118,7 @@ Feature: Testing API calls for Ermis
       then the object should "have updated nodes"
 
 
-       Scenario: test if unprivileged can update node if he/she has a valid kerberos ticket
+   Scenario: test if unprivileged can update node if he/she has a valid kerberos ticket
      Given that we have a valid kerberos ticket of a user in "other" egroup
      And that we are "unauthorized" in the hostgroup
      And the LB alias "exists"
@@ -112,7 +134,7 @@ Feature: Testing API calls for Ermis
       when we do a "delete node" request
       then we get a "401" back
 
-       Scenario: test if privileged user can create node if he/she has a valid kerberos ticket
+   Scenario: test if privileged user can delete node if he/she has a valid kerberos ticket
      Given that we have a valid kerberos ticket of a user in "ermis-lbaas-admins" egroup
      And that we are "unauthorized" in the hostgroup
      And the LB alias "exists"
@@ -120,6 +142,47 @@ Feature: Testing API calls for Ermis
       when we do a "delete node" request
       then the object should "not have node"
 
+
+   Scenario: test if privileged user can create alarm if he/she has a valid kerberos ticket
+     Given that we have a valid kerberos ticket of a user in "ermis-lbaas-admins" egroup
+     And that we are "unauthorized" in the hostgroup
+     And the LB alias "exists"
+     And the Alarm "does not exist"
+      when we do a "create alarm" request
+      then the object should "have alarm"
+
+   Scenario: test if privileged user can update alarm if he/she has a valid kerberos ticket
+     Given that we have a valid kerberos ticket of a user in "ermis-lbaas-admins" egroup
+     And that we are "unauthorized" in the hostgroup
+     And the LB alias "exists"
+     And the Alarm "exists"
+      when we do a "update alarm" request
+      then the object should "have updated alarm"
+
+
+   Scenario: test if unprivileged can update alarm if he/she has a valid kerberos ticket
+     Given that we have a valid kerberos ticket of a user in "other" egroup
+     And that we are "unauthorized" in the hostgroup
+     And the LB alias "exists"
+     And the Alarm "exists"
+      when we do a "update alarm" request
+      then we get a "401" back
+
+   Scenario: test if unprivileged can delete alarm if he/she has a valid kerberos ticket
+     Given that we have a valid kerberos ticket of a user in "other" egroup
+     And that we are "unauthorized" in the hostgroup
+     And the LB alias "exists"
+     And the Alarm "exists"
+      when we do a "delete alarm" request
+      then we get a "401" back
+
+   Scenario: test if privileged user can delete alarm if he/she has a valid kerberos ticket
+     Given that we have a valid kerberos ticket of a user in "ermis-lbaas-admins" egroup
+     And that we are "unauthorized" in the hostgroup
+     And the LB alias "exists"
+     And the Alarm "exists"
+      when we do a "delete alarm" request
+      then the object should "not have alarm"
 
 
   Scenario: test if unprivileged user can delete data if he/she has a valid kerberos ticket
@@ -129,7 +192,7 @@ Feature: Testing API calls for Ermis
       when we do a "delete" request
       then we get a "401" back
 
-      Scenario: test if unprivileged user can update data if he/she has a valid kerberos ticket
+  Scenario: test if unprivileged user can update data if he/she has a valid kerberos ticket
      Given that we have a valid kerberos ticket of a user in "other" egroup
      And that we are "unauthorized" in the hostgroup
      And the LB alias "exists"
@@ -144,9 +207,18 @@ Feature: Testing API calls for Ermis
       when we do a "create node" request
       then we get a "401" back
 
-  
    
-   
+
+
+   Scenario: test if unprivileged can create alarm if he/she has a valid kerberos ticket
+     Given that we have a valid kerberos ticket of a user in "other" egroup
+     And that we are "unauthorized" in the hostgroup
+     And the LB alias "exists"
+     And the Alarm "does not exist"
+      when we do a "create alarm" request
+      then we get a "401" back
+
+
    Scenario: test if unprivileged user can move alias to a different hostgroup where he is admin
      Given that we have a valid kerberos ticket of a user in "other" egroup
      And that we are "unauthorized" in the hostgroup
@@ -155,7 +227,7 @@ Feature: Testing API calls for Ermis
       then we get a "401" back
 
 
-Scenario: test if privileged user can create duplicate data if he/she has a valid kerberos ticket
+  Scenario: test if privileged user can create duplicate data if he/she has a valid kerberos ticket
      Given that we have a valid kerberos ticket of a user in "ermis-lbaas-admins" egroup
      And that we are "unauthorized" in the hostgroup
      And the LB alias "exists"
@@ -189,6 +261,29 @@ Scenario: test if privileged user can create duplicate data if he/she has a vali
      And the Node "exists"
       when we do a "delete node" request
       then the object should "not have node"
+   
+
+   Scenario: test if privileged can create alarm if he/she has a valid kerberos ticket
+     Given that we have a valid kerberos ticket of a user in "ermis-lbaas-admins" egroup
+     And the LB alias "exists"
+     And the Alarm "does not exist"
+      when we do a "create alarm" request
+      then the object should "have alarm"
+   
+   Scenario: test if privileged can update alarm if he/she has a valid kerberos ticket
+     Given that we have a valid kerberos ticket of a user in "ermis-lbaas-admins" egroup
+     And the LB alias "exists"
+     And the Alarm "exists"
+      when we do a "update alarm" request
+      then the object should "have updated alarm"
+
+   Scenario: test if privileged can delete alarm if he/she has a valid kerberos ticket
+     Given that we have a valid kerberos ticket of a user in "ermis-lbaas-admins" egroup
+     And the LB alias "exists"
+     And the Alarm "exists"
+      when we do a "delete alarm" request
+      then the object should "not have alarm"
+
 
   Scenario: test if privileged user can delete data if he/she has a valid kerberos ticket
      Given that we have a valid kerberos ticket of a user in "ermis-lbaas-admins" egroup
@@ -217,7 +312,7 @@ Scenario: test if privileged user can create duplicate data if he/she has a vali
       
   
 
- Scenario: restore original token
+  Scenario: restore original token
      Given that we have the saved kerberos token
       when we restore the token
       then we have a valid token
