@@ -165,7 +165,6 @@ func ModifyAlias(c echo.Context) error {
 	}
 	sanitazed := sanitazeInUpdate(alias[0], temp)
 
-
 	//Validate the object alias , with the now-updated fields
 	//if ok, err := govalidator.ValidateStruct(alias[0]); err != nil || ok == false {
 	//	return common.MessageToUser(c, http.StatusBadRequest,
@@ -188,7 +187,7 @@ func ModifyAlias(c echo.Context) error {
 //CheckNameDNS checks if an alias or cname already exist in DB or DNS server
 func CheckNameDNS(c echo.Context) error {
 	var (
-		result int
+		result int64
 
 		con = db.ManagerDB()
 	)
@@ -202,7 +201,7 @@ func CheckNameDNS(c echo.Context) error {
 	}
 	if result == 0 {
 		r, _ := net.LookupHost(aliasToResolve)
-		result = len(r)
+		result = int64(len(r))
 	}
 	return c.JSON(http.StatusOK, result)
 }

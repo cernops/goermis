@@ -133,7 +133,7 @@ func GetObjects(param string) (query []Alias, err error) {
 
 //CreateObject creates an alias
 func (alias Alias) CreateObject() (err error) {
-
+/*
 	//Create object in the DB with transactions, if smth goes wrong its rolledback
 	if err := CreateTransactions(alias); err != nil {
 		return err
@@ -155,12 +155,12 @@ func (alias Alias) CreateObject() (err error) {
 
 }
 
-/*
+
 // C) DELETE single object
 
 //DeleteObject deletes an alias and its Relations
 func (r Resource) DeleteObject() (err error) {
-	//Delete from DB
+	/* //Delete from DB
 	if err := orm.DeleteTransactions(r.AliasName, r.ID); err != nil {
 		return err
 	}
@@ -172,22 +172,19 @@ func (r Resource) DeleteObject() (err error) {
 		r.CreateObject()
 		return err
 	}
-
+*/
 	return nil
 
 }
-*/
+
 // D) MODIFY single object
 
 //ModifyObject modifies aliases and its associations
 func (alias Alias) ModifyObject() (err error) {
-
-	err = con.Session().Updates(&alias).Error
-	return err
-
-}
-
 /*
+	//err = con.Session().Updates(&alias).Error
+	//return err
+
 	//Let's update in DB the single-valued fields that do not require iteration/comparisson
 	if err = con.Model(&orm.Alias{}).Where("id = ?", r.ID).UpdateColumns(
 		map[string]interface{}{
@@ -231,16 +228,16 @@ func (alias Alias) ModifyObject() (err error) {
 	if err = r.updateAlarms(oldObject[0]); err != nil {
 		return err
 	}
-
+*/
 	return nil
 }
 
-/*
+
 /////////// Logical sub-functions of UPDATE///////////
 
 //UpdateNodes updates alias with new nodes in DB
 func (r Resource) updateNodes(new map[string]bool, old map[string]bool) (err error) {
-	for name := range old {
+	/*for name := range old {
 		if _, ok := new[name]; !ok {
 			if err = orm.DeleteNodeTransactions(r.ID, name); err != nil {
 				return errors.New("Failed to delete existing node " +
@@ -264,14 +261,14 @@ func (r Resource) updateNodes(new map[string]bool, old map[string]bool) (err err
 			}
 		}
 	}
-
+*/
 	return nil
 
 }
 
 //UpdateCnames updates cnames in DB
 func (r Resource) updateCnames(oldObject Resource) (err error) {
-
+/*
 	//Split string and delete any possible empty values
 
 	newCnames := common.DeleteEmpty(strings.Split(r.Cname, ","))
@@ -306,12 +303,12 @@ func (r Resource) updateCnames(oldObject Resource) (err error) {
 					value + " while purging all, with error: " + err.Error())
 			}
 		}
-	}
+	}*/
 	return nil
 }
 
 func (r Resource) updateAlarms(oldObject Resource) (err error) {
-	//Split string and delete any possible empty values
+/*	//Split string and delete any possible empty values
 
 	newAlarms := common.DeleteEmpty(strings.Split(r.Alarms, ","))
 	exAlarms := common.DeleteEmpty(strings.Split(oldObject.Alarms, ","))
@@ -345,20 +342,21 @@ func (r Resource) updateAlarms(oldObject Resource) (err error) {
 					value + " while purging all, with error: " + err.Error())
 			}
 		}
-	}
+	}*/
 	return nil
 }
 
 //nodesInMap puts the nodes in a map. The value is their privilege
 func nodesInMap(AllowedNodes interface{}, ForbiddenNodes interface{}) map[string]bool {
-	if AllowedNodes == nil {
+    temp := make(map[string]bool)
+	/*	if AllowedNodes == nil {
 		AllowedNodes = ""
 	}
 	if ForbiddenNodes == nil {
 		ForbiddenNodes = ""
 	}
 
-	temp := make(map[string]bool)
+	
 
 	modes := map[interface{}]bool{
 		AllowedNodes:   false,
@@ -371,7 +369,7 @@ func nodesInMap(AllowedNodes interface{}, ForbiddenNodes interface{}) map[string
 			}
 		}
 	}
-
+*/
 	return temp
 }
-*/
+

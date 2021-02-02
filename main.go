@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jinzhu/gorm"
 	"github.com/labstack/gommon/log"
 	"gitlab.cern.ch/lb-experts/goermis/aiermis/api"
 	"gitlab.cern.ch/lb-experts/goermis/alarms"
@@ -33,8 +32,6 @@ func main() {
 
 	//Initiate template views
 	views.InitViews(echo)
-	//Create and keep up to date DB tables
-	autoCreateTables(&api.Alias{}, &api.Node{}, &api.Cname{}, &api.Alarm{}, &api.Relation{})
 	autoMigrateTables()
 
 	//Alarms periodic check/update
@@ -86,6 +83,7 @@ func main() {
 
 }
 
+/*
 //GORM will create/migrate new data, but will not delete anything for security reasons
 func autoCreateTables(values ...interface{}) error {
 	for _, value := range values {
@@ -107,7 +105,7 @@ func autoCreateTables(values ...interface{}) error {
 	}
 	return nil
 }
-
+*/
 // autoMigrateTables: migrate table columns using GORM. Will not delete/change types for security reasons
 func autoMigrateTables() {
 	db.ManagerDB().AutoMigrate(&api.Alias{}, &api.Node{}, &api.Cname{}, &api.Alarm{}, &api.Relation{})

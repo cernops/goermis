@@ -1,23 +1,13 @@
 package api
 
-import (
-	"errors"
-	"strconv"
-	"strings"
-	"time"
-
-	"github.com/jinzhu/gorm"
-	"gitlab.cern.ch/lb-experts/goermis/aiermis/common"
-	cgorm "gitlab.cern.ch/lb-experts/goermis/db"
-)
-
+/*
 //CreateTransactions creates a new DB entry and its cname relations, with transactions
 func CreateTransactions(a Alias) (err error) {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
 
-		// check new object's primary key
-		if !cgorm.ManagerDB().NewRecord(&a) {
-			return errors.New("Blank primary key for alias")
+		// check new object's doesnt already exist
+		if cgorm.ManagerDB().First(&a) == nil {
+			return errors.New("An alias exists with the same name")
 		}
 		if err = tx.Create(&a).
 			Error; err != nil {
@@ -45,8 +35,8 @@ func CreateTransactions(a Alias) (err error) {
 					}
 				}
 			}
-		*/
-		return nil
+
+		//return nil
 	})
 
 }
@@ -126,7 +116,7 @@ func DeleteTransactions(name string, ID int) (err error) {
 	})
 
 }
-
+/*
 //DeleteNodeTransactions deletes  a Node from the database
 func DeleteNodeTransactions(aliasID int, name string) (err error) {
 	var node Node
@@ -160,7 +150,7 @@ func DeleteNodeTransactions(aliasID int, name string) (err error) {
 		return nil
 
 	})
-}
+}/*
 
 //AddNodeTransactions adds a node in the DB
 func AddNodeTransactions(aliasID int, name string, privilege bool) (err error) {
@@ -187,7 +177,7 @@ func AddNodeTransactions(aliasID int, name string, privilege bool) (err error) {
 		return nil
 	})
 }
-
+/*
 //UpdatePrivilegeTransactions updates the privilege of a node from allowed to forbidden and vice versa
 func UpdatePrivilegeTransactions(aliasID int, name string, p bool) (err error) {
 	var node Node
@@ -212,11 +202,11 @@ func UpdatePrivilegeTransactions(aliasID int, name string, p bool) (err error) {
 	})
 
 }
-
+/*
 //AddCnameTransactions appends a Cname
 func AddCnameTransactions(aliasID int, cname string) error {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
-		if !cgorm.ManagerDB().NewRecord(&Cname{Cname: cname}) {
+		if cgorm.ManagerDB().First(&Cname{Cname: cname}) == nil {
 			return err
 		}
 
@@ -232,7 +222,7 @@ func AddCnameTransactions(aliasID int, cname string) error {
 		return nil
 	})
 
-}
+}/*
 
 //DeleteCnameTransactions cname from db during modification
 //AutoUpdate is false, because otherwise we will be adding what we just deleted
@@ -249,7 +239,7 @@ func DeleteCnameTransactions(aliasID int, cname string) error {
 
 	})
 
-}
+}/*
 
 //AddAlarmTransactions appends an alarm
 func AddAlarmTransactions(aliasID int, aliasName string, alarm string) error {
@@ -279,7 +269,7 @@ func AddAlarmTransactions(aliasID int, aliasName string, alarm string) error {
 		return nil
 	})
 
-}
+}/*
 
 //DeleteAlarmTransactions deletes an alarm from db during modification
 //AutoUpdate is false, because otherwise we will be adding what we just deleted
@@ -299,7 +289,7 @@ func DeleteAlarmTransactions(aliasID int, alarm string) error {
 
 	})
 
-}
+}/*
 
 // WithinTransaction  accept dBFunc as parameter call dBFunc function within transaction begin, and commit and return error from dBFunc
 func WithinTransaction(fn dBFunc) (err error) {
@@ -311,10 +301,11 @@ func WithinTransaction(fn dBFunc) (err error) {
 	}
 	return err
 
-}
-
+}*/
+/*
 //PrepareRelation prepares an entry for the node-alias table
 func prepareRelation(nodeID int, aliasID int, p bool) (r *Relation) {
 	r = &Relation{AliasID: aliasID, NodeID: nodeID, Blacklist: p}
 	return r
 }
+*/

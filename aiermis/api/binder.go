@@ -69,7 +69,6 @@ func sanitazeInCreation(resource Resource) (object Alias) {
 	object.Clusters = "none"
 	object.Behaviour = "mindless"
 
-	//The rest
 
 	return
 }
