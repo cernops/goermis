@@ -32,19 +32,24 @@ type (
 		Pwned            bool      `                         json:"pwned"             valid:"-"`
 		Alarms           []string  `form:"alarms"            json:"alarms"             valid:"-"`
 	}
+	//List holds multiple result structs
+	List struct {
+		Objects []Resource `json:"objects"`
+	}
 )
 
 func sanitazeInCreation(resource Resource) (object Alias) {
-	var (
-		cnames []Cname
-	)
+
 	//Cnames
+	object.Cnames = []Cname{}
 	if len(resource.Cname) != 0 {
 		split := common.DeleteEmpty(strings.Split(resource.Cname[0], ","))
 		for _, cname := range split {
-			cnames = append(cnames, Cname{Cname: cname})
+			object.Cnames = append(object.Cnames, Cname{Cname: cname})
 		}
+
 	}
+
 	//Alias name hydration
 	if !strings.HasSuffix(resource.AliasName, ".cern.ch") {
 		object.AliasName = resource.AliasName + ".cern.ch"
@@ -52,6 +57,14 @@ func sanitazeInCreation(resource Resource) (object Alias) {
 		object.AliasName = resource.AliasName
 	}
 
+	if resource.Hostgroup != "" {
+		object.Hostgroup = resource.Hostgroup
+	}
+	object.User = GetUsername()
+
+	if resource.BestHosts != 0 {
+		object.BestHosts = resource.BestHosts
+	}
 	//View
 	if common.StringInSlice(strings.ToLower(resource.External), []string{"yes", "external"}) {
 		object.External = "yes"
@@ -68,7 +81,6 @@ func sanitazeInCreation(resource Resource) (object Alias) {
 	object.TTL = 60
 	object.Clusters = "none"
 	object.Behaviour = "mindless"
-
 
 	return
 }
@@ -178,14 +190,14 @@ func sanitazeInUpdate(current Alias, new Resource) Alias {
 	}
 
 	//Nodes
-	current.Nodes = []*Relation{}
-	fields := [][]string{new.AllowedNodes, new.ForbiddenNodes}
-	for _, field := range fields {
+	current.Nodes = []Relation{}
+	fields := map[bool][]string{false: new.AllowedNodes, true: new.ForbiddenNodes}
+	for k, field := range fields {
 		if len(field) != 0 {
 			nodes := common.DeleteEmpty(strings.Split(field[0], ","))
 			for _, node := range nodes {
-				current.Nodes = append(current.Nodes, &Relation{
-					Blacklist: false,
+				current.Nodes = append(current.Nodes, Relation{
+					Blacklist: k,
 					Node: &Node{
 						NodeName:         node,
 						LastModification: time.Now(),

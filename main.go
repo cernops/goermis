@@ -83,29 +83,7 @@ func main() {
 
 }
 
-/*
-//GORM will create/migrate new data, but will not delete anything for security reasons
-func autoCreateTables(values ...interface{}) error {
-	for _, value := range values {
-		if !db.ManagerDB().HasTable(value) {
-			err := db.ManagerDB().CreateTable(value).Error
-			gorm.DefaultTableNameHandler = func(db *gorm.DB, defaultTableName string) string {
-				return "ermis_api_" + defaultTableName
-			}
-			if err != nil {
-				errClose := db.ManagerDB().Close()
-				if errClose != nil {
-					log.Error("Error while trying to close DB conn.")
 
-				}
-				return err
-
-			}
-		}
-	}
-	return nil
-}
-*/
 // autoMigrateTables: migrate table columns using GORM. Will not delete/change types for security reasons
 func autoMigrateTables() {
 	db.ManagerDB().AutoMigrate(&api.Alias{}, &api.Node{}, &api.Cname{}, &api.Alarm{}, &api.Relation{})

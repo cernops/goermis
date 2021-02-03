@@ -1,46 +1,51 @@
 package api
 
-/*
+import (
+	"errors"
+	"time"
+
+	cgorm "gitlab.cern.ch/lb-experts/goermis/db"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+)
+
 //CreateTransactions creates a new DB entry and its cname relations, with transactions
 func CreateTransactions(a Alias) (err error) {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
 
-		// check new object's doesnt already exist
-		if cgorm.ManagerDB().First(&a) == nil {
-			return errors.New("An alias exists with the same name")
-		}
 		if err = tx.Create(&a).
 			Error; err != nil {
 			tx.Rollback() // rollback
 			return errors.New(a.AliasName + " creation in DB failed with error: " +
 				err.Error())
 		}
-		/*
-			if len(cnames) > 0 {
-				for _, cname := range cnames {
-					if !cgorm.ManagerDB().
-						NewRecord(&Cname{
-							Cname: cname}) {
-						return errors.New("Blank primary key for cname")
-					}
-
-					if err = tx.Model(&a).
-						Association("Cnames").
-						Append(&Cname{
-							Cname: cname}).
-						Error; err != nil {
-						tx.Rollback()
-						return errors.New(cname + " creation in DB failed with error: " +
-							err.Error())
-					}
-				}
-			}
-
-		//return nil
+		return nil
 	})
-
 }
 
+//aliasUpdateTransactions updates non-associative alias parameters
+//(best hosts, behaviour, hostgroup, metric, tenant etc.)
+func aliasUpdateTransactions(a Alias) (err error) {
+	return WithinTransaction(func(tx *gorm.DB) (err error) {
+		if err = tx.Model(&a).Omit(clause.Associations).Updates(
+			map[string]interface{}{
+				"external":          a.External,
+				"hostgroup":         a.Hostgroup,
+				"best_hosts":        a.BestHosts,
+				"metric":            a.Metric,
+				"polling_interval":  a.PollingInterval,
+				"ttl":               a.TTL,
+				"tenant":            a.Tenant,
+				"last_modification": time.Now(),
+			}).Error; err != nil {
+			return errors.New("Failed to update the single-valued fields with error: " + err.Error())
+
+		}
+		return nil
+	})
+}
+
+/*
 //DeleteTransactions deletes an entry and its relations from DB, with transactions
 func DeleteTransactions(name string, ID int) (err error) {
 	var relation []Relation
@@ -116,29 +121,22 @@ func DeleteTransactions(name string, ID int) (err error) {
 	})
 
 }
-/*
-//DeleteNodeTransactions deletes  a Node from the database
-func DeleteNodeTransactions(aliasID int, name string) (err error) {
-	var node Node
-	return WithinTransaction(func(tx *gorm.DB) (err error) {
-		//find node
-		if err := tx.First(&node, "node_name=?", name).
-			Error; err != nil {
-			tx.Rollback()
-			return err
-		}
 
+*/
+//deleteNodeTransactions deletes  a Node from the database
+func deleteNodeTransactions(alias Alias, v Relation) (err error) {
+	return WithinTransaction(func(tx *gorm.DB) (err error) {
 		//Delete relation
 		if err = tx.Set("gorm:association_autoupdate", false).
-			Where("alias_id = ? AND node_id = ?", aliasID, node.ID).
+			Where("alias_id = ? AND node_id = ?", alias.ID, v.NodeID).
 			Delete(&Relation{}).
 			Error; err != nil {
 			tx.Rollback()
 			return err
 		}
 		//Delete node with no other relations
-		if tx.Model(&node).Association("Aliases").Count() == 0 {
-			if err = tx.Delete(&node).
+		if tx.Model(&v.Node).Association("Aliases").Count() == 0 {
+			if err = tx.Delete(&v.Node).
 				Error; err != nil {
 				tx.Rollback()
 				return err
@@ -150,49 +148,41 @@ func DeleteNodeTransactions(aliasID int, name string) (err error) {
 		return nil
 
 	})
-}/*
+}
 
-//AddNodeTransactions adds a node in the DB
-func AddNodeTransactions(aliasID int, name string, privilege bool) (err error) {
-	var node Node
-
+//addNodeTransactions adds a node in the DB
+func addNodeTransactions(alias Alias, v Relation) (err error) {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
-		if err = tx.Where("node_name = ?", name).
-			Assign(Node{
-				NodeName:         name,
-				LastModification: time.Now()}).
-			FirstOrCreate(&node).
-			Error; err != nil {
+		var (
+			node Node
+		)
+		if err = tx.Where("node_name = ?", v.Node.NodeName).
+			Assign(v.Node).
+			FirstOrCreate(&node).Error; err != nil {
 			tx.Rollback()
 			return err
 		}
-		if tx.Where("alias_id = ? AND node_id = ?", aliasID, node.ID).First(&Relation{}).RecordNotFound() {
-			if err = tx.First(&Alias{}, "id=?", aliasID).Create(
-				prepareRelation(node.ID, aliasID, privilege),
-			).Error; err != nil {
-				tx.Rollback()
-				return err
-			}
+
+		if err = tx.Create(
+			Relation{
+				AliasID:   alias.ID,
+				NodeID:    node.ID,
+				Blacklist: v.Blacklist},
+		).Error; err != nil {
+			tx.Rollback()
+			return err
 		}
+
 		return nil
 	})
 }
-/*
-//UpdatePrivilegeTransactions updates the privilege of a node from allowed to forbidden and vice versa
-func UpdatePrivilegeTransactions(aliasID int, name string, p bool) (err error) {
-	var node Node
+
+//updatePrivilegeTransactions updates the privilege of a node from allowed to forbidden and vice versa
+func updatePrivilegeTransactions(alias Alias, v Relation) (err error) {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
-
-		//find node
-		if err := tx.First(&node, "node_name=?", name).
-			Error; err != nil {
-			tx.Rollback()
-			return err
-		}
-
-		if err = tx.Model(&Relation{}).
-			Where("alias_id=? AND node_id = ?", aliasID, node.ID).
-			Update("blacklist", p).
+		if err = tx.Model(&v).
+			Where("alias_id=? AND node_id = ?", alias.ID, v.NodeID).
+			Update("blacklist", v.Blacklist).
 			Error; err != nil {
 			tx.Rollback()
 			return err
@@ -202,35 +192,26 @@ func UpdatePrivilegeTransactions(aliasID int, name string, p bool) (err error) {
 	})
 
 }
-/*
+
 //AddCnameTransactions appends a Cname
-func AddCnameTransactions(aliasID int, cname string) error {
+func addCnameTransactions(a Alias, cname Cname) error {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
-		if cgorm.ManagerDB().First(&Cname{Cname: cname}) == nil {
-			return err
-		}
-
-		if err = tx.Set("gorm:association_autoupdate", false).
-			First(&Alias{}, "id=?", aliasID).
+		if err = tx.Model(&a).
 			Association("Cnames").
-			Append(&Cname{
-				Cname: cname}).
-			Error; err != nil {
+			Append(&cname); err != nil {
 			tx.Rollback()
 			return err
 		}
 		return nil
 	})
 
-}/*
+}
 
 //DeleteCnameTransactions cname from db during modification
 //AutoUpdate is false, because otherwise we will be adding what we just deleted
-func DeleteCnameTransactions(aliasID int, cname string) error {
+func deleteCnameTransactions(cname Cname) error {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
-		if err = tx.Set("gorm:association_autoupdate", false).
-			Where("cname_alias_id = ? AND cname = ?", aliasID, cname).
-			Delete(&Cname{}).
+		if err = tx.Delete(&cname).
 			Error; err != nil {
 			tx.Rollback()
 			return err
@@ -239,7 +220,9 @@ func DeleteCnameTransactions(aliasID int, cname string) error {
 
 	})
 
-}/*
+}
+
+/*
 
 //AddAlarmTransactions appends an alarm
 func AddAlarmTransactions(aliasID int, aliasName string, alarm string) error {
@@ -289,7 +272,7 @@ func DeleteAlarmTransactions(aliasID int, alarm string) error {
 
 	})
 
-}/*
+}*/
 
 // WithinTransaction  accept dBFunc as parameter call dBFunc function within transaction begin, and commit and return error from dBFunc
 func WithinTransaction(fn dBFunc) (err error) {
@@ -301,11 +284,4 @@ func WithinTransaction(fn dBFunc) (err error) {
 	}
 	return err
 
-}*/
-/*
-//PrepareRelation prepares an entry for the node-alias table
-func prepareRelation(nodeID int, aliasID int, p bool) (r *Relation) {
-	r = &Relation{AliasID: aliasID, NodeID: nodeID, Blacklist: p}
-	return r
 }
-*/

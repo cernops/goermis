@@ -5,7 +5,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/jinzhu/gorm"
+	"github.com/davecgh/go-spew/spew"
+	"gorm.io/gorm"
 
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 	"gitlab.cern.ch/lb-experts/goermis/db"
@@ -23,7 +24,7 @@ valid tag--> validation rules, extra funcs in the common.go file*/
 type (
 	//Alias structure is a model for describing the alias
 	Alias struct {
-		ID               int
+		ID               int       `  gorm:"auto_increment;primaryKey" `
 		AliasName        string    `  gorm:"not null;type:varchar(40);unique" `
 		Behaviour        string    `  gorm:"type:varchar(15);not null" `
 		BestHosts        int       `  gorm:"type:smallint(6);not null" `
@@ -38,7 +39,7 @@ type (
 		TTL              int       `  gorm:"type:smallint(6);default:60;not null"`
 		LastModification time.Time `  gorm:"type:date"`
 		Cnames           []Cname   `  gorm:"foreignkey:CnameAliasID" `
-		Nodes            []*Relation
+		Nodes            []Relation
 		Alarms           []Alarm `  gorm:"foreignkey:AlarmAliasID" `
 	}
 
@@ -48,7 +49,7 @@ type (
 
 	//Relation describes the many-to-many relation between nodes/aliases
 	Relation struct {
-		ID        int
+		ID        int `  gorm:"not null;auto_increment" `
 		Node      *Node
 		NodeID    int ` gorm:"not null"`
 		Alias     *Alias
@@ -57,7 +58,7 @@ type (
 	}
 	//Alarm describes the one to many relation between an alias and its alarms
 	Alarm struct {
-		ID           int          `  gorm:"auto_increment;primary_key" `
+		ID           int          `  gorm:"auto_increment;primaryKey" `
 		AlarmAliasID int          `  gorm:"not null" `
 		Alias        string       `  gorm:"type:varchar(40);not null" `
 		Name         string       `  gorm:"type:varchar(20);not null" `
@@ -70,29 +71,24 @@ type (
 
 	//Cname structure is a model for the cname description
 	Cname struct {
-		ID           int    `  gorm:"auto_increment;primary_key" `
+		ID           int    `  gorm:"auto_increment;primaryKey" `
 		CnameAliasID int    `  gorm:"not null" `
 		Cname        string `  gorm:"type:varchar(40);not null;unique" `
 	}
 
 	//Node structure defines the model for the nodes params Node struct {
 	Node struct {
-		ID               int       `  gorm:"unique;not null;auto_increment;primary_key"`
-		NodeName         string    `  gorm:"not null;type:varchar(40);unique" `
-		LastModification time.Time `  gorm:"DEFAULT:current_timestamp"`
+		ID               int    `  gorm:"unique;not null;auto_increment;primaryKey"`
+		NodeName         string `  gorm:"not null;type:varchar(40);unique" `
+		LastModification time.Time
 		Load             int
 		State            string `  gorm:"type:varchar(15);not null" `
 		Hostgroup        string `  gorm:"type:varchar(40);not null" `
-		Aliases          []*Relation
+		Aliases          []Relation
 	}
 
 	//dBFunc type which accept *gorm.DB and return error, used for transactions
 	dBFunc func(tx *gorm.DB) error
-
-	//List holds multiple result structs
-	List struct {
-		Objects []Resource
-	}
 )
 
 ////////////////////////METHODS////////////////////////////////
@@ -131,9 +127,9 @@ func GetObjects(param string) (query []Alias, err error) {
 
 // B) Create single object
 
-//CreateObject creates an alias
-func (alias Alias) CreateObject() (err error) {
-/*
+//CreateObjectInDB creates an alias
+func (alias Alias) createObjectInDB() (err error) {
+
 	//Create object in the DB with transactions, if smth goes wrong its rolledback
 	if err := CreateTransactions(alias); err != nil {
 		return err
@@ -155,221 +151,230 @@ func (alias Alias) CreateObject() (err error) {
 
 }
 
-
 // C) DELETE single object
-
+/*
 //DeleteObject deletes an alias and its Relations
 func (r Resource) DeleteObject() (err error) {
-	/* //Delete from DB
+	//Delete from DB
 	if err := orm.DeleteTransactions(r.AliasName, r.ID); err != nil {
 		return err
 	}
-
-	//Now delete from DNS.
-	if err := r.deleteFromDNS(); err != nil {
-		//If deletion from DNS fails, we recreate the object.
-		//It will be recreated in DB, but not DNS because it already exists there.
-		r.CreateObject()
-		return err
-	}
-*/
-	return nil
+	/*
+		//Now delete from DNS.
+		if err := r.deleteFromDNS(); err != nil {
+			//If deletion from DNS fails, we recreate the object.
+			//It will be recreated in DB, but not DNS because it already exists there.
+			r.CreateObject()
+			return err
+		}
+	/*
+	//return nil
 
 }
-
+*/
 // D) MODIFY single object
 
-//ModifyObject modifies aliases and its associations
-func (alias Alias) ModifyObject() (err error) {
-/*
-	//err = con.Session().Updates(&alias).Error
-	//return err
-
-	//Let's update in DB the single-valued fields that do not require iteration/comparisson
-	if err = con.Model(&orm.Alias{}).Where("id = ?", r.ID).UpdateColumns(
-		map[string]interface{}{
-			"external":          r.External,
-			"hostgroup":         r.Hostgroup,
-			"best_hosts":        r.BestHosts,
-			"metric":            r.Metric,
-			"polling_interval":  r.PollingInterval,
-			"ttl":               r.TTL,
-			"tenant":            r.Tenant,
-			"last_modification": time.Now(),
-		}).Error; err != nil {
-		return errors.New("Failed to update the single-valued fields with error: " + err.Error())
-
-	}
-
-	//1.Update cnames in DB
-	if err = r.updateCnames(oldObject[0]); err != nil {
+//UpdateAlias modifies aliases and its associations
+func (alias Alias) updateAlias() (err error) {
+	if err := aliasUpdateTransactions(alias); err != nil {
 		return err
 	}
-	/*2.Update nodes for r object with new nodes(nodesInMap converts string to map,
-	  where value indicates privilege allowed/forbidden)*/
-/*
-	newNodesMap := nodesInMap(r.AllowedNodes, r.ForbiddenNodes)
-	oldNodesMap := nodesInMap(oldObject[0].AllowedNodes, oldObject[0].ForbiddenNodes)
+	/*
+		//Step.2 Update 1-to-many cname associations.
+		if err = r.updateCnames(oldObject[0]); err != nil {
+			return err
+		}
+		/*2.Update nodes for r object with new nodes(nodesInMap converts string to map,
+		  where value indicates privilege allowed/forbidden)*/
+	/*
+		newNodesMap := nodesInMap(r.AllowedNodes, r.ForbiddenNodes)
+		oldNodesMap := nodesInMap(oldObject[0].AllowedNodes, oldObject[0].ForbiddenNodes)
 
-	if err = r.updateNodes(newNodesMap, oldNodesMap); err != nil {
-		return err
-	}
-
-	//3.Update DNS
-	if err = r.UpdateDNS(oldObject[0]); err != nil {
-		//If something goes wrong while updating, then we use the object
-		//we had in DB before the update to restore that state, before the error
-		r.DeleteObject()            //Delete the DB updates we just made and existing DNS entries
-		oldObject[0].CreateObject() //Recreate the alias as it was before the update
-		return err
-	}
-
-	//4.Update alarms
-	if err = r.updateAlarms(oldObject[0]); err != nil {
-		return err
-	}
-*/
+		if err = r.updateNodes(newNodesMap, oldNodesMap); err != nil {
+			return err
+		}
+		/*
+			//3.Update DNS
+			if err = r.UpdateDNS(oldObject[0]); err != nil {
+				//If something goes wrong while updating, then we use the object
+				//we had in DB before the update to restore that state, before the error
+				r.DeleteObject()            //Delete the DB updates we just made and existing DNS entries
+				oldObject[0].CreateObject() //Recreate the alias as it was before the update
+				return err
+			}
+	*/
+	/*
+		//4.Update alarms
+		if err = r.updateAlarms(oldObject[0]); err != nil {
+			return err
+		}
+	*/
 	return nil
 }
 
+//updateNodes updates alias with new nodes
+func (alias Alias) updateNodes() (err error) {
+	var (
+		nodesInDB []Relation
+	)
+	//Let's find the registered nodes for this alias
 
-/////////// Logical sub-functions of UPDATE///////////
+	con.Preload("Node").Where("alias_id=?", alias.ID).Find(&nodesInDB)
 
-//UpdateNodes updates alias with new nodes in DB
-func (r Resource) updateNodes(new map[string]bool, old map[string]bool) (err error) {
-	/*for name := range old {
-		if _, ok := new[name]; !ok {
-			if err = orm.DeleteNodeTransactions(r.ID, name); err != nil {
+	spew.Dump(alias.Nodes)
+	spew.Dump(nodesInDB)
+	for _, v := range nodesInDB {
+		if ok, _ := containsNode(alias.Nodes, v); !ok {
+			if err = deleteNodeTransactions(alias, v); err != nil {
 				return errors.New("Failed to delete existing node " +
-					name + " while updating, with error: " + err.Error())
+					v.Node.NodeName + " while updating, with error: " + err.Error())
 			}
 		}
 	}
-	for name, privilege := range new {
-		if name == "" {
-			continue
-		}
-		if _, ok := old[name]; !ok {
-			if err = orm.AddNodeTransactions(r.ID, name, privilege); err != nil {
+	for _, v := range alias.Nodes {
+		if ok, _ := containsNode(nodesInDB, v); !ok {
+			if err = addNodeTransactions(alias, v); err != nil {
 				return errors.New("Failed to add new node " +
-					name + " while updating, with error: " + err.Error())
+					v.Node.NodeName + " while updating, with error: " + err.Error())
 			}
-		} else if value, ok := old[name]; ok && value != privilege {
-			if err = orm.UpdatePrivilegeTransactions(r.ID, name, privilege); err != nil {
+		} else if ok, privilege := containsNode(nodesInDB, v); ok && !privilege {
+			if err = updatePrivilegeTransactions(alias, v); err != nil {
 				return errors.New("Failed to update privilege for node " +
-					name + " while updating, with error: " + err.Error())
+					v.Node.NodeName + " while updating, with error: " + err.Error())
 			}
 		}
 	}
-*/
+
 	return nil
 
 }
 
-//UpdateCnames updates cnames in DB
-func (r Resource) updateCnames(oldObject Resource) (err error) {
-/*
-	//Split string and delete any possible empty values
+//updateCnames updates cnames in DB
+func (alias Alias) updateCnames() (err error) {
+	var (
+		cnamesInDB []Cname
+	)
+	//Let's see what cnames are already registered for this alias
+	con.Model(&alias).Association("Cnames").Find(&cnamesInDB)
 
-	newCnames := common.DeleteEmpty(strings.Split(r.Cname, ","))
-	exCnames := common.DeleteEmpty(strings.Split(oldObject.Cname, ","))
-	if len(newCnames) > 0 {
-		for _, value := range exCnames {
-			if !common.StringInSlice(value, newCnames) {
-				if err = orm.DeleteCnameTransactions(r.ID, value); err != nil {
+	if len(alias.Cnames) > 0 {
+		for _, v := range cnamesInDB {
+			if !containsCname(alias.Cnames, v.Cname) {
+				if err = deleteCnameTransactions(v); err != nil {
 					return errors.New("Failed to delete existing cname " +
-						value + " while updating, with error: " + err.Error())
+						v.Cname + " while updating, with error: " + err.Error())
 				}
 			}
 		}
 
-		for _, value := range newCnames {
-			if value == "" {
-				continue
-			}
-			if !common.StringInSlice(value, exCnames) {
-				if err = orm.AddCnameTransactions(r.ID, value); err != nil {
+		for _, v := range alias.Cnames {
+			if !containsCname(cnamesInDB, v.Cname) {
+				if err = addCnameTransactions(alias, v); err != nil {
 					return errors.New("Failed to add new cname " +
-						value + " while updating, with error: " + err.Error())
+						v.Cname + " while updating, with error: " + err.Error())
 				}
 			}
 
 		}
 
 	} else {
-		for _, value := range exCnames {
-			if err = orm.DeleteCnameTransactions(r.ID, value); err != nil {
+		for _, v := range cnamesInDB {
+			if err = deleteCnameTransactions(v); err != nil {
 				return errors.New("Failed to delete cname " +
-					value + " while purging all, with error: " + err.Error())
+					v.Cname + " while purging all, with error: " + err.Error())
 			}
 		}
-	}*/
+	}
 	return nil
 }
 
 func (r Resource) updateAlarms(oldObject Resource) (err error) {
-/*	//Split string and delete any possible empty values
+	/*	//Split string and delete any possible empty values
 
-	newAlarms := common.DeleteEmpty(strings.Split(r.Alarms, ","))
-	exAlarms := common.DeleteEmpty(strings.Split(oldObject.Alarms, ","))
-	if len(newAlarms) > 0 {
-		for _, value := range exAlarms {
-			if !common.StringInSlice(value, newAlarms) {
+		newAlarms := common.DeleteEmpty(strings.Split(r.Alarms, ","))
+		exAlarms := common.DeleteEmpty(strings.Split(oldObject.Alarms, ","))
+		if len(newAlarms) > 0 {
+			for _, value := range exAlarms {
+				if !common.StringInSlice(value, newAlarms) {
+					if err = orm.DeleteAlarmTransactions(r.ID, value); err != nil {
+						return errors.New("Failed to delete existing alarm " +
+							value + " while updating, with error: " + err.Error())
+					}
+				}
+			}
+
+			for _, value := range newAlarms {
+				if value == "" {
+					continue
+				}
+				if !common.StringInSlice(value, exAlarms) {
+					if err = orm.AddAlarmTransactions(r.ID, r.AliasName, value); err != nil {
+						return errors.New("Failed to add new alarm " +
+							value + " while updating, with error: " + err.Error())
+					}
+				}
+
+			}
+
+		} else {
+			for _, value := range exAlarms {
 				if err = orm.DeleteAlarmTransactions(r.ID, value); err != nil {
-					return errors.New("Failed to delete existing alarm " +
-						value + " while updating, with error: " + err.Error())
+					return errors.New("Failed to delete alarm " +
+						value + " while purging all, with error: " + err.Error())
 				}
 			}
-		}
-
-		for _, value := range newAlarms {
-			if value == "" {
-				continue
-			}
-			if !common.StringInSlice(value, exAlarms) {
-				if err = orm.AddAlarmTransactions(r.ID, r.AliasName, value); err != nil {
-					return errors.New("Failed to add new alarm " +
-						value + " while updating, with error: " + err.Error())
-				}
-			}
-
-		}
-
-	} else {
-		for _, value := range exAlarms {
-			if err = orm.DeleteAlarmTransactions(r.ID, value); err != nil {
-				return errors.New("Failed to delete alarm " +
-					value + " while purging all, with error: " + err.Error())
-			}
-		}
-	}*/
+		}*/
 	return nil
 }
 
 //nodesInMap puts the nodes in a map. The value is their privilege
 func nodesInMap(AllowedNodes interface{}, ForbiddenNodes interface{}) map[string]bool {
-    temp := make(map[string]bool)
+	temp := make(map[string]bool)
 	/*	if AllowedNodes == nil {
-		AllowedNodes = ""
-	}
-	if ForbiddenNodes == nil {
-		ForbiddenNodes = ""
-	}
+			AllowedNodes = ""
+		}
+		if ForbiddenNodes == nil {
+			ForbiddenNodes = ""
+		}
 
-	
 
-	modes := map[interface{}]bool{
-		AllowedNodes:   false,
-		ForbiddenNodes: true,
-	}
-	for k, v := range modes {
-		if k != "" {
-			for _, val := range common.DeleteEmpty(strings.Split(fmt.Sprintf("%v", k), ",")) {
-				temp[val] = v
+
+		modes := map[interface{}]bool{
+			AllowedNodes:   false,
+			ForbiddenNodes: true,
+		}
+		for k, v := range modes {
+			if k != "" {
+				for _, val := range common.DeleteEmpty(strings.Split(fmt.Sprintf("%v", k), ",")) {
+					temp[val] = v
+				}
 			}
 		}
-	}
-*/
+	*/
 	return temp
 }
 
+func containsCname(s []Cname, e string) bool {
+	for _, a := range s {
+		if a.Cname == e {
+			return true
+		}
+	}
+	return false
+
+}
+func containsNode(a []Relation, b Relation) (bool, bool) {
+	exists := false
+	privilege := false
+	for _, v := range a {
+		if v.Node.NodeName == b.Node.NodeName {
+
+			exists = true
+		}
+		if v.Blacklist == b.Blacklist {
+			privilege = true
+		}
+	}
+	return exists, privilege
+
+}

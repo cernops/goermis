@@ -57,21 +57,22 @@ func GetAlias(c echo.Context) error {
 	return c.JSON(http.StatusOK, parse(queryResults))
 }
 
-//CreateAlias creates a new alias entry in the DB
+//CreateAlias creates a new alias entry
 func CreateAlias(c echo.Context) error {
 	var temp Resource
 	username := GetUsername()
 	if err := c.Bind(&temp); err != nil {
 		log.Warn("[" + username + "] " + "Failed to bind params " + err.Error())
 	}
-	temp.User = username
 	defer c.Request().Body.Close()
-	//Validate structure
-	if ok, err := govalidator.ValidateStruct(temp); err != nil || ok == false {
-		return common.MessageToUser(c, http.StatusBadRequest,
-			"Validation error for "+temp.AliasName+" : "+err.Error(), "home.html")
-	}
 
+	/*
+		//Validate structure
+		if ok, err := govalidator.ValidateStruct(temp); err != nil || ok == false {
+			return common.MessageToUser(c, http.StatusBadRequest,
+				"Validation error for "+temp.AliasName+" : "+err.Error(), "home.html")
+		}
+	*/
 	//Check for duplicates
 	alias, _ := GetObjects(temp.AliasName)
 	if len(alias) != 0 {
@@ -84,7 +85,7 @@ func CreateAlias(c echo.Context) error {
 
 	log.Info("[" + username + "] " + "Ready to create a new alias " + temp.AliasName)
 	//Create object
-	if err := object.CreateObject(); err != nil {
+	if err := object.createObjectInDB(); err != nil {
 		return common.MessageToUser(c, http.StatusBadRequest,
 			"Creation error for "+temp.AliasName+" : "+err.Error(), "home.html")
 	}
@@ -173,12 +174,30 @@ func ModifyAlias(c echo.Context) error {
 
 	defer c.Request().Body.Close()
 
-	// Call the modifier
-	if err := sanitazed.ModifyObject(); err != nil {
+	// Update alias
+	if err := sanitazed.updateAlias(); err != nil {
 		return common.MessageToUser(c, http.StatusBadRequest,
 			"Update error for alias "+sanitazed.AliasName+" : "+err.Error(), "home.html")
 	}
 
+	// Update his cnames
+	if err := sanitazed.updateCnames(); err != nil {
+		return common.MessageToUser(c, http.StatusBadRequest,
+			"Update error for alias "+sanitazed.AliasName+" : "+err.Error(), "home.html")
+	}
+
+	// Update his nodes
+	if err := sanitazed.updateNodes(); err != nil {
+		return common.MessageToUser(c, http.StatusBadRequest,
+			"Update error for alias "+sanitazed.AliasName+" : "+err.Error(), "home.html")
+	}
+	/*
+		// Update his alarms
+		if err := sanitazed.updateAlarms(); err != nil {
+			return common.MessageToUser(c, http.StatusBadRequest,
+				"Update error for alias "+sanitazed.AliasName+" : "+err.Error(), "home.html")
+		}
+	*/
 	return common.MessageToUser(c, http.StatusAccepted,
 		sanitazed.AliasName+" updated Successfully", "home.html")
 
