@@ -39,7 +39,7 @@ type (
 		TTL              int       `  gorm:"type:smallint(6);default:60;not null"`
 		LastModification time.Time `  gorm:"type:date"`
 		Cnames           []Cname   `  gorm:"foreignkey:CnameAliasID" `
-		Nodes            []Relation
+		Relations        []*Relation
 		Alarms           []Alarm `  gorm:"foreignkey:AlarmAliasID" `
 	}
 
@@ -99,8 +99,8 @@ type (
 func GetObjects(param string) (query []Alias, err error) {
 
 	//Preload bottom-to-top, starting with the Relations & Nodes first
-	nodes := con.Preload("Nodes")       //Relations
-	nodes = nodes.Preload("Nodes.Node") //From the relations, we find the node names then
+	nodes := con.Preload("Relations")       //Relations
+	nodes = nodes.Preload("Relations.Node") //From the relations, we find the node names then
 	if param == "all" {
 		err = nodes.
 			Preload("Cnames").
@@ -179,68 +179,38 @@ func (alias Alias) updateAlias() (err error) {
 	if err := aliasUpdateTransactions(alias); err != nil {
 		return err
 	}
-	/*
-		//Step.2 Update 1-to-many cname associations.
-		if err = r.updateCnames(oldObject[0]); err != nil {
-			return err
-		}
-		/*2.Update nodes for r object with new nodes(nodesInMap converts string to map,
-		  where value indicates privilege allowed/forbidden)*/
-	/*
-		newNodesMap := nodesInMap(r.AllowedNodes, r.ForbiddenNodes)
-		oldNodesMap := nodesInMap(oldObject[0].AllowedNodes, oldObject[0].ForbiddenNodes)
 
-		if err = r.updateNodes(newNodesMap, oldNodesMap); err != nil {
-			return err
-		}
-		/*
-			//3.Update DNS
-			if err = r.UpdateDNS(oldObject[0]); err != nil {
-				//If something goes wrong while updating, then we use the object
-				//we had in DB before the update to restore that state, before the error
-				r.DeleteObject()            //Delete the DB updates we just made and existing DNS entries
-				oldObject[0].CreateObject() //Recreate the alias as it was before the update
-				return err
-			}
-	*/
-	/*
-		//4.Update alarms
-		if err = r.updateAlarms(oldObject[0]); err != nil {
-			return err
-		}
-	*/
 	return nil
 }
 
 //updateNodes updates alias with new nodes
 func (alias Alias) updateNodes() (err error) {
 	var (
-		nodesInDB []Relation
+		relationsInDB []*Relation
 	)
 	//Let's find the registered nodes for this alias
 
-	con.Preload("Node").Where("alias_id=?", alias.ID).Find(&nodesInDB)
+	con.Preload("Node").Where("alias_id=?", alias.ID).Find(&relationsInDB)
 
-	spew.Dump(alias.Nodes)
-	spew.Dump(nodesInDB)
-	for _, v := range nodesInDB {
-		if ok, _ := containsNode(alias.Nodes, v); !ok {
-			if err = deleteNodeTransactions(alias, v); err != nil {
+	for _, r := range relationsInDB {
+		if ok, _ := containsNode(alias.Relations, r); !ok {
+			if err = deleteNodeTransactions(r); err != nil {
 				return errors.New("Failed to delete existing node " +
-					v.Node.NodeName + " while updating, with error: " + err.Error())
+					r.Node.NodeName + " while updating, with error: " + err.Error())
 			}
 		}
 	}
-	for _, v := range alias.Nodes {
-		if ok, _ := containsNode(nodesInDB, v); !ok {
-			if err = addNodeTransactions(alias, v); err != nil {
+	for _, r := range alias.Relations {
+		spew.Dump(r)
+		if ok, _ := containsNode(relationsInDB, r); !ok {
+			if err = addNodeTransactions(r); err != nil {
 				return errors.New("Failed to add new node " +
-					v.Node.NodeName + " while updating, with error: " + err.Error())
+					r.Node.NodeName + " while updating, with error: " + err.Error())
 			}
-		} else if ok, privilege := containsNode(nodesInDB, v); ok && !privilege {
-			if err = updatePrivilegeTransactions(alias, v); err != nil {
+		} else if ok, privilege := containsNode(relationsInDB, r); ok && !privilege {
+			if err = updatePrivilegeTransactions(r); err != nil {
 				return errors.New("Failed to update privilege for node " +
-					v.Node.NodeName + " while updating, with error: " + err.Error())
+					r.Node.NodeName + " while updating, with error: " + err.Error())
 			}
 		}
 	}
@@ -269,7 +239,7 @@ func (alias Alias) updateCnames() (err error) {
 
 		for _, v := range alias.Cnames {
 			if !containsCname(cnamesInDB, v.Cname) {
-				if err = addCnameTransactions(alias, v); err != nil {
+				if err = addCnameTransactions(v); err != nil {
 					return errors.New("Failed to add new cname " +
 						v.Cname + " while updating, with error: " + err.Error())
 				}
@@ -288,71 +258,62 @@ func (alias Alias) updateCnames() (err error) {
 	return nil
 }
 
-func (r Resource) updateAlarms(oldObject Resource) (err error) {
-	/*	//Split string and delete any possible empty values
+func (alias Alias) updateAlarms() (err error) {
+	var (
+		alarmsInDB []Alarm
+	)
+	//Let's see what alarms are already registered for this alias
+	con.Model(&alias).Association("Alarms").Find(&alarmsInDB)
+	//Split string and delete any possible empty values
+	if len(alias.Alarms) > 0 {
+		for _, a := range alarmsInDB {
+			if !containsAlarm(alias.Alarms, a) {
+				if err = deleteAlarmTransactions(a); err != nil {
+					return errors.New("Failed to delete existing alarm " +
+						a.Name + " while updating, with error: " + err.Error())
+				}
+			}
+		}
 
-		newAlarms := common.DeleteEmpty(strings.Split(r.Alarms, ","))
-		exAlarms := common.DeleteEmpty(strings.Split(oldObject.Alarms, ","))
-		if len(newAlarms) > 0 {
-			for _, value := range exAlarms {
-				if !common.StringInSlice(value, newAlarms) {
-					if err = orm.DeleteAlarmTransactions(r.ID, value); err != nil {
-						return errors.New("Failed to delete existing alarm " +
-							value + " while updating, with error: " + err.Error())
-					}
+		for _, a := range alias.Alarms {
+			if !containsAlarm(alarmsInDB, a) {
+				if err = addAlarmTransactions(a); err != nil {
+					return errors.New("Failed to add alarm " +
+						a.Name + ":" +
+						a.Recipient + ":" +
+						string(a.Parameter) +
+						" while purging all, with error: " +
+						err.Error())
 				}
 			}
 
-			for _, value := range newAlarms {
-				if value == "" {
-					continue
-				}
-				if !common.StringInSlice(value, exAlarms) {
-					if err = orm.AddAlarmTransactions(r.ID, r.AliasName, value); err != nil {
-						return errors.New("Failed to add new alarm " +
-							value + " while updating, with error: " + err.Error())
-					}
-				}
+		}
 
+	} else {
+		for _, a := range alarmsInDB {
+			if err = deleteAlarmTransactions(a); err != nil {
+				return errors.New("Failed to delete alarm " +
+					a.Name + ":" +
+					a.Recipient + ":" +
+					string(a.Parameter) +
+					" while purging all, with error: " +
+					err.Error())
 			}
-
-		} else {
-			for _, value := range exAlarms {
-				if err = orm.DeleteAlarmTransactions(r.ID, value); err != nil {
-					return errors.New("Failed to delete alarm " +
-						value + " while purging all, with error: " + err.Error())
-				}
-			}
-		}*/
+		}
+	}
 	return nil
 }
 
-//nodesInMap puts the nodes in a map. The value is their privilege
-func nodesInMap(AllowedNodes interface{}, ForbiddenNodes interface{}) map[string]bool {
-	temp := make(map[string]bool)
-	/*	if AllowedNodes == nil {
-			AllowedNodes = ""
-		}
-		if ForbiddenNodes == nil {
-			ForbiddenNodes = ""
-		}
-
-
-
-		modes := map[interface{}]bool{
-			AllowedNodes:   false,
-			ForbiddenNodes: true,
-		}
-		for k, v := range modes {
-			if k != "" {
-				for _, val := range common.DeleteEmpty(strings.Split(fmt.Sprintf("%v", k), ",")) {
-					temp[val] = v
-				}
-			}
-		}
-	*/
-	return temp
-}
+/*
+	//3.Update DNS
+	if err = r.UpdateDNS(oldObject[0]); err != nil {
+		//If something goes wrong while updating, then we use the object
+		//we had in DB before the update to restore that state, before the error
+		r.DeleteObject()            //Delete the DB updates we just made and existing DNS entries
+		oldObject[0].CreateObject() //Recreate the alias as it was before the update
+		return err
+	}
+*/
 
 func containsCname(s []Cname, e string) bool {
 	for _, a := range s {
@@ -363,18 +324,29 @@ func containsCname(s []Cname, e string) bool {
 	return false
 
 }
-func containsNode(a []Relation, b Relation) (bool, bool) {
-	exists := false
-	privilege := false
-	for _, v := range a {
-		if v.Node.NodeName == b.Node.NodeName {
-
-			exists = true
-		}
-		if v.Blacklist == b.Blacklist {
-			privilege = true
+func containsAlarm(s []Alarm, a Alarm) bool {
+	for _, alarm := range s {
+		if alarm.Name == a.Name &&
+			alarm.Recipient == a.Recipient &&
+			alarm.Parameter == a.Parameter {
+			return true
 		}
 	}
-	return exists, privilege
+	return false
+
+}
+
+//containsNode checks if a node has a relation with an alias and the status of that relation(allowed or forbidden)
+func containsNode(a []*Relation, b *Relation) (bool, bool) {
+	for _, v := range a {
+		if v.Node.NodeName == b.Node.NodeName {
+			if v.Blacklist == b.Blacklist {
+				return true, true
+			}
+			return true, false
+		}
+
+	}
+	return false, false
 
 }

@@ -124,11 +124,11 @@ func DeleteTransactions(name string, ID int) (err error) {
 
 */
 //deleteNodeTransactions deletes  a Node from the database
-func deleteNodeTransactions(alias Alias, v Relation) (err error) {
+func deleteNodeTransactions(v *Relation) (err error) {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
 		//Delete relation
 		if err = tx.Set("gorm:association_autoupdate", false).
-			Where("alias_id = ? AND node_id = ?", alias.ID, v.NodeID).
+			Where("alias_id = ? AND node_id = ?", v.AliasID, v.NodeID).
 			Delete(&Relation{}).
 			Error; err != nil {
 			tx.Rollback()
@@ -151,22 +151,23 @@ func deleteNodeTransactions(alias Alias, v Relation) (err error) {
 }
 
 //addNodeTransactions adds a node in the DB
-func addNodeTransactions(alias Alias, v Relation) (err error) {
+func addNodeTransactions(v *Relation) (err error) {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
-		var (
-			node Node
-		)
+		//Either create a new node or find an existing one
+		//Remember that its a many-2-many relationship, so nodes
+		//can exist already, assigned to another alias
 		if err = tx.Where("node_name = ?", v.Node.NodeName).
-			Assign(v.Node).
-			FirstOrCreate(&node).Error; err != nil {
+			FirstOrCreate(&v.Node).
+			Error; err != nil {
 			tx.Rollback()
 			return err
 		}
-
+		//Create the relationship for that alias and the
+		//existing or newly created node
 		if err = tx.Create(
 			Relation{
-				AliasID:   alias.ID,
-				NodeID:    node.ID,
+				AliasID:   v.AliasID,
+				NodeID:    v.Node.ID,
 				Blacklist: v.Blacklist},
 		).Error; err != nil {
 			tx.Rollback()
@@ -178,10 +179,11 @@ func addNodeTransactions(alias Alias, v Relation) (err error) {
 }
 
 //updatePrivilegeTransactions updates the privilege of a node from allowed to forbidden and vice versa
-func updatePrivilegeTransactions(alias Alias, v Relation) (err error) {
+func updatePrivilegeTransactions(v *Relation) (err error) {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
+		//Update single column blacklist in Relations table
 		if err = tx.Model(&v).
-			Where("alias_id=? AND node_id = ?", alias.ID, v.NodeID).
+			Where("alias_id=? AND node_id = ?", v.AliasID, v.NodeID).
 			Update("blacklist", v.Blacklist).
 			Error; err != nil {
 			tx.Rollback()
@@ -194,11 +196,9 @@ func updatePrivilegeTransactions(alias Alias, v Relation) (err error) {
 }
 
 //AddCnameTransactions appends a Cname
-func addCnameTransactions(a Alias, cname Cname) error {
+func addCnameTransactions(cname Cname) error {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
-		if err = tx.Model(&a).
-			Association("Cnames").
-			Append(&cname); err != nil {
+		if err = tx.Create(&cname).Error; err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -222,29 +222,10 @@ func deleteCnameTransactions(cname Cname) error {
 
 }
 
-/*
-
-//AddAlarmTransactions appends an alarm
-func AddAlarmTransactions(aliasID int, aliasName string, alarm string) error {
+//addAlarmTransactions appends an alarm
+func addAlarmTransactions(alarm Alarm) error {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
-		//parametes[0] --> alarm name ; parameters[1] --> recipient;
-		//parameters[1] --> threshold parameter
-		//Checking if we can actually create it by making sure there is no duplicate
-		parameters := strings.Split(alarm, ":")
-		if !cgorm.ManagerDB().
-			NewRecord(&Alarm{
-				Name: parameters[0]}) {
-			return err
-		}
-
-		if err = tx.Set("gorm:association_autoupdate", false).
-			First(&Alias{}, "id=?", aliasID).
-			Association("Alarms").
-			Append(&Alarm{
-				Name:      parameters[0],
-				Alias:     aliasName,
-				Recipient: parameters[1],
-				Parameter: common.StringToInt(parameters[2])}).
+		if err = tx.Create(&alarm).
 			Error; err != nil {
 			tx.Rollback()
 			return err
@@ -252,18 +233,13 @@ func AddAlarmTransactions(aliasID int, aliasName string, alarm string) error {
 		return nil
 	})
 
-}/*
+}
 
-//DeleteAlarmTransactions deletes an alarm from db during modification
+//deleteAlarmTransactions deletes an alarm from db during modification
 //AutoUpdate is false, because otherwise we will be adding what we just deleted
-func DeleteAlarmTransactions(aliasID int, alarm string) error {
+func deleteAlarmTransactions(alarm Alarm) error {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
-		//parametes[0] --> alarm name ; parameters[1] --> recipient;
-		//parameters[1] --> threshold parameter
-		parameters := strings.Split(alarm, ":")
-		if err = tx.Set("gorm:association_autoupdate", false).
-			Where("alarm_alias_id = ? AND name = ?", aliasID, parameters[0]).
-			Delete(&Alarm{}).
+		if err = tx.Delete(&alarm).
 			Error; err != nil {
 			tx.Rollback()
 			return err
@@ -272,7 +248,7 @@ func DeleteAlarmTransactions(aliasID int, alarm string) error {
 
 	})
 
-}*/
+}
 
 // WithinTransaction  accept dBFunc as parameter call dBFunc function within transaction begin, and commit and return error from dBFunc
 func WithinTransaction(fn dBFunc) (err error) {

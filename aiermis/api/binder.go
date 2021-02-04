@@ -136,9 +136,9 @@ func parse(queryResults []Alias) List {
 		//The nodes
 		temp.ForbiddenNodes = []string{}
 		temp.AllowedNodes = []string{}
-		if len(element.Nodes) != 0 {
+		if len(element.Relations) != 0 {
 
-			for _, v := range element.Nodes {
+			for _, v := range element.Relations {
 				if v.Blacklist == true {
 					temp.ForbiddenNodes = append(temp.ForbiddenNodes, v.Node.NodeName)
 				} else {
@@ -170,7 +170,10 @@ func sanitazeInUpdate(current Alias, new Resource) Alias {
 	if len(new.Cname) != 0 {
 		split := common.DeleteEmpty(strings.Split(new.Cname[0], ","))
 		for _, cname := range split {
-			current.Cnames = append(current.Cnames, Cname{Cname: cname})
+			current.Cnames = append(current.Cnames,
+				Cname{
+					Cname:        cname,
+					CnameAliasID: current.ID})
 		}
 
 	}
@@ -182,23 +185,28 @@ func sanitazeInUpdate(current Alias, new Resource) Alias {
 		for _, alarm := range split {
 			element := common.DeleteEmpty(strings.Split(alarm, ":"))
 			current.Alarms = append(current.Alarms, Alarm{
-				Name:      element[0],
-				Recipient: element[1],
-				Parameter: common.StringToInt(element[2])})
+				Name:         element[0],
+				Recipient:    element[1],
+				Parameter:    common.StringToInt(element[2]),
+				AlarmAliasID: current.ID,
+				Alias:        current.AliasName})
 
 		}
 	}
 
 	//Nodes
-	current.Nodes = []Relation{}
+	current.Relations = []*Relation{}
 	fields := map[bool][]string{false: new.AllowedNodes, true: new.ForbiddenNodes}
 	for k, field := range fields {
 		if len(field) != 0 {
 			nodes := common.DeleteEmpty(strings.Split(field[0], ","))
 			for _, node := range nodes {
-				current.Nodes = append(current.Nodes, Relation{
+				current.Relations = append(current.Relations, &Relation{
+					AliasID:   current.ID,
+					NodeID:    find(node),
 					Blacklist: k,
 					Node: &Node{
+						ID:               find(node),
 						NodeName:         node,
 						LastModification: time.Now(),
 						Hostgroup:        current.Hostgroup}})
@@ -235,4 +243,10 @@ func sanitazeInUpdate(current Alias, new Resource) Alias {
 	}
 
 	return current
+}
+
+func find(name string) int {
+	var node Node
+	con.Select("id").Where("node_name=?", name).Find(&node)
+	return node.ID
 }

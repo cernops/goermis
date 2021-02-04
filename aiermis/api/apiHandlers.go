@@ -191,13 +191,13 @@ func ModifyAlias(c echo.Context) error {
 		return common.MessageToUser(c, http.StatusBadRequest,
 			"Update error for alias "+sanitazed.AliasName+" : "+err.Error(), "home.html")
 	}
-	/*
+	
 		// Update his alarms
 		if err := sanitazed.updateAlarms(); err != nil {
 			return common.MessageToUser(c, http.StatusBadRequest,
 				"Update error for alias "+sanitazed.AliasName+" : "+err.Error(), "home.html")
 		}
-	*/
+	
 	return common.MessageToUser(c, http.StatusAccepted,
 		sanitazed.AliasName+" updated Successfully", "home.html")
 
