@@ -73,12 +73,24 @@ landb:
 
 
 
-build_docker_image_stable:
+build_docker_prod:
   image: gitlab-registry.cern.ch/ci-tools/docker-image-builder:latest
   stage: prebuild
   script: "echo"
   tags:
     - docker-image-build
   variables:
-    TO: ${CI_REGISTRY_IMAGE}:${CI_COMMIT_BRANCH}
+    DOCKER_FILE: Dockerfile.prod
+    TO: ${CI_REGISTRY_IMAGE}/prod:${CI_COMMIT_BRANCH}
+
+build_docker_qa:
+  image: gitlab-registry.cern.ch/ci-tools/docker-image-builder:latest
+  stage: prebuild
+  script: "echo"
+  tags:
+    - docker-image-build
+  variables:
+    DOCKER_FILE: Dockerfile.qa
+    TO: ${CI_REGISTRY_IMAGE}/qa:${CI_COMMIT_BRANCH}
+
 
