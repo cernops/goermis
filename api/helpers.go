@@ -1,5 +1,6 @@
-package common
+package api
 
+/* This file contains helper functions and custom validator tags*/
 import (
 	"regexp"
 	"strconv"
@@ -10,8 +11,55 @@ import (
 	"github.com/labstack/gommon/log"
 )
 
-//DeleteEmpty makes sure we do not have empty values in our slices
-func DeleteEmpty(s []string) []string {
+/*////////////Helper Functions///////////////////*/
+func containsCname(s []Cname, e string) bool {
+	for _, a := range s {
+		if a.Cname == e {
+			return true
+		}
+	}
+	return false
+
+}
+
+//containsAlarm checks if an alarm object is in a slice of objects
+func containsAlarm(s []Alarm, a Alarm) bool {
+	for _, alarm := range s {
+		if alarm.Name == a.Name &&
+			alarm.Recipient == a.Recipient &&
+			alarm.Parameter == a.Parameter {
+			return true
+		}
+	}
+	return false
+
+}
+
+//containsNode checks if a node has a relation with an alias
+// and the status of that relation(allowed or forbidden)
+func containsNode(a []*Relation, b *Relation) (bool, bool) {
+	for _, v := range a {
+		if v.Node.NodeName == b.Node.NodeName {
+			if v.Blacklist == b.Blacklist {
+				return true, true
+			}
+			return true, false
+		}
+
+	}
+	return false, false
+
+}
+
+//find returns the ID of a node. If it doesnt exists, returns 0
+func find(name string) int {
+	var node Node
+	con.Select("id").Where("node_name=?", name).Find(&node)
+	return node.ID
+}
+
+//deleteEmpty makes sure we do not have empty values in our slices
+func deleteEmpty(s []string) []string {
 	var r []string
 	for _, str := range s {
 		if str != "" {
@@ -21,8 +69,8 @@ func DeleteEmpty(s []string) []string {
 	return r
 }
 
-//StringInSlice checks if a string is in a slice
-func StringInSlice(a string, list []string) bool {
+//stringInSlice checks if a string is in a slice
+func stringInSlice(a string, list []string) bool {
 	for _, b := range list {
 		if b == a {
 			return true
@@ -31,8 +79,8 @@ func StringInSlice(a string, list []string) bool {
 	return false
 }
 
-//StringToInt converts a string to a int. It is used to hide error checks
-func StringToInt(s string) (i int) {
+//stringToInt converts a string to a int. It is used to hide error checks
+func stringToInt(s string) (i int) {
 	i, err := strconv.Atoi(s)
 	if err != nil {
 		log.Error("Error while converting string to int")
@@ -40,8 +88,10 @@ func StringToInt(s string) (i int) {
 	return i
 }
 
-//CustomValidators adds our new tags in the govalidator
-func CustomValidators() {
+/*//////////////Custom Validator Tags/////////////////////////*/
+
+//customValidators adds our new tags in the govalidator
+func customValidators() {
 	govalidator.TagMap["nodes"] = govalidator.Validator(func(str string) bool {
 		if len(str) > 0 {
 			split := strings.Split(str, ",")
@@ -77,8 +127,33 @@ func CustomValidators() {
 		return true
 	})
 
+	govalidator.TagMap["alarms"] = govalidator.Validator(func(str string) bool {
+
+		if len(str) > 0 {
+			alarms := strings.Split(str, ",")
+			for _, a := range alarms {
+				alarm := strings.Split(a, ":")
+				if !stringInSlice(alarm[0], []string{"minimum"}) {
+					log.Error("No valid type of alarm")
+					return false
+				}
+				if !govalidator.IsEmail(alarm[1]) {
+					log.Error("No valid e-mail address " + alarm[1] + " in alarm " + a)
+					return false
+
+				}
+				if !govalidator.IsInt(alarm[2]) {
+					log.Error("No valid parameter value " + alarm[2] + " in alarm " + a)
+					return false
+
+				}
+			}
+		}
+		return true
+	})
+
 	govalidator.TagMap["best_hosts"] = govalidator.Validator(func(str string) bool {
-		return StringToInt(str) >= -1
+		return stringToInt(str) >= -1
 
 	})
 
@@ -96,6 +171,8 @@ func CustomValidators() {
 	})
 
 }
+
+/*/////////////Unified way to return responses to user/////////////////////////////*/
 
 //MessageToUser renders the reply for the user
 func MessageToUser(c echo.Context, status int, message string, page string) error {
@@ -116,20 +193,4 @@ func MessageToUser(c echo.Context, status int, message string, page string) erro
 		"Message": message,
 		"Host":    httphost,
 	})
-}
-
-//Equal compares two slices . If they contain the same
-//elements (w/o order included), it returns true
-func Equal(string1, string2 string) bool {
-	slice1 := DeleteEmpty(strings.Split(string1, ","))
-	slice2 := DeleteEmpty(strings.Split(string2, ","))
-	if len(slice1) != len(slice2) {
-		return false
-	}
-	for _, v := range slice1 {
-		if !StringInSlice(v, slice2) {
-			return false
-		}
-	}
-	return true
 }

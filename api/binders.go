@@ -1,36 +1,43 @@
 package api
 
+/*This file contains the functions that transform the binded
+data from the Resource struct to the ORM one(and vice versa)
+This is done to allow a more Object oriented experience later on */
 import (
 	"strconv"
 	"strings"
 	"time"
-
-	"gitlab.cern.ch/lb-experts/goermis/aiermis/common"
 )
+
+/* Resource struct facilitates the binding of data from requests
+
+form tags --> for binding the form fields from UI,
+json tags -- > binding data sent by kermis CLI
+valid tag--> validation rules, extra funcs in the common.go file*/
 
 type (
 	//Resource deals with the output from the queries
 	Resource struct {
-		ID               int       `                         json:"alias_id"          valid:"-"`
-		AliasName        string    `form:"alias_name"        json:"alias_name"        valid:"required,dns"`
-		Behaviour        string    `                         json:"behaviour"         valid:"-"`
-		BestHosts        int       `form:"best_hosts"        json:"best_hosts"        valid:"required,int,best_hosts"`
-		Clusters         string    `                         json:"clusters"          valid:"alphanum"`
-		ForbiddenNodes   []string  `form:"ForbiddenNodes"    json:"ForbiddenNodes"    valid:"optional,nodes"                    gorm:"not null"`
-		AllowedNodes     []string  `form:"AllowedNodes"      json:"AllowedNodes"      valid:"optional,nodes"                    gorm:"not null"`
-		Cname            []string  `form:"cnames"            json:"cnames"            valid:"optional,cnames"                   gorm:"not null"`
-		External         string    `form:"external"          json:"external"          valid:"required,in(yes|no)"`
-		Hostgroup        string    `form:"hostgroup"         json:"hostgroup"         valid:"required,hostgroup"`
-		LastModification time.Time `                         json:"last_modification" valid:"-"`
-		Metric           string    `                         json:"metric"            valid:"in(cmsfrontier|minino|minimum|),optional"`
-		PollingInterval  int       `                         json:"polling_interval"  valid:"numeric"`
-		Tenant           string    `                         json:"tenant"            valid:"optional,alphanum"`
-		TTL              int       `                         json:"ttl,omitempty"     valid:"numeric,optional"`
-		User             string    `                         json:"user"              valid:"optional,alphanum"`
-		Statistics       string    `                         json:"statistics"        valid:"alpha"`
-		ResourceURI      string    `                         json:"resource_uri"      valid:"-"`
-		Pwned            bool      `                         json:"pwned"             valid:"-"`
-		Alarms           []string  `form:"alarms"            json:"alarms"             valid:"-"`
+		ID               int       `json:"alias_id"          valid:"-"`
+		AliasName        string    `json:"alias_name"        valid:"required,dns"                           form:"alias_name"    `
+		Behaviour        string    `json:"behaviour"         valid:"-"`
+		BestHosts        int       `json:"best_hosts"        valid:"required,int,best_hosts"                form:"best_hosts" `
+		Clusters         string    `json:"clusters"          valid:"optional,alphanum"`
+		ForbiddenNodes   []string  `json:"ForbiddenNodes"    valid:"optional,nodes"                         form:"ForbiddenNodes" `
+		AllowedNodes     []string  `json:"AllowedNodes"      valid:"optional,nodes"                         form:"AllowedNodes" `
+		Cnames           []string  `json:"cnames"            valid:"optional,cnames"                        form:"cnames"`
+		External         string    `json:"external"          valid:"required,in(yes|no)"                    form:"external"`
+		Hostgroup        string    `json:"hostgroup"         valid:"required,hostgroup"                     form:"hostgroup"`
+		LastModification time.Time `json:"last_modification" valid:"-"`
+		Metric           string    `json:"metric"            valid:"in(cmsfrontier),optional"`
+		PollingInterval  int       `json:"polling_interval"  valid:"optional,numeric"`
+		Tenant           string    `json:"tenant"            valid:"optional,alphanum"`
+		TTL              int       `json:"ttl,omitempty"     valid:"optional,numeric"`
+		User             string    `json:"user"              valid:"optional,alphanum"`
+		Statistics       string    `json:"statistics"        valid:"optional,alpha"`
+		ResourceURI      string    `json:"resource_uri"      valid:"-"`
+		Pwned            bool      `json:"pwned"             valid:"-"`
+		Alarms           []string  `json:"alarms"            valid:"optional, alarms"                                      form:"alarms"`
 	}
 	//List holds multiple result structs
 	List struct {
@@ -38,12 +45,14 @@ type (
 	}
 )
 
+/*sanitazeInCreation stretches the freshly binded data into
+the ORM models, giving us a more appropriate object to work on*/
 func sanitazeInCreation(resource Resource) (object Alias) {
 
 	//Cnames
 	object.Cnames = []Cname{}
-	if len(resource.Cname) != 0 {
-		split := common.DeleteEmpty(strings.Split(resource.Cname[0], ","))
+	if len(resource.Cnames) != 0 {
+		split := deleteEmpty(strings.Split(resource.Cnames[0], ","))
 		for _, cname := range split {
 			object.Cnames = append(object.Cnames, Cname{Cname: cname})
 		}
@@ -66,9 +75,9 @@ func sanitazeInCreation(resource Resource) (object Alias) {
 		object.BestHosts = resource.BestHosts
 	}
 	//View
-	if common.StringInSlice(strings.ToLower(resource.External), []string{"yes", "external"}) {
+	if stringInSlice(strings.ToLower(resource.External), []string{"yes", "external"}) {
 		object.External = "yes"
-	} else if common.StringInSlice(strings.ToLower(resource.External), []string{"no", "internal"}) {
+	} else if stringInSlice(strings.ToLower(resource.External), []string{"no", "internal"}) {
 		object.External = "no"
 	}
 
@@ -85,6 +94,16 @@ func sanitazeInCreation(resource Resource) (object Alias) {
 	return
 }
 
+/*parse accomplishes the reverse action, it receives
+the ORM model(s) of alias(s) and "packages" the into a more
+readable format
+EXTRA FUNCTIONALITIES:
+1. The construction of the URI
+2. The assignment of Pwned value, which determines the
+   alias filtration based on ownership in UI
+   NOTE: Alias filtration is done with an extra field
+   because we still need to show the full list to the user
+   and prevent modification on not owned aliases*/
 func parse(queryResults []Alias) List {
 	var (
 		parsed List
@@ -109,10 +128,10 @@ func parse(queryResults []Alias) List {
 		temp.Statistics = element.Statistics
 
 		//The cnames
-		temp.Cname = []string{}
+		temp.Cnames = []string{}
 		if len(element.Cnames) != 0 {
 			for _, v := range element.Cnames {
-				temp.Cname = append(temp.Cname, v.Cname)
+				temp.Cnames = append(temp.Cnames, v.Cname)
 			}
 
 		}
@@ -155,7 +174,7 @@ func parse(queryResults []Alias) List {
 		if IsSuperuser() {
 			temp.Pwned = true
 		} else {
-			temp.Pwned = common.StringInSlice(temp.Hostgroup, GetUsersHostgroups())
+			temp.Pwned = stringInSlice(temp.Hostgroup, GetUsersHostgroups())
 		}
 
 		parsed.Objects = append(parsed.Objects, temp)
@@ -163,12 +182,14 @@ func parse(queryResults []Alias) List {
 	return parsed
 }
 
+/*sanitazeInUpdate generates the ORM model of an alias from
+the binded request data*/
 func sanitazeInUpdate(current Alias, new Resource) Alias {
 
 	//Cnames
 	current.Cnames = []Cname{}
-	if len(new.Cname) != 0 {
-		split := common.DeleteEmpty(strings.Split(new.Cname[0], ","))
+	if len(new.Cnames) != 0 {
+		split := deleteEmpty(strings.Split(new.Cnames[0], ","))
 		for _, cname := range split {
 			current.Cnames = append(current.Cnames,
 				Cname{
@@ -181,13 +202,13 @@ func sanitazeInUpdate(current Alias, new Resource) Alias {
 	//Alarms
 	current.Alarms = []Alarm{}
 	if len(new.Alarms) != 0 {
-		split := common.DeleteEmpty(strings.Split(new.Alarms[0], ","))
+		split := deleteEmpty(strings.Split(new.Alarms[0], ","))
 		for _, alarm := range split {
-			element := common.DeleteEmpty(strings.Split(alarm, ":"))
+			element := deleteEmpty(strings.Split(alarm, ":"))
 			current.Alarms = append(current.Alarms, Alarm{
 				Name:         element[0],
 				Recipient:    element[1],
-				Parameter:    common.StringToInt(element[2]),
+				Parameter:    stringToInt(element[2]),
 				AlarmAliasID: current.ID,
 				Alias:        current.AliasName})
 
@@ -199,7 +220,7 @@ func sanitazeInUpdate(current Alias, new Resource) Alias {
 	fields := map[bool][]string{false: new.AllowedNodes, true: new.ForbiddenNodes}
 	for k, field := range fields {
 		if len(field) != 0 {
-			nodes := common.DeleteEmpty(strings.Split(field[0], ","))
+			nodes := deleteEmpty(strings.Split(field[0], ","))
 			for _, node := range nodes {
 				current.Relations = append(current.Relations, &Relation{
 					AliasID:   current.ID,
@@ -215,12 +236,14 @@ func sanitazeInUpdate(current Alias, new Resource) Alias {
 	}
 
 	if new.External != "" {
-		if common.StringInSlice(new.External, []string{"yes", "external"}) {
+		if stringInSlice(new.External, []string{"yes", "external"}) {
 			current.External = "yes"
-		} else if common.StringInSlice(new.External, []string{"no", "internal"}) {
+		} else if stringInSlice(new.External, []string{"no", "internal"}) {
 			current.External = "no"
 		}
 	}
+
+	current.User = GetUsername()
 
 	if new.BestHosts != 0 {
 		current.BestHosts = new.BestHosts
@@ -243,10 +266,4 @@ func sanitazeInUpdate(current Alias, new Resource) Alias {
 	}
 
 	return current
-}
-
-func find(name string) int {
-	var node Node
-	con.Select("id").Where("node_name=?", name).Find(&node)
-	return node.ID
 }

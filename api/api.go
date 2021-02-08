@@ -1,11 +1,12 @@
 package api
 
+/* This file includes the ORM models and its methods*/
+
 import (
 	"database/sql"
 	"errors"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"gorm.io/gorm"
 
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
@@ -13,13 +14,10 @@ import (
 )
 
 var (
-	con = db.ManagerDB()
+	con = db.ManagerDB() // For convenience
 	q   string
-	cfg = bootstrap.GetConf()
+	cfg = bootstrap.GetConf() //Getting an instance of config params
 )
-
-/*form tags --> for binding the form fields,
-valid tag--> validation rules, extra funcs in the common.go file*/
 
 type (
 	//Alias structure is a model for describing the alias
@@ -101,14 +99,14 @@ func GetObjects(param string) (query []Alias, err error) {
 	//Preload bottom-to-top, starting with the Relations & Nodes first
 	nodes := con.Preload("Relations")       //Relations
 	nodes = nodes.Preload("Relations.Node") //From the relations, we find the node names then
-	if param == "all" {
+	if param == "all" {                     //get all aliases
 		err = nodes.
 			Preload("Cnames").
 			Preload("Alarms").
 			Order("alias_name").
 			Find(&query).Error
 
-	} else {
+	} else { //get only the specified one
 		err = nodes.
 			Preload("Cnames").
 			Preload("Alarms").
@@ -152,11 +150,11 @@ func (alias Alias) createObjectInDB() (err error) {
 }
 
 // C) DELETE single object
-/*
-//DeleteObject deletes an alias and its Relations
-func (r Resource) DeleteObject() (err error) {
+
+//deleteObject deletes an alias and its Relations
+func (alias Alias) deleteObjectInDB() (err error) {
 	//Delete from DB
-	if err := orm.DeleteTransactions(r.AliasName, r.ID); err != nil {
+	if err := deleteTransactions(alias); err != nil {
 		return err
 	}
 	/*
@@ -166,12 +164,12 @@ func (r Resource) DeleteObject() (err error) {
 			//It will be recreated in DB, but not DNS because it already exists there.
 			r.CreateObject()
 			return err
-		}
-	/*
-	//return nil
+		}*/
+
+	return nil
 
 }
-*/
+
 // D) MODIFY single object
 
 //UpdateAlias modifies aliases and its associations
@@ -189,7 +187,6 @@ func (alias Alias) updateNodes() (err error) {
 		relationsInDB []*Relation
 	)
 	//Let's find the registered nodes for this alias
-
 	con.Preload("Node").Where("alias_id=?", alias.ID).Find(&relationsInDB)
 
 	for _, r := range relationsInDB {
@@ -201,12 +198,12 @@ func (alias Alias) updateNodes() (err error) {
 		}
 	}
 	for _, r := range alias.Relations {
-		spew.Dump(r)
 		if ok, _ := containsNode(relationsInDB, r); !ok {
 			if err = addNodeTransactions(r); err != nil {
 				return errors.New("Failed to add new node " +
 					r.Node.NodeName + " while updating, with error: " + err.Error())
 			}
+			//If relation exists we also check if user modified its privileges
 		} else if ok, privilege := containsNode(relationsInDB, r); ok && !privilege {
 			if err = updatePrivilegeTransactions(r); err != nil {
 				return errors.New("Failed to update privilege for node " +
@@ -219,6 +216,8 @@ func (alias Alias) updateNodes() (err error) {
 
 }
 
+// E) Update the cnames
+
 //updateCnames updates cnames in DB
 func (alias Alias) updateCnames() (err error) {
 	var (
@@ -227,7 +226,7 @@ func (alias Alias) updateCnames() (err error) {
 	//Let's see what cnames are already registered for this alias
 	con.Model(&alias).Association("Cnames").Find(&cnamesInDB)
 
-	if len(alias.Cnames) > 0 {
+	if len(alias.Cnames) > 0 { //there are cnames, delete and add accordingly
 		for _, v := range cnamesInDB {
 			if !containsCname(alias.Cnames, v.Cname) {
 				if err = deleteCnameTransactions(v); err != nil {
@@ -247,7 +246,7 @@ func (alias Alias) updateCnames() (err error) {
 
 		}
 
-	} else {
+	} else { //user deleted everything, so do we
 		for _, v := range cnamesInDB {
 			if err = deleteCnameTransactions(v); err != nil {
 				return errors.New("Failed to delete cname " +
@@ -258,13 +257,14 @@ func (alias Alias) updateCnames() (err error) {
 	return nil
 }
 
+// F) Updat the alarms
+
 func (alias Alias) updateAlarms() (err error) {
 	var (
 		alarmsInDB []Alarm
 	)
 	//Let's see what alarms are already registered for this alias
 	con.Model(&alias).Association("Alarms").Find(&alarmsInDB)
-	//Split string and delete any possible empty values
 	if len(alias.Alarms) > 0 {
 		for _, a := range alarmsInDB {
 			if !containsAlarm(alias.Alarms, a) {
@@ -314,39 +314,3 @@ func (alias Alias) updateAlarms() (err error) {
 		return err
 	}
 */
-
-func containsCname(s []Cname, e string) bool {
-	for _, a := range s {
-		if a.Cname == e {
-			return true
-		}
-	}
-	return false
-
-}
-func containsAlarm(s []Alarm, a Alarm) bool {
-	for _, alarm := range s {
-		if alarm.Name == a.Name &&
-			alarm.Recipient == a.Recipient &&
-			alarm.Parameter == a.Parameter {
-			return true
-		}
-	}
-	return false
-
-}
-
-//containsNode checks if a node has a relation with an alias and the status of that relation(allowed or forbidden)
-func containsNode(a []*Relation, b *Relation) (bool, bool) {
-	for _, v := range a {
-		if v.Node.NodeName == b.Node.NodeName {
-			if v.Blacklist == b.Blacklist {
-				return true, true
-			}
-			return true, false
-		}
-
-	}
-	return false, false
-
-}

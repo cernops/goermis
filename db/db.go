@@ -25,11 +25,11 @@ func mysqlConn() {
 	)
 
 	/*newLogger := logger.New(
-		log.New(os.Stdout, "\r\n", log.LstdFlags), // io writer
-		logger.Config{
-			SlowThreshold: time.Second,   // Slow SQL threshold
-			LogLevel:      logger.Silent, // Log level
-			Colorful:      false})
+	log.New(os.Stdout, "\r\n", log.LstdFlags), // io writer
+	logger.Config{
+		SlowThreshold: time.Second,   // Slow SQL threshold
+		LogLevel:      logger.Silent, // Log level
+		Colorful:      false})
 	*/
 	connection := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local", cfg.Database.Username, cfg.Database.Password, cfg.Database.Host, cfg.Database.Port, cfg.Database.Database)
 	if db, err = gorm.Open(mysql.Open(connection), &gorm.Config{
@@ -38,7 +38,6 @@ func mysqlConn() {
 			SingularTable: true,
 			TablePrefix:   "ermis_api_",
 		},
-		
 	}); err != nil {
 		fmt.Println("Connection  error")
 	}

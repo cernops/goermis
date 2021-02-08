@@ -1,5 +1,9 @@
 package api
 
+/*This file contains the struct and methods that temporary
+store a username and its authorization results. The purpose is
+to create a type of session for each user and minimize the teigi queries
+*/
 import (
 	"gitlab.cern.ch/lb-experts/goermis/auth"
 )

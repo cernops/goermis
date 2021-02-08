@@ -1,5 +1,6 @@
 package api
 
+/*This file contains the route handlers */
 import (
 	"net"
 	"net/http"
@@ -9,14 +10,11 @@ import (
 	"github.com/asaskevich/govalidator"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
-
-	"gitlab.cern.ch/lb-experts/goermis/aiermis/common"
-	"gitlab.cern.ch/lb-experts/goermis/db"
 )
 
 func init() {
 	govalidator.SetFieldsRequiredByDefault(true)
-	common.CustomValidators()
+	customValidators() //enable the custom validators, see helpers.go
 }
 
 //GetAlias returns a list of ALL aliases
@@ -66,17 +64,16 @@ func CreateAlias(c echo.Context) error {
 	}
 	defer c.Request().Body.Close()
 
-	/*
-		//Validate structure
-		if ok, err := govalidator.ValidateStruct(temp); err != nil || ok == false {
-			return common.MessageToUser(c, http.StatusBadRequest,
-				"Validation error for "+temp.AliasName+" : "+err.Error(), "home.html")
-		}
-	*/
+	//Validate structure
+	if ok, err := govalidator.ValidateStruct(temp); err != nil || ok == false {
+		return MessageToUser(c, http.StatusBadRequest,
+			"Validation error for "+temp.AliasName+" : "+err.Error(), "home.html")
+	}
+
 	//Check for duplicates
 	alias, _ := GetObjects(temp.AliasName)
 	if len(alias) != 0 {
-		return common.MessageToUser(c, http.StatusConflict,
+		return MessageToUser(c, http.StatusConflict,
 			"Alias "+temp.AliasName+" already exists ", "home.html")
 
 	}
@@ -86,16 +83,15 @@ func CreateAlias(c echo.Context) error {
 	log.Info("[" + username + "] " + "Ready to create a new alias " + temp.AliasName)
 	//Create object
 	if err := object.createObjectInDB(); err != nil {
-		return common.MessageToUser(c, http.StatusBadRequest,
+		return MessageToUser(c, http.StatusBadRequest,
 			"Creation error for "+temp.AliasName+" : "+err.Error(), "home.html")
 	}
 
-	return common.MessageToUser(c, http.StatusCreated,
+	return MessageToUser(c, http.StatusCreated,
 		temp.AliasName+" created successfully ", "home.html")
 
 }
 
-/*
 //DeleteAlias deletes the requested alias from the DB
 func DeleteAlias(c echo.Context) error {
 	var (
@@ -122,18 +118,17 @@ func DeleteAlias(c echo.Context) error {
 	defer c.Request().Body.Close()
 
 	if alias != nil {
-		if err := alias[0].DeleteObject(); err != nil {
-			return common.MessageToUser(c, http.StatusBadRequest, err.Error(), "home.html")
+		if err := alias[0].deleteObjectInDB(); err != nil {
+			return MessageToUser(c, http.StatusBadRequest, err.Error(), "home.html")
 
 		}
-		return common.MessageToUser(c, http.StatusOK,
+		return MessageToUser(c, http.StatusOK,
 			aliasToDelete+" deleted successfully ", "home.html")
 
 	}
-	return common.MessageToUser(c, http.StatusNotFound, aliasToDelete+" not found", "home.html")
+	return MessageToUser(c, http.StatusNotFound, aliasToDelete+" not found", "home.html")
 
 }
-*/
 
 //ModifyAlias modifes cnames, nodes, hostgroup and best_hosts parameters
 func ModifyAlias(c echo.Context) error {
@@ -150,7 +145,12 @@ func ModifyAlias(c echo.Context) error {
 	if err := c.Bind(&temp); err != nil {
 		log.Warn("[" + username + "] " + "Failed to bind params " + err.Error())
 	}
-	temp.User = username
+
+	//Validate the object alias , with the now-updated fields
+	if ok, err := govalidator.ValidateStruct(temp); err != nil || ok == false {
+		return MessageToUser(c, http.StatusBadRequest,
+			"Validation error for alias "+temp.AliasName+" : "+err.Error(), "home.html")
+	}
 	//Here we distignuish between kermis PATCH and UI form binding
 	if c.Request().Method == "PATCH" {
 		param = c.Param("id")
@@ -165,50 +165,43 @@ func ModifyAlias(c echo.Context) error {
 		return err
 	}
 	sanitazed := sanitazeInUpdate(alias[0], temp)
-
-	//Validate the object alias , with the now-updated fields
-	//if ok, err := govalidator.ValidateStruct(alias[0]); err != nil || ok == false {
-	//	return common.MessageToUser(c, http.StatusBadRequest,
-	//		"Validation error for alias "+alias[0].AliasName+" : "+err.Error(), "home.html")
-	//}
-
 	defer c.Request().Body.Close()
 
 	// Update alias
 	if err := sanitazed.updateAlias(); err != nil {
-		return common.MessageToUser(c, http.StatusBadRequest,
+		return MessageToUser(c, http.StatusBadRequest,
 			"Update error for alias "+sanitazed.AliasName+" : "+err.Error(), "home.html")
 	}
 
 	// Update his cnames
 	if err := sanitazed.updateCnames(); err != nil {
-		return common.MessageToUser(c, http.StatusBadRequest,
+		return MessageToUser(c, http.StatusBadRequest,
 			"Update error for alias "+sanitazed.AliasName+" : "+err.Error(), "home.html")
 	}
 
 	// Update his nodes
 	if err := sanitazed.updateNodes(); err != nil {
-		return common.MessageToUser(c, http.StatusBadRequest,
+		return MessageToUser(c, http.StatusBadRequest,
 			"Update error for alias "+sanitazed.AliasName+" : "+err.Error(), "home.html")
 	}
-	
-		// Update his alarms
-		if err := sanitazed.updateAlarms(); err != nil {
-			return common.MessageToUser(c, http.StatusBadRequest,
-				"Update error for alias "+sanitazed.AliasName+" : "+err.Error(), "home.html")
-		}
-	
-	return common.MessageToUser(c, http.StatusAccepted,
+
+	// Update his alarms
+	if err := sanitazed.updateAlarms(); err != nil {
+		return MessageToUser(c, http.StatusBadRequest,
+			"Update error for alias "+sanitazed.AliasName+" : "+err.Error(), "home.html")
+	}
+
+	return MessageToUser(c, http.StatusAccepted,
 		sanitazed.AliasName+" updated Successfully", "home.html")
 
 }
 
-//CheckNameDNS checks if an alias or cname already exist in DB or DNS server
+/*CheckNameDNS checks if an alias or cname already exist in DB or DNS server
+This function serves the immediate check, which is performed while writing
+the alias name or cnames*/
 func CheckNameDNS(c echo.Context) error {
 	var (
 		result int64
-
-		con = db.ManagerDB()
 	)
 
 	aliasToResolve := c.QueryParam("hostname")

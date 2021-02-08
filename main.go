@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/labstack/gommon/log"
-	"gitlab.cern.ch/lb-experts/goermis/aiermis/api"
 	"gitlab.cern.ch/lb-experts/goermis/alarms"
+	"gitlab.cern.ch/lb-experts/goermis/api"
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 	"gitlab.cern.ch/lb-experts/goermis/db"
 	"gitlab.cern.ch/lb-experts/goermis/router"
@@ -82,7 +82,6 @@ func main() {
 	}
 
 }
-
 
 // autoMigrateTables: migrate table columns using GORM. Will not delete/change types for security reasons
 func autoMigrateTables() {

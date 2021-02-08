@@ -1,5 +1,8 @@
 package alarms
 
+/*This file periodically checks the alarms. If needed,
+updates them in DB and notifies user*/
+
 import (
 	"fmt"
 	"net"
@@ -8,7 +11,7 @@ import (
 
 	"github.com/labstack/gommon/log"
 	"github.com/miekg/dns"
-	"gitlab.cern.ch/lb-experts/goermis/aiermis/api"
+	"gitlab.cern.ch/lb-experts/goermis/api"
 	"gitlab.cern.ch/lb-experts/goermis/db"
 )
 

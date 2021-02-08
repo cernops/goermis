@@ -1,9 +1,11 @@
 package api
 
+/*This file contains the DB transactions*/
 import (
 	"errors"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	cgorm "gitlab.cern.ch/lb-experts/goermis/db"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -45,76 +47,25 @@ func aliasUpdateTransactions(a Alias) (err error) {
 	})
 }
 
-/*
-//DeleteTransactions deletes an entry and its relations from DB, with transactions
-func DeleteTransactions(name string, ID int) (err error) {
-	var relation []Relation
-
+//deleteTransactions deletes an entry and its relations from DB, with transactions
+func deleteTransactions(alias Alias) (err error) {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
-
-		//Make sure alias exists
-		if tx.Where("alias_name = ?", name).
-			First(&Alias{}).RecordNotFound() {
-			return errors.New("RecordNotFound Error while trying to delete alias from DB")
+		if tx.Select(clause.Associations).Delete(&alias); err != nil {
+			return errors.New("Failed to delete alias from DB with error: " + err.Error())
 
 		}
-
-		//Find and store all relations
-		if err := tx.Where("alias_id=?", ID).
-			Find(&relation).
-			Error; err != nil {
-			return errors.New("Failed to find node relations with error: " + err.Error())
-		}
-
-		for _, v := range relation {
-			var node Node
-			//Find node itself with reverse looking and load
-			if err := tx.Where("id=?", v.NodeID).
-				First(&node).
-				Error; err != nil {
-				return errors.New("Failed to reverse look node with ID " + strconv.Itoa(v.NodeID))
-			}
-			// Delete relation first
-			if err = tx.Where("node_id=? AND alias_id =? ", v.NodeID, ID).
-				Delete(&Relation{}).
-				Error; err != nil {
-				return errors.New("Failed to delete the relation with nodeID " +
-					strconv.Itoa(v.NodeID) +
-					"Error: " + err.Error())
-			}
-
-			//Delete node with no other relations
-			if tx.Model(&node).Association("Aliases").Count() == 0 {
-				if err = tx.Delete(&node).
+		//Delete node with no other relations
+		for _, relation := range alias.Relations {
+			if tx.Model(&relation.Node).Association("Aliases").Count() == 0 {
+				if err = tx.Delete(&relation.Node).
 					Error; err != nil {
 					return errors.New("Failed to delete unrelated node " +
-						node.NodeName +
+						relation.Node.NodeName +
 						"Error: " + err.Error())
 
 				}
 
 			}
-
-		}
-		//Delete cnames
-		if err = tx.Where("cname_alias_id= ?", ID).
-			Delete(&Cname{}).
-			Error; err != nil {
-			return errors.New("Failed to delete cnames from DB with error: " + err.Error())
-		}
-
-		//Delete alarms
-		if err = tx.Where("alarm_alias_id= ?", ID).
-			Delete(&Alarm{}).
-			Error; err != nil {
-			return errors.New("Failed to delete alarms from DB with error: " + err.Error())
-		}
-
-		//Finally delete alias
-		if err = tx.Where("alias_name = ?", name).
-			Delete(&Alias{}).
-			Error; err != nil {
-			return errors.New("Failed to delete alias from DB with error: " + err.Error())
 		}
 
 		return nil
@@ -122,7 +73,6 @@ func DeleteTransactions(name string, ID int) (err error) {
 
 }
 
-*/
 //deleteNodeTransactions deletes  a Node from the database
 func deleteNodeTransactions(v *Relation) (err error) {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
@@ -156,6 +106,7 @@ func addNodeTransactions(v *Relation) (err error) {
 		//Either create a new node or find an existing one
 		//Remember that its a many-2-many relationship, so nodes
 		//can exist already, assigned to another alias
+		spew.Dump(v)
 		if err = tx.Where("node_name = ?", v.Node.NodeName).
 			FirstOrCreate(&v.Node).
 			Error; err != nil {
@@ -165,7 +116,7 @@ func addNodeTransactions(v *Relation) (err error) {
 		//Create the relationship for that alias and the
 		//existing or newly created node
 		if err = tx.Create(
-			Relation{
+			&Relation{
 				AliasID:   v.AliasID,
 				NodeID:    v.Node.ID,
 				Blacklist: v.Blacklist},
