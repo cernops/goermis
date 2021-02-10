@@ -39,8 +39,8 @@ type (
 		Pwned            bool      `json:"pwned"             valid:"-"`
 		Alarms           []string  `json:"alarms"            valid:"optional, alarms"                                      form:"alarms"`
 	}
-	//List holds multiple result structs
-	List struct {
+	//Objects holds multiple result structs
+	Objects struct {
 		Objects []Resource `json:"objects"`
 	}
 )
@@ -104,9 +104,9 @@ EXTRA FUNCTIONALITIES:
    NOTE: Alias filtration is done with an extra field
    because we still need to show the full list to the user
    and prevent modification on not owned aliases*/
-func parse(queryResults []Alias) List {
+func parse(queryResults []Alias) Objects {
 	var (
-		parsed List
+		parsed Objects
 	)
 	for _, element := range queryResults {
 		var temp Resource
