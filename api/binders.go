@@ -108,6 +108,9 @@ func parse(queryResults []Alias) Objects {
 	var (
 		parsed Objects
 	)
+	if queryResults == nil {
+		return parsed
+	}
 	for _, element := range queryResults {
 		var temp Resource
 		//The ones that are the same
