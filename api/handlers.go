@@ -27,12 +27,14 @@ func GetAlias(c echo.Context) error {
 	username := GetUsername()
 	param := c.QueryParam("alias_name")
 	if param == "" {
+		log.Info("[" + username + "] " + " is querying for all aliases")
 		//If empty values provided,the MySQL query returns all aliases
 		if queryResults, e = GetObjects("all"); e != nil {
 			log.Error("[" + username + "] " + e.Error())
 			return echo.NewHTTPError(http.StatusBadRequest, e.Error())
 		}
 	} else {
+		log.Info("[" + username + "] " + " is querying for alias with name/ID = " + param)
 		//Validate that the parameter is DNS-compatible
 		if !govalidator.IsDNSName(param) {
 			log.Error("[" + username + "] " + "Wrong type of query parameter.Expected alphanum, received " + param)
@@ -57,18 +59,20 @@ func GetAlias(c echo.Context) error {
 
 //CreateAlias creates a new alias entry
 func CreateAlias(c echo.Context) error {
+
 	var temp Resource
 	username := GetUsername()
 	if err := c.Bind(&temp); err != nil {
 		log.Warn("[" + username + "] " + "Failed to bind params " + err.Error())
 	}
 	defer c.Request().Body.Close()
-
+	log.Info("[" + username + "] " + "Ready to create alias " + temp.AliasName)
 	//Validate structure
 	if ok, err := govalidator.ValidateStruct(temp); err != nil || ok == false {
 		return MessageToUser(c, http.StatusBadRequest,
 			"Validation error for "+temp.AliasName+" : "+err.Error(), "home.html")
 	}
+	log.Info("[" + username + "] " + "Validation passed for alias " + temp.AliasName)
 
 	//Check for duplicates
 	retrieved, _ := GetObjects(temp.AliasName)
@@ -77,10 +81,10 @@ func CreateAlias(c echo.Context) error {
 			"Alias "+retrieved[0].AliasName+" already exists ", "home.html")
 
 	}
-
+	log.Info("[" + username + "] " + "Duplicate check passed for alias " + temp.AliasName)
 	alias := sanitazeInCreation(temp)
 
-	log.Info("[" + username + "] " + "Ready to create a new alias " + temp.AliasName)
+	log.Info("[" + username + "] " + "Sanitazed succesfully " + temp.AliasName)
 
 	//Create object in DB
 	if err := alias.createObjectInDB(); err != nil {
@@ -88,17 +92,27 @@ func CreateAlias(c echo.Context) error {
 			"Creation error for "+temp.AliasName+" : "+err.Error(), "home.html")
 	}
 
+	log.Info("[" + username + "] " + "Created in DB, now creating in DNS alias: " + alias.AliasName)
+
 	//Create in DNS
 	if err := alias.createInDNS(); err != nil {
+
+		log.Error("[" + username + "] " + "Failed to create entry in DNS, initiating rollback for alias: " + alias.AliasName)
+		
+		//We dont know the newly assigned ID for our alias
+		//We need the ID for clearing its associations
+		alias.ID = findAliasID(alias.AliasName)
+		
 		//If it fails to create alias in DNS, we delete from DB what we created in the previous step.
 		if err := alias.deleteObjectInDB(); err != nil {
+
 			//Failed to rollback the newly created alias
 			return MessageToUser(c, http.StatusBadRequest,
 				"Failed to delete stray alias "+alias.AliasName+"from DB after failing to create in DNS, with error"+": "+err.Error(), "home.html")
 		}
 		//Failed to create in DNS, but managed to delete the newly created alias in DB
 		return MessageToUser(c, http.StatusBadRequest,
-			"Failed to create "+alias.AliasName+"in DNS with error"+": "+err.Error(), "home.html")
+			"Failed to create "+alias.AliasName+" in DNS with error"+": "+err.Error(), "home.html")
 	}
 	//Success message
 	return MessageToUser(c, http.StatusCreated,
@@ -120,26 +134,32 @@ func DeleteAlias(c echo.Context) error {
 		aliasToDelete = c.FormValue("alias_name")
 
 	}
+	log.Info("[" + username + "] " + "Ready to delete alias " + aliasToDelete)
+
 	//Validate alias name only, since the rest of the struct will be empty when DELETE
 	if !govalidator.IsDNSName(aliasToDelete) {
 		log.Warn("[" + username + "] " + "Wrong type of query parameter, expected Alias name, got :" + aliasToDelete)
 		return echo.NewHTTPError(http.StatusBadRequest)
 	}
+	log.Info("[" + username + "] " + "Validation passed for " + aliasToDelete)
+
 	alias, err := GetObjects(aliasToDelete)
 	if err != nil {
 		log.Error("[" + username + "] " + "Failed to retrieve alias " + aliasToDelete + " : " + err.Error())
 	}
 	defer c.Request().Body.Close()
-
-	if alias != nil {
+	log.Info("[" + username + "] " + "Retrieved existing alias from DB " + aliasToDelete)
+	if len(alias) != 0 {
+		log.Info("[" + username + "] " + "Now deleting from the DB the alias " + aliasToDelete)
 		//if alias actually exists, delete from DB
 		if err := alias[0].deleteObjectInDB(); err != nil {
 			return MessageToUser(c, http.StatusBadRequest, err.Error(), "home.html")
 
 		}
+		log.Info("[" + username + "] " + "Deleted from DB, now deleting from DNS " + aliasToDelete)
 		//Now delete from DNS.
 		if err := alias[0].deleteFromDNS(); err != nil {
-
+			log.Error("[" + username + "] " + "Something went wrong while deleting " + aliasToDelete + " from DNS, trying to rollback")
 			//If deletion from DNS fails, we recreate the object in DB.
 			if err := alias[0].createObjectInDB(); err != nil {
 				//Failed to rollback deletion
@@ -173,12 +193,13 @@ func ModifyAlias(c echo.Context) error {
 	if err := c.Bind(&temp); err != nil {
 		log.Warn("[" + username + "] " + "Failed to bind params " + err.Error())
 	}
-
+	log.Info("[" + username + "] " + "Ready to modify alias" + temp.AliasName)
 	//Validate the object alias , with the now-updated fields
 	if ok, err := govalidator.ValidateStruct(temp); err != nil || ok == false {
 		return MessageToUser(c, http.StatusBadRequest,
 			"Validation error for alias "+temp.AliasName+" : "+err.Error(), "home.html")
 	}
+	log.Info("[" + username + "] " + "Validation check passed" + temp.AliasName)
 	//Here we distignuish between kermis PATCH and UI form binding
 	if c.Request().Method == "PATCH" {
 		param = c.Param("id")
@@ -192,39 +213,43 @@ func ModifyAlias(c echo.Context) error {
 		log.Error("[" + username + "] " + "Failed to retrieve alias " + temp.AliasName + " : " + err.Error())
 		return err
 	}
-	alias := sanitazeInUpdate(retrieved[0], temp)
-	defer c.Request().Body.Close()
+	log.Info("[" + username + "] " + "Retrieved existing data for " + temp.AliasName)
 
+	alias := sanitazeInUpdate(retrieved[0], temp)
+
+	defer c.Request().Body.Close()
+	log.Info("[" + username + "] " + "Sanitized successfully" + temp.AliasName)
 	// Update alias
 	if err := alias.updateAlias(); err != nil {
 		return MessageToUser(c, http.StatusBadRequest,
 			"Update error for alias "+alias.AliasName+" : "+err.Error(), "home.html")
 	}
-
+	log.Info("[" + username + "] " + "Updated alias" + alias.AliasName + ", now checking his associations")
 	// Update his cnames
 	if err := alias.updateCnames(); err != nil {
 		return MessageToUser(c, http.StatusBadRequest,
 			"Update error for alias "+alias.AliasName+" : "+err.Error(), "home.html")
 	}
-
+	log.Info("[" + username + "] " + "Finished the cnames update for " + temp.AliasName)
 	// Update his nodes
 	if err := alias.updateNodes(); err != nil {
 		return MessageToUser(c, http.StatusBadRequest,
 			"Update error for alias "+alias.AliasName+" : "+err.Error(), "home.html")
 	}
-
+	log.Info("[" + username + "] " + "Finished the nodes update for " + temp.AliasName)
 	// Update his alarms
 	if err := alias.updateAlarms(); err != nil {
 		return MessageToUser(c, http.StatusBadRequest,
 			"Update error for alias "+alias.AliasName+" : "+err.Error(), "home.html")
 	}
-
+	log.Info("[" + username + "] " + "Finished the alarms update for " + temp.AliasName)
 	//Update in DNS
 	//3.Update DNS
+	log.Info("[" + username + "] " + "The DB was updated successfully, now we can update DNS")
 	if err = alias.updateDNS(retrieved[0]); err != nil {
 		//If something goes wrong while updating, then we use the object
 		//we had in DB before the update to restore that state, before the error
-
+		log.Error("[" + username + "] " + "Could not update " + alias.AliasName + " in DNS, starting rollback")
 		//Delete the DB updates we just made and existing DNS entries
 		if err = alias.deleteObjectInDB(); err != nil {
 			return MessageToUser(c, http.StatusAccepted,

@@ -12,13 +12,14 @@ import (
 )
 
 //CreateTransactions creates a new DB entry and its cname relations, with transactions
-func CreateTransactions(a Alias) (err error) {
+func CreateTransactions(alias Alias) (err error) {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
 
-		if err = tx.Create(&a).
+		if err = tx.Where("alias_name=?", alias.AliasName).
+			Create(&alias).
 			Error; err != nil {
 			tx.Rollback() // rollback
-			return errors.New(a.AliasName + " creation in DB failed with error: " +
+			return errors.New(alias.AliasName + " creation in DB failed with error: " +
 				err.Error())
 		}
 		return nil
@@ -50,7 +51,8 @@ func aliasUpdateTransactions(a Alias) (err error) {
 //deleteTransactions deletes an entry and its relations from DB, with transactions
 func deleteTransactions(alias Alias) (err error) {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
-		if tx.Select(clause.Associations).Delete(&alias); err != nil {
+		if tx.Select(clause.Associations).
+			Delete(&alias); err != nil {
 			return errors.New("Failed to delete alias from DB with error: " + err.Error())
 
 		}

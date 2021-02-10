@@ -52,10 +52,17 @@ func containsNode(a []*Relation, b *Relation) (bool, bool) {
 }
 
 //find returns the ID of a node. If it doesnt exists, returns 0
-func find(name string) int {
+func findNodeID(name string) int {
 	var node Node
 	con.Select("id").Where("node_name=?", name).Find(&node)
 	return node.ID
+}
+
+//find returns the ID of a node. If it doesnt exists, returns 0
+func findAliasID(name string) int {
+	var alias Alias
+	con.Select("id").Where("alias_name=?", name).Find(&alias)
+	return alias.ID
 }
 
 //deleteEmpty makes sure we do not have empty values in our slices

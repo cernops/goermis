@@ -19,8 +19,8 @@ func (alias Alias) createInDNS() error {
 
 	//check for existing aliases in DNS with the same name
 	entries := landbsoap.Conn().DNSDelegatedSearch(strings.Split(alias.AliasName, ".")[0] + "*")
-
 	//Double-check that DNS doesn't contain such an alias
+
 	if len(entries) == 0 {
 		log.Info("[" + alias.User + "]" + "Preparing to add " + alias.AliasName + " in DNS")
 		//If view is external, we need to create two entries in DNS
@@ -80,7 +80,7 @@ func (alias Alias) deleteFromDNS() error {
 
 		return nil
 	}
-	return errors.New("The requested alias for deletion doesn't exist in DNS.Skipping deletion there")
+	return nil
 }
 
 //C) UPDATE

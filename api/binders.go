@@ -224,10 +224,10 @@ func sanitazeInUpdate(current Alias, new Resource) Alias {
 			for _, node := range nodes {
 				current.Relations = append(current.Relations, &Relation{
 					AliasID:   current.ID,
-					NodeID:    find(node),
+					NodeID:    findNodeID(node),
 					Blacklist: k,
 					Node: &Node{
-						ID:               find(node),
+						ID:               findNodeID(node),
 						NodeName:         node,
 						LastModification: time.Now(),
 						Hostgroup:        current.Hostgroup}})
