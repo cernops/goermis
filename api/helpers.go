@@ -88,6 +88,18 @@ func stringToInt(s string) (i int) {
 	return i
 }
 
+func equal(cname1, cname2 []Cname) bool {
+	if len(cname1) != len(cname2) {
+		return false
+	}
+	for _, v := range cname1 {
+		if !containsCname(cname2, v.Cname) {
+			return false
+		}
+	}
+	return true
+}
+
 /*//////////////Custom Validator Tags/////////////////////////*/
 
 //customValidators adds our new tags in the govalidator

@@ -71,22 +71,36 @@ func CreateAlias(c echo.Context) error {
 	}
 
 	//Check for duplicates
-	alias, _ := GetObjects(temp.AliasName)
-	if len(alias) != 0 {
+	retrieved, _ := GetObjects(temp.AliasName)
+	if len(retrieved) != 0 {
 		return MessageToUser(c, http.StatusConflict,
-			"Alias "+temp.AliasName+" already exists ", "home.html")
+			"Alias "+retrieved[0].AliasName+" already exists ", "home.html")
 
 	}
 
-	object := sanitazeInCreation(temp)
+	alias := sanitazeInCreation(temp)
 
 	log.Info("[" + username + "] " + "Ready to create a new alias " + temp.AliasName)
-	//Create object
-	if err := object.createObjectInDB(); err != nil {
+
+	//Create object in DB
+	if err := alias.createObjectInDB(); err != nil {
 		return MessageToUser(c, http.StatusBadRequest,
 			"Creation error for "+temp.AliasName+" : "+err.Error(), "home.html")
 	}
 
+	//Create in DNS
+	if err := alias.createInDNS(); err != nil {
+		//If it fails to create alias in DNS, we delete from DB what we created in the previous step.
+		if err := alias.deleteObjectInDB(); err != nil {
+			//Failed to rollback the newly created alias
+			return MessageToUser(c, http.StatusBadRequest,
+				"Failed to delete stray alias "+alias.AliasName+"from DB after failing to create in DNS, with error"+": "+err.Error(), "home.html")
+		}
+		//Failed to create in DNS, but managed to delete the newly created alias in DB
+		return MessageToUser(c, http.StatusBadRequest,
+			"Failed to create "+alias.AliasName+"in DNS with error"+": "+err.Error(), "home.html")
+	}
+	//Success message
 	return MessageToUser(c, http.StatusCreated,
 		temp.AliasName+" created successfully ", "home.html")
 
@@ -118,9 +132,23 @@ func DeleteAlias(c echo.Context) error {
 	defer c.Request().Body.Close()
 
 	if alias != nil {
+		//if alias actually exists, delete from DB
 		if err := alias[0].deleteObjectInDB(); err != nil {
 			return MessageToUser(c, http.StatusBadRequest, err.Error(), "home.html")
 
+		}
+		//Now delete from DNS.
+		if err := alias[0].deleteFromDNS(); err != nil {
+
+			//If deletion from DNS fails, we recreate the object in DB.
+			if err := alias[0].createObjectInDB(); err != nil {
+				//Failed to rollback deletion
+				return MessageToUser(c, http.StatusBadRequest,
+					"Failed to recreate "+alias[0].AliasName+"in DB, after failing to delete it from DNS with error"+": "+err.Error(), "home.html")
+			}
+			//Rollback message when deletion from DNS fails
+			return MessageToUser(c, http.StatusBadRequest,
+				"Failed to delete "+alias[0].AliasName+"in DNS with error"+": "+err.Error(), "home.html")
 		}
 		return MessageToUser(c, http.StatusOK,
 			aliasToDelete+" deleted successfully ", "home.html")
@@ -159,40 +187,62 @@ func ModifyAlias(c echo.Context) error {
 	}
 
 	//We use the alias name for retrieving its profile from DB
-	alias, err := GetObjects(param)
+	retrieved, err := GetObjects(param)
 	if err != nil {
 		log.Error("[" + username + "] " + "Failed to retrieve alias " + temp.AliasName + " : " + err.Error())
 		return err
 	}
-	sanitazed := sanitazeInUpdate(alias[0], temp)
+	alias := sanitazeInUpdate(retrieved[0], temp)
 	defer c.Request().Body.Close()
 
 	// Update alias
-	if err := sanitazed.updateAlias(); err != nil {
+	if err := alias.updateAlias(); err != nil {
 		return MessageToUser(c, http.StatusBadRequest,
-			"Update error for alias "+sanitazed.AliasName+" : "+err.Error(), "home.html")
+			"Update error for alias "+alias.AliasName+" : "+err.Error(), "home.html")
 	}
 
 	// Update his cnames
-	if err := sanitazed.updateCnames(); err != nil {
+	if err := alias.updateCnames(); err != nil {
 		return MessageToUser(c, http.StatusBadRequest,
-			"Update error for alias "+sanitazed.AliasName+" : "+err.Error(), "home.html")
+			"Update error for alias "+alias.AliasName+" : "+err.Error(), "home.html")
 	}
 
 	// Update his nodes
-	if err := sanitazed.updateNodes(); err != nil {
+	if err := alias.updateNodes(); err != nil {
 		return MessageToUser(c, http.StatusBadRequest,
-			"Update error for alias "+sanitazed.AliasName+" : "+err.Error(), "home.html")
+			"Update error for alias "+alias.AliasName+" : "+err.Error(), "home.html")
 	}
 
 	// Update his alarms
-	if err := sanitazed.updateAlarms(); err != nil {
+	if err := alias.updateAlarms(); err != nil {
 		return MessageToUser(c, http.StatusBadRequest,
-			"Update error for alias "+sanitazed.AliasName+" : "+err.Error(), "home.html")
+			"Update error for alias "+alias.AliasName+" : "+err.Error(), "home.html")
 	}
 
+	//Update in DNS
+	//3.Update DNS
+	if err = alias.updateDNS(retrieved[0]); err != nil {
+		//If something goes wrong while updating, then we use the object
+		//we had in DB before the update to restore that state, before the error
+
+		//Delete the DB updates we just made and existing DNS entries
+		if err = alias.deleteObjectInDB(); err != nil {
+			return MessageToUser(c, http.StatusAccepted,
+				"Could not delete updates while rolling back a failed DNS update for alias "+alias.AliasName, "home.html")
+		}
+		//Recreate the alias as it was before the update
+		if err = retrieved[0].createObjectInDB(); err != nil {
+			return MessageToUser(c, http.StatusAccepted,
+				"Could not restore previous state while rolling back a failed DNS update for alias "+alias.AliasName, "home.html")
+		}
+		//Successful rollback message
+		return MessageToUser(c, http.StatusAccepted,
+			"Failed to update DNS for alias "+alias.AliasName+". Rolling back to previous state", "home.html")
+	}
+
+	//Success message
 	return MessageToUser(c, http.StatusAccepted,
-		sanitazed.AliasName+" updated Successfully", "home.html")
+		alias.AliasName+" updated Successfully", "home.html")
 
 }
 

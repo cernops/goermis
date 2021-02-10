@@ -133,18 +133,6 @@ func (alias Alias) createObjectInDB() (err error) {
 		return err
 	}
 
-	//DNS
-	//createInDNS will create the alias and cnames in DNS.//
-	//if err := r.createInDNS(); err != nil {
-
-	//If it fails to create alias in DNS, we delete from DB what we created in the previous step.
-	//The r struct has ID=0, because ID is assigned after creation
-	//For that reason, we retrieve the object from DB for deletion
-	//alias, _ := GetObjects(r.AliasName)
-	//alias[0].DeleteObject()
-	//return err
-	//}
-
 	return nil
 
 }
@@ -157,15 +145,6 @@ func (alias Alias) deleteObjectInDB() (err error) {
 	if err := deleteTransactions(alias); err != nil {
 		return err
 	}
-	/*
-		//Now delete from DNS.
-		if err := r.deleteFromDNS(); err != nil {
-			//If deletion from DNS fails, we recreate the object.
-			//It will be recreated in DB, but not DNS because it already exists there.
-			r.CreateObject()
-			return err
-		}*/
-
 	return nil
 
 }
@@ -257,7 +236,7 @@ func (alias Alias) updateCnames() (err error) {
 	return nil
 }
 
-// F) Updat the alarms
+// F) Update the alarms
 
 func (alias Alias) updateAlarms() (err error) {
 	var (
@@ -303,14 +282,3 @@ func (alias Alias) updateAlarms() (err error) {
 	}
 	return nil
 }
-
-/*
-	//3.Update DNS
-	if err = r.UpdateDNS(oldObject[0]); err != nil {
-		//If something goes wrong while updating, then we use the object
-		//we had in DB before the update to restore that state, before the error
-		r.DeleteObject()            //Delete the DB updates we just made and existing DNS entries
-		oldObject[0].CreateObject() //Recreate the alias as it was before the update
-		return err
-	}
-*/
