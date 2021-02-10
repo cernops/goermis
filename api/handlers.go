@@ -53,6 +53,7 @@ func GetAlias(c echo.Context) error {
 		}
 
 	}
+	
 	defer c.Request().Body.Close()
 	return c.JSON(http.StatusOK, parse(queryResults))
 }
