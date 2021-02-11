@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/labstack/echo/v4"
 )
 
 /* Resource struct facilitates the binding of data from requests
@@ -26,7 +28,7 @@ type (
 		ForbiddenNodes   []string  `json:"ForbiddenNodes"    valid:"optional,nodes"                         form:"ForbiddenNodes" `
 		AllowedNodes     []string  `json:"AllowedNodes"      valid:"optional,nodes"                         form:"AllowedNodes" `
 		Cnames           []string  `json:"cnames"            valid:"optional,cnames"                        form:"cnames"`
-		External         string    `json:"external"          valid:"required,in(yes|no)"                    form:"external"`
+		External         string    `json:"external"          valid:"required,in(yes|no|external|internal)"                    form:"external"`
 		Hostgroup        string    `json:"hostgroup"         valid:"required,hostgroup"                     form:"hostgroup"`
 		LastModification time.Time `json:"last_modification" valid:"-"`
 		Metric           string    `json:"metric"            valid:"in(cmsfrontier),optional"`
@@ -47,12 +49,13 @@ type (
 
 /*sanitazeInCreation stretches the freshly binded data into
 the ORM models, giving us a more appropriate object to work on*/
-func sanitazeInCreation(resource Resource) (object Alias) {
+func sanitazeInCreation(c echo.Context, resource Resource) (object Alias) {
 
+	contentType := c.Request().Header.Get("Content-Type")
 	//Cnames
 	object.Cnames = []Cname{}
 	if len(resource.Cnames) != 0 {
-		split := deleteEmpty(strings.Split(resource.Cnames[0], ","))
+		split := explode(contentType, resource.Cnames)
 		for _, cname := range split {
 			object.Cnames = append(object.Cnames, Cname{Cname: cname})
 		}
@@ -187,12 +190,12 @@ func parse(queryResults []Alias) Objects {
 
 /*sanitazeInUpdate generates the ORM model of an alias from
 the binded request data*/
-func sanitazeInUpdate(current Alias, new Resource) Alias {
-
+func sanitazeInUpdate(c echo.Context, current Alias, new Resource) Alias {
+	contentType := c.Request().Header.Get("Content-Type")
 	//Cnames
 	current.Cnames = []Cname{}
 	if len(new.Cnames) != 0 {
-		split := deleteEmpty(strings.Split(new.Cnames[0], ","))
+		split := explode(contentType, new.Cnames)
 		for _, cname := range split {
 			current.Cnames = append(current.Cnames,
 				Cname{
@@ -205,7 +208,7 @@ func sanitazeInUpdate(current Alias, new Resource) Alias {
 	//Alarms
 	current.Alarms = []Alarm{}
 	if len(new.Alarms) != 0 {
-		split := deleteEmpty(strings.Split(new.Alarms[0], ","))
+		split := explode(contentType, new.Alarms)
 		for _, alarm := range split {
 			element := deleteEmpty(strings.Split(alarm, ":"))
 			current.Alarms = append(current.Alarms, Alarm{
@@ -223,8 +226,8 @@ func sanitazeInUpdate(current Alias, new Resource) Alias {
 	fields := map[bool][]string{false: new.AllowedNodes, true: new.ForbiddenNodes}
 	for k, field := range fields {
 		if len(field) != 0 {
-			nodes := deleteEmpty(strings.Split(field[0], ","))
-			for _, node := range nodes {
+			split := explode(contentType, field)
+			for _, node := range split {
 				current.Relations = append(current.Relations, &Relation{
 					AliasID:   current.ID,
 					NodeID:    findNodeID(node),

@@ -22,6 +22,28 @@ func containsCname(s []Cname, e string) bool {
 
 }
 
+/*When it comes to nodes/cnames/alarms, i strived for standardization
+So instead of having some as string type and some as array, i decided to
+keep all of them as []string type. The problem arises that the current UI
+sends form-urlencoded content type, which is a string. As a result, the default
+echo binder we are using binds the whole string of elements in the [0] of our []string
+Since, the revamp of the UI has not been part of my project scope(where we could change how data is sent),
+explode solves that issue, by splitting the element [0] when content type is form.
+*/
+func explode(contentType string, slice []string) []string {
+	if contentType == "application/json" {
+		return slice
+
+	} else if contentType == "application/x-www-form-urlencoded" {
+		exploded := deleteEmpty(strings.Split(slice[0], ","))
+		return exploded
+	} else {
+		log.Error("Received an unpredictable content type, not sure how to bind array fields")
+		return []string{}
+	}
+
+}
+
 //containsAlarm checks if an alarm object is in a slice of objects
 func containsAlarm(s []Alarm, a Alarm) bool {
 	for _, alarm := range s {

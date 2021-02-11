@@ -112,7 +112,7 @@ func GetObjects(param string) (query []Alias, err error) {
 			Preload("Alarms").
 			Where("id=?", param).Or("alias_name=?", param).
 			Order("alias_name").
-			First(&query).Error
+			Find(&query).Error
 
 	}
 	if err != nil {

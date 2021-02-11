@@ -53,7 +53,7 @@ func GetAlias(c echo.Context) error {
 		}
 
 	}
-	
+
 	defer c.Request().Body.Close()
 	return c.JSON(http.StatusOK, parse(queryResults))
 }
@@ -63,6 +63,7 @@ func CreateAlias(c echo.Context) error {
 
 	var temp Resource
 	username := GetUsername()
+
 	if err := c.Bind(&temp); err != nil {
 		log.Warn("[" + username + "] " + "Failed to bind params " + err.Error())
 	}
@@ -73,6 +74,7 @@ func CreateAlias(c echo.Context) error {
 		return MessageToUser(c, http.StatusBadRequest,
 			"Validation error for "+temp.AliasName+" : "+err.Error(), "home.html")
 	}
+
 	log.Info("[" + username + "] " + "Validation passed for alias " + temp.AliasName)
 
 	//Check for duplicates
@@ -83,7 +85,7 @@ func CreateAlias(c echo.Context) error {
 
 	}
 	log.Info("[" + username + "] " + "Duplicate check passed for alias " + temp.AliasName)
-	alias := sanitazeInCreation(temp)
+	alias := sanitazeInCreation(c,temp)
 
 	log.Info("[" + username + "] " + "Sanitazed succesfully " + temp.AliasName)
 
@@ -99,11 +101,11 @@ func CreateAlias(c echo.Context) error {
 	if err := alias.createInDNS(); err != nil {
 
 		log.Error("[" + username + "] " + "Failed to create entry in DNS, initiating rollback for alias: " + alias.AliasName)
-		
+
 		//We dont know the newly assigned ID for our alias
 		//We need the ID for clearing its associations
 		alias.ID = findAliasID(alias.AliasName)
-		
+
 		//If it fails to create alias in DNS, we delete from DB what we created in the previous step.
 		if err := alias.deleteObjectInDB(); err != nil {
 
@@ -190,10 +192,12 @@ func ModifyAlias(c echo.Context) error {
 		temp  Resource
 	)
 	username := GetUsername()
+	
 	//Bind request to the temp Resource
 	if err := c.Bind(&temp); err != nil {
 		log.Warn("[" + username + "] " + "Failed to bind params " + err.Error())
 	}
+
 	log.Info("[" + username + "] " + "Ready to modify alias" + temp.AliasName)
 	//Validate the object alias , with the now-updated fields
 	if ok, err := govalidator.ValidateStruct(temp); err != nil || ok == false {
@@ -216,7 +220,7 @@ func ModifyAlias(c echo.Context) error {
 	}
 	log.Info("[" + username + "] " + "Retrieved existing data for " + temp.AliasName)
 
-	alias := sanitazeInUpdate(retrieved[0], temp)
+	alias := sanitazeInUpdate(c,retrieved[0], temp)
 
 	defer c.Request().Body.Close()
 	log.Info("[" + username + "] " + "Sanitized successfully" + temp.AliasName)

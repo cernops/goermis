@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
 )
@@ -146,7 +147,8 @@ func findHostgroup(c echo.Context) (newHg string, oldHg string, err error) {
 
 	//Get the hostgroup that is registered for the same alias.
 	alias, _ := GetObjects(aliasToquery)
-	if alias != nil {
+	spew.Dump(alias)
+	if len(alias) != 0 {
 		oldHg = alias[0].Hostgroup
 	}
 
