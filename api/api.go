@@ -21,24 +21,24 @@ var (
 
 type (
 	//Alias structure is a model for describing the alias
-	Alias struct {
-		ID               int       `  gorm:"auto_increment;primaryKey" `
-		AliasName        string    `  gorm:"not null;type:varchar(40);unique" `
-		Behaviour        string    `  gorm:"type:varchar(15);not null" `
-		BestHosts        int       `  gorm:"type:smallint(6);not null" `
-		External         string    `  gorm:"type:varchar(15);not null" `
-		Metric           string    `  gorm:"type:varchar(15);not null" `
-		PollingInterval  int       `  gorm:"type:smallint(6);not null" `
-		Statistics       string    `  gorm:"type:varchar(15);not null" valid:"-"`
-		Clusters         string    `  gorm:"type:longtext;not null" `
-		Tenant           string    `  gorm:"type:longtext;not null" `
-		Hostgroup        string    `  gorm:"type:longtext;not null" `
-		User             string    `  gorm:"type:varchar(40);not null" `
-		TTL              int       `  gorm:"type:smallint(6);default:60;not null"`
-		LastModification time.Time `  gorm:"type:date"`
-		Cnames           []Cname   `  gorm:"foreignkey:CnameAliasID" `
-		Relations        []*Relation
-		Alarms           []Alarm `  gorm:"foreignkey:AlarmAliasID" `
+	Alias struct { //DB definitions    --Validation-->               //Validation
+		ID               int         `  gorm:"auto_increment;primaryKey"             valid:"optional, numeric"`
+		AliasName        string      `  gorm:"not null;type:varchar(40);unique"      valid:"required,dns" `
+		Behaviour        string      `  gorm:"type:varchar(15);not null"             valid:"optional,alphanum"`
+		BestHosts        int         `  gorm:"type:smallint(6);not null"             valid:"required,int,best_hosts"`
+		External         string      `  gorm:"type:varchar(15);not null"             valid:"required,in(yes|no|external|internal)"`
+		Metric           string      `  gorm:"type:varchar(15);not null"             valid:"in(cmsfrontier),optional"`
+		PollingInterval  int         `  gorm:"type:smallint(6);not null"             valid:"optional,numeric"`
+		Statistics       string      `  gorm:"type:varchar(15);not null"             valid:"optional,alpha"`
+		Clusters         string      `  gorm:"type:longtext;not null"                valid:"optional,alphanum"`
+		Tenant           string      `  gorm:"type:longtext;not null"                valid:"optional,alphanum" `
+		Hostgroup        string      `  gorm:"type:longtext;not null"                valid:"required,hostgroup"`
+		User             string      `  gorm:"type:varchar(40);not null"             valid:"optional,alphanum" `
+		TTL              int         `  gorm:"type:smallint(6);default:60;not null"  valid:"optional,numeric"`
+		LastModification time.Time   `  gorm:"type:date"                             valid:"-"`
+		Cnames           []Cname     `  gorm:"foreignkey:CnameAliasID"               valid:"optional"`
+		Relations        []*Relation `                                               valid:"optional"`
+		Alarms           []Alarm     `  gorm:"foreignkey:AlarmAliasID"               valid:"optional" `
 	}
 
 	/*For future references, the many-to-many relation is not implemented
@@ -47,42 +47,42 @@ type (
 
 	//Relation describes the many-to-many relation between nodes/aliases
 	Relation struct {
-		ID        int `  gorm:"not null;auto_increment" `
-		Node      *Node
-		NodeID    int ` gorm:"not null"`
-		Alias     *Alias
-		AliasID   int  ` gorm:"not null"`
-		Blacklist bool ` gorm:"not null"`
+		ID        int    `  gorm:"not null;auto_increment"  valid:"optional, numeric" `
+		Node      *Node  `                                  valid:"optional"`
+		NodeID    int    ` gorm:"not null"                  valid:"optional, numeric"`
+		Alias     *Alias `                                  valid:"optional"`
+		AliasID   int    ` gorm:"not null"                  valid:"optional, numeric"`
+		Blacklist bool   ` gorm:"not null"                  valid:"-"`
 	}
 	//Alarm describes the one to many relation between an alias and its alarms
 	Alarm struct {
-		ID           int          `  gorm:"auto_increment;primaryKey" `
-		AlarmAliasID int          `  gorm:"not null" `
-		Alias        string       `  gorm:"type:varchar(40);not null" `
-		Name         string       `  gorm:"type:varchar(20);not null" `
-		Recipient    string       `  gorm:"type:varchar(40);not null" `
-		Parameter    int          `  gorm:"type:smallint(6);not null" `
-		Active       bool         `  gorm:"not null" `
-		LastCheck    sql.NullTime `  gorm:"type:date"`
-		LastActive   sql.NullTime `  gorm:"type:date"`
+		ID           int          `  gorm:"auto_increment;primaryKey"   valid:"optional,numeric"`
+		AlarmAliasID int          `  gorm:"not null"                    valid:"optional,numeric"`
+		Alias        string       `  gorm:"type:varchar(40);not null"   valid:"optional,dns" `
+		Name         string       `  gorm:"type:varchar(20);not null"   valid:"optional,in(minimum)"`
+		Recipient    string       `  gorm:"type:varchar(40);not null"   valid:"optional,email"`
+		Parameter    int          `  gorm:"type:smallint(6);not null"   valid:"optional,int"`
+		Active       bool         `  gorm:"not null"                    valid:"-"`
+		LastCheck    sql.NullTime `  gorm:"type:date"                   valid:"-"`
+		LastActive   sql.NullTime `  gorm:"type:date"                   valid:"-"`
 	}
 
 	//Cname structure is a model for the cname description
 	Cname struct {
-		ID           int    `  gorm:"auto_increment;primaryKey" `
-		CnameAliasID int    `  gorm:"not null" `
-		Cname        string `  gorm:"type:varchar(40);not null;unique" `
+		ID           int    `  gorm:"auto_increment;primaryKey"         valid:"optional,numeric"`
+		CnameAliasID int    `  gorm:"not null"                          valid:"optional,numeric"`
+		Cname        string `  gorm:"type:varchar(40);not null;unique"  valid:"optional,cnames" `
 	}
 
 	//Node structure defines the model for the nodes params Node struct {
 	Node struct {
-		ID               int    `  gorm:"unique;not null;auto_increment;primaryKey"`
-		NodeName         string `  gorm:"not null;type:varchar(40);unique" `
-		LastModification time.Time
-		Load             int
-		State            string `  gorm:"type:varchar(15);not null" `
-		Hostgroup        string `  gorm:"type:varchar(40);not null" `
-		Aliases          []Relation
+		ID               int        `  gorm:"unique;not null;auto_increment;primaryKey"     valid:"optional,numeric" `
+		NodeName         string     `  gorm:"not null;type:varchar(40);unique"              valid:"optional,nodes"`
+		LastModification time.Time  `                                                       valid:"-"`
+		Load             int        `                                                       valid:"optional,numeric"`
+		State            string     `  gorm:"type:varchar(15);not null"                     valid:"-"`
+		Hostgroup        string     `  gorm:"type:varchar(40);not null"                     valid:"hostgroup"`
+		Aliases          []Relation `                                                       valid:"-"`
 	}
 
 	//dBFunc type which accept *gorm.DB and return error, used for transactions

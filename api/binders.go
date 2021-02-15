@@ -20,26 +20,26 @@ valid tag--> validation rules, extra funcs in the common.go file*/
 type (
 	//Resource deals with the output from the queries
 	Resource struct {
-		ID               int       `json:"alias_id"          valid:"-"`
-		AliasName        string    `json:"alias_name"        valid:"required,dns"                           form:"alias_name"    `
-		Behaviour        string    `json:"behaviour"         valid:"-"`
-		BestHosts        int       `json:"best_hosts"        valid:"required,int,best_hosts"                form:"best_hosts" `
-		Clusters         string    `json:"clusters"          valid:"optional,alphanum"`
-		ForbiddenNodes   []string  `json:"ForbiddenNodes"    valid:"optional,nodes"                         form:"ForbiddenNodes" `
-		AllowedNodes     []string  `json:"AllowedNodes"      valid:"optional,nodes"                         form:"AllowedNodes" `
-		Cnames           []string  `json:"cnames"            valid:"optional,cnames"                        form:"cnames"`
-		External         string    `json:"external"          valid:"required,in(yes|no|external|internal)"                    form:"external"`
-		Hostgroup        string    `json:"hostgroup"         valid:"required,hostgroup"                     form:"hostgroup"`
-		LastModification time.Time `json:"last_modification" valid:"-"`
-		Metric           string    `json:"metric"            valid:"in(cmsfrontier),optional"`
-		PollingInterval  int       `json:"polling_interval"  valid:"optional,numeric"`
-		Tenant           string    `json:"tenant"            valid:"optional,alphanum"`
-		TTL              int       `json:"ttl,omitempty"     valid:"optional,numeric"`
-		User             string    `json:"user"              valid:"optional,alphanum"`
-		Statistics       string    `json:"statistics"        valid:"optional,alpha"`
-		ResourceURI      string    `json:"resource_uri"      valid:"-"`
-		Pwned            bool      `json:"pwned"             valid:"-"`
-		Alarms           []string  `json:"alarms"            valid:"optional, alarms"                                      form:"alarms"`
+		ID               int       `json:"alias_id"`
+		AliasName        string    `json:"alias_name"        form:"alias_name"    `
+		Behaviour        string    `json:"behaviour" `
+		BestHosts        int       `json:"best_hosts"        form:"best_hosts" `
+		Clusters         string    `json:"clusters"  `
+		ForbiddenNodes   []string  `json:"ForbiddenNodes"    form:"ForbiddenNodes" `
+		AllowedNodes     []string  `json:"AllowedNodes"      form:"AllowedNodes" `
+		Cnames           []string  `json:"cnames"            form:"cnames"`
+		External         string    `json:"external"          form:"external"`
+		Hostgroup        string    `json:"hostgroup"         form:"hostgroup"`
+		LastModification time.Time `json:"last_modification" `
+		Metric           string    `json:"metric"            `
+		PollingInterval  int       `json:"polling_interval"  `
+		Tenant           string    `json:"tenant"            `
+		TTL              int       `json:"ttl,omitempty"     `
+		User             string    `json:"user"              `
+		Statistics       string    `json:"statistics"        `
+		ResourceURI      string    `json:"resource_uri"      `
+		Pwned            bool      `json:"pwned"             `
+		Alarms           []string  `json:"alarms"            form:"alarms"`
 	}
 	//Objects holds multiple result structs
 	Objects struct {

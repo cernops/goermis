@@ -135,19 +135,16 @@ func equal(cname1, cname2 []Cname) bool {
 func customValidators() {
 	govalidator.TagMap["nodes"] = govalidator.Validator(func(str string) bool {
 		if len(str) > 0 {
-			split := strings.Split(str, ",")
 			var allowed = regexp.MustCompile(`^[a-z][a-z0-9\-]*[a-z0-9]$`)
-
-			for _, s := range split {
-				part := strings.Split(s, ".")
-				for _, p := range part {
-					if !allowed.MatchString(p) || !govalidator.InRange(len(p), 2, 40) {
-						log.Error("Not valid node name: " + s)
-						return false
-					}
+			part := strings.Split(str, ".")
+			for _, p := range part {
+				if !allowed.MatchString(p) || !govalidator.InRange(len(p), 2, 40) {
+					log.Error("Not valid node name: " + str)
+					return false
 				}
 			}
 		}
+
 		return true
 	})
 
@@ -155,41 +152,36 @@ func customValidators() {
 	govalidator.TagMap["cnames"] = govalidator.Validator(func(str string) bool {
 
 		if len(str) > 0 {
-			split := strings.Split(str, ",")
 			var allowed = regexp.MustCompile(`^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$`)
-
-			for _, s := range split {
-				if !allowed.MatchString(s) || !govalidator.InRange(len(s), 2, 511) {
-					log.Error("Not valid cname: " + s)
-					return false
-				}
+			if !allowed.MatchString(str) || !govalidator.InRange(len(str), 2, 511) {
+				log.Error("Not valid cname: " + str)
+				return false
 			}
 		}
+
 		return true
 	})
 
 	govalidator.TagMap["alarms"] = govalidator.Validator(func(str string) bool {
 
 		if len(str) > 0 {
-			alarms := strings.Split(str, ",")
-			for _, a := range alarms {
-				alarm := strings.Split(a, ":")
+				alarm := strings.Split(str, ":")
 				if !stringInSlice(alarm[0], []string{"minimum"}) {
 					log.Error("No valid type of alarm")
 					return false
 				}
 				if !govalidator.IsEmail(alarm[1]) {
-					log.Error("No valid e-mail address " + alarm[1] + " in alarm " + a)
+					log.Error("No valid e-mail address " + alarm[1] + " in alarm " + str)
 					return false
 
 				}
 				if !govalidator.IsInt(alarm[2]) {
-					log.Error("No valid parameter value " + alarm[2] + " in alarm " + a)
+					log.Error("No valid parameter value " + alarm[2] + " in alarm " + str)
 					return false
 
 				}
 			}
-		}
+		
 		return true
 	})
 

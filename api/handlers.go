@@ -69,13 +69,6 @@ func CreateAlias(c echo.Context) error {
 	}
 	defer c.Request().Body.Close()
 	log.Info("[" + username + "] " + "Ready to create alias " + temp.AliasName)
-	//Validate structure
-	if ok, err := govalidator.ValidateStruct(temp); err != nil || ok == false {
-		return MessageToUser(c, http.StatusBadRequest,
-			"Validation error for "+temp.AliasName+" : "+err.Error(), "home.html")
-	}
-
-	log.Info("[" + username + "] " + "Validation passed for alias " + temp.AliasName)
 
 	//Check for duplicates
 	retrieved, _ := GetObjects(temp.AliasName)
@@ -85,9 +78,17 @@ func CreateAlias(c echo.Context) error {
 
 	}
 	log.Info("[" + username + "] " + "Duplicate check passed for alias " + temp.AliasName)
-	alias := sanitazeInCreation(c,temp)
+	alias := sanitazeInCreation(c, temp)
 
 	log.Info("[" + username + "] " + "Sanitazed succesfully " + temp.AliasName)
+
+	//Validate structure
+	if ok, err := govalidator.ValidateStruct(alias); err != nil || ok == false {
+		return MessageToUser(c, http.StatusBadRequest,
+			"Validation error for "+temp.AliasName+" : "+err.Error(), "home.html")
+	}
+
+	log.Info("[" + username + "] " + "Validation passed for alias " + temp.AliasName)
 
 	//Create object in DB
 	if err := alias.createObjectInDB(); err != nil {
@@ -192,19 +193,14 @@ func ModifyAlias(c echo.Context) error {
 		temp  Resource
 	)
 	username := GetUsername()
-	
+
 	//Bind request to the temp Resource
 	if err := c.Bind(&temp); err != nil {
 		log.Warn("[" + username + "] " + "Failed to bind params " + err.Error())
 	}
 
 	log.Info("[" + username + "] " + "Ready to modify alias" + temp.AliasName)
-	//Validate the object alias , with the now-updated fields
-	if ok, err := govalidator.ValidateStruct(temp); err != nil || ok == false {
-		return MessageToUser(c, http.StatusBadRequest,
-			"Validation error for alias "+temp.AliasName+" : "+err.Error(), "home.html")
-	}
-	log.Info("[" + username + "] " + "Validation check passed" + temp.AliasName)
+
 	//Here we distignuish between kermis PATCH and UI form binding
 	if c.Request().Method == "PATCH" {
 		param = c.Param("id")
@@ -220,10 +216,18 @@ func ModifyAlias(c echo.Context) error {
 	}
 	log.Info("[" + username + "] " + "Retrieved existing data for " + temp.AliasName)
 
-	alias := sanitazeInUpdate(c,retrieved[0], temp)
+	alias := sanitazeInUpdate(c, retrieved[0], temp)
 
 	defer c.Request().Body.Close()
+
 	log.Info("[" + username + "] " + "Sanitized successfully" + temp.AliasName)
+
+	//Validate the object alias , with the now-updated fields
+	if ok, err := govalidator.ValidateStruct(alias); err != nil || ok == false {
+		return MessageToUser(c, http.StatusBadRequest,
+			"Validation error for alias "+temp.AliasName+" : "+err.Error(), "home.html")
+	}
+	log.Info("[" + username + "] " + "Validation check passed" + temp.AliasName)
 	// Update alias
 	if err := alias.updateAlias(); err != nil {
 		return MessageToUser(c, http.StatusBadRequest,
