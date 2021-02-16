@@ -221,40 +221,43 @@ func ModifyAlias(c echo.Context) error {
 	defer c.Request().Body.Close()
 
 	log.Info("[" + username + "] " + "Sanitized successfully" + temp.AliasName)
-
+  
 	//Validate the object alias , with the now-updated fields
 	if ok, err := govalidator.ValidateStruct(alias); err != nil || ok == false {
 		return MessageToUser(c, http.StatusBadRequest,
 			"Validation error for alias "+temp.AliasName+" : "+err.Error(), "home.html")
 	}
 	log.Info("[" + username + "] " + "Validation check passed" + temp.AliasName)
+	
 	// Update alias
 	if err := alias.updateAlias(); err != nil {
 		return MessageToUser(c, http.StatusBadRequest,
 			"Update error for alias "+alias.AliasName+" : "+err.Error(), "home.html")
 	}
 	log.Info("[" + username + "] " + "Updated alias" + alias.AliasName + ", now checking his associations")
+	
 	// Update his cnames
 	if err := alias.updateCnames(); err != nil {
 		return MessageToUser(c, http.StatusBadRequest,
 			"Update error for alias "+alias.AliasName+" : "+err.Error(), "home.html")
 	}
 	log.Info("[" + username + "] " + "Finished the cnames update for " + temp.AliasName)
+	
 	// Update his nodes
 	if err := alias.updateNodes(); err != nil {
 		return MessageToUser(c, http.StatusBadRequest,
 			"Update error for alias "+alias.AliasName+" : "+err.Error(), "home.html")
 	}
 	log.Info("[" + username + "] " + "Finished the nodes update for " + temp.AliasName)
+	
 	// Update his alarms
 	if err := alias.updateAlarms(); err != nil {
 		return MessageToUser(c, http.StatusBadRequest,
 			"Update error for alias "+alias.AliasName+" : "+err.Error(), "home.html")
 	}
-	log.Info("[" + username + "] " + "Finished the alarms update for " + temp.AliasName)
-	//Update in DNS
-	//3.Update DNS
 	log.Info("[" + username + "] " + "The DB was updated successfully, now we can update DNS")
+	
+	//Update in DNS
 	if err = alias.updateDNS(retrieved[0]); err != nil {
 		//If something goes wrong while updating, then we use the object
 		//we had in DB before the update to restore that state, before the error

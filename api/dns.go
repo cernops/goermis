@@ -87,7 +87,6 @@ func (alias Alias) deleteFromDNS() error {
 
 //updateDNS updates the cname or visibility changes in DNS
 func (alias Alias) updateDNS(oldObject Alias) (err error) {
-	//1.If view has changed delete and recreate alias and cnames
 	if alias.External != oldObject.External {
 		if err := alias.updateView(oldObject); err != nil {
 			return err
@@ -120,12 +119,11 @@ func (alias Alias) createCnamesDNS(view string) bool {
 func (alias Alias) updateView(oldObject Alias) error {
 	oview := oldObject.External
 	nview := alias.External
-	a := oldObject.AliasName
 	log.Info("[" + alias.User + "]" + "Visibility has changed from " + oview + " to " + nview)
 	//Changing view from internal to external
 	if nview == "yes" && oview == "no" {
 		//Create the external visibility
-		if landbsoap.Conn().DNSDelegatedAdd(a, "external", cfg.Soap.SoapKeynameE, "Created by:"+alias.User, "goermis") {
+		if landbsoap.Conn().DNSDelegatedAdd(alias.AliasName, "external", cfg.Soap.SoapKeynameE, "Created by:"+alias.User, "goermis") {
 			//Make a copy the cnames from the existing internal DNS entry to the external one
 			if len(oldObject.Cnames) != 0 {
 				if !oldObject.createCnamesDNS("external") {
@@ -137,9 +135,9 @@ func (alias Alias) updateView(oldObject Alias) error {
 
 	} else if nview == "no" && oview == "yes" {
 		//If fails to delete external view...
-		if !landbsoap.Conn().DNSDelegatedRemove(a, "external") {
+		if !landbsoap.Conn().DNSDelegatedRemove(alias.AliasName, "external") {
 			//...add again what we just deleted
-			landbsoap.Conn().DNSDelegatedAdd(a, "external", cfg.Soap.SoapKeynameE, "Created by:"+alias.User, "goermis")
+			landbsoap.Conn().DNSDelegatedAdd(alias.AliasName, "external", cfg.Soap.SoapKeynameE, "Created by:"+alias.User, "goermis")
 			if len(oldObject.Cnames) != 0 {
 				if !oldObject.createCnamesDNS("external") {
 					return errors.New("Failed to create cnames for the external DNS entry")
@@ -155,7 +153,7 @@ func (alias Alias) updateView(oldObject Alias) error {
 //updateCnamesInDNS updates DNS with any possible Cnames changes.
 func (alias Alias) updateCnamesInDNS(oldCnames []Cname) error {
 	//If we reached this point, it means that theres been a change in cnames,
-	// but not in visibility. Thats why we can use the old or new visibility value.
+	// but not in visibility. Thats why we can use either the old or new visibility value.
 	//We use the new one to minimize the number of variables.
 	var views []string
 	views = append(views, "internal")
@@ -192,7 +190,7 @@ func (alias Alias) updateCnamesInDNS(oldCnames []Cname) error {
 			//If there are no new cnames, there's been a mass purge(user deleted all cnames).
 			//We clean the DNS from the old cnames
 		} else {
-			for _, cname := range alias.Cnames {
+			for _, cname := range oldCnames {
 				if !landbsoap.Conn().DNSDelegatedAliasRemove(alias.AliasName, view, cname.Cname) {
 					return errors.New("Failed to delete cname from DNS" +
 						cname.Cname + " while purging all")
