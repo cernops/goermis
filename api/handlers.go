@@ -9,13 +9,18 @@ import (
 
 	"github.com/asaskevich/govalidator"
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/gommon/log"
+	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 )
 
 func init() {
 	govalidator.SetFieldsRequiredByDefault(true)
 	customValidators() //enable the custom validators, see helpers.go
+
 }
+
+var (
+	log = bootstrap.GetLog()
+)
 
 //GetAlias returns a list of ALL aliases
 func GetAlias(c echo.Context) error {
@@ -221,42 +226,42 @@ func ModifyAlias(c echo.Context) error {
 	defer c.Request().Body.Close()
 
 	log.Info("[" + username + "] " + "Sanitized successfully" + temp.AliasName)
-  
+
 	//Validate the object alias , with the now-updated fields
 	if ok, err := govalidator.ValidateStruct(alias); err != nil || ok == false {
 		return MessageToUser(c, http.StatusBadRequest,
 			"Validation error for alias "+temp.AliasName+" : "+err.Error(), "home.html")
 	}
 	log.Info("[" + username + "] " + "Validation check passed" + temp.AliasName)
-	
+
 	// Update alias
 	if err := alias.updateAlias(); err != nil {
 		return MessageToUser(c, http.StatusBadRequest,
 			"Update error for alias "+alias.AliasName+" : "+err.Error(), "home.html")
 	}
 	log.Info("[" + username + "] " + "Updated alias" + alias.AliasName + ", now checking his associations")
-	
+
 	// Update his cnames
 	if err := alias.updateCnames(); err != nil {
 		return MessageToUser(c, http.StatusBadRequest,
 			"Update error for alias "+alias.AliasName+" : "+err.Error(), "home.html")
 	}
 	log.Info("[" + username + "] " + "Finished the cnames update for " + temp.AliasName)
-	
+
 	// Update his nodes
 	if err := alias.updateNodes(); err != nil {
 		return MessageToUser(c, http.StatusBadRequest,
 			"Update error for alias "+alias.AliasName+" : "+err.Error(), "home.html")
 	}
 	log.Info("[" + username + "] " + "Finished the nodes update for " + temp.AliasName)
-	
+
 	// Update his alarms
 	if err := alias.updateAlarms(); err != nil {
 		return MessageToUser(c, http.StatusBadRequest,
 			"Update error for alias "+alias.AliasName+" : "+err.Error(), "home.html")
 	}
 	log.Info("[" + username + "] " + "The DB was updated successfully, now we can update DNS")
-	
+
 	//Update in DNS
 	if err = alias.updateDNS(retrieved[0]); err != nil {
 		//If something goes wrong while updating, then we use the object

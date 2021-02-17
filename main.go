@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/labstack/gommon/log"
 	"gitlab.cern.ch/lb-experts/goermis/alarms"
 	"gitlab.cern.ch/lb-experts/goermis/api"
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
@@ -25,7 +24,8 @@ const (
 
 func main() {
 	bootstrap.ParseFlags()
-	log.Info("Service Started...")
+	log := bootstrap.GetLog()
+	log.Info("============Service Started=============")
 
 	// Echo instance
 	echo := router.New()

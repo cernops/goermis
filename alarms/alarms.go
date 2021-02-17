@@ -9,13 +9,17 @@ import (
 	"net/smtp"
 	"time"
 
-	"github.com/labstack/gommon/log"
 	"github.com/miekg/dns"
 	"gitlab.cern.ch/lb-experts/goermis/api"
+	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 	"gitlab.cern.ch/lb-experts/goermis/db"
 )
 
 const dnsManager = "137.138.28.176"
+
+var (
+	log = bootstrap.GetLog()
+)
 
 //PeriodicAlarmCheck periodically makes sure that the thresholds are respected.
 //Otherwise notifies by e-mail and updates the DB

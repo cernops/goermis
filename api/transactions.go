@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
+	
 	cgorm "gitlab.cern.ch/lb-experts/goermis/db"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -108,7 +108,6 @@ func addNodeTransactions(v *Relation) (err error) {
 		//Either create a new node or find an existing one
 		//Remember that its a many-2-many relationship, so nodes
 		//can exist already, assigned to another alias
-		spew.Dump(v)
 		if err = tx.Where("node_name = ?", v.Node.NodeName).
 			FirstOrCreate(&v.Node).
 			Error; err != nil {

@@ -8,14 +8,12 @@ import (
 	"path/filepath"
 
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/gommon/log"
+
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 )
 
 var (
-	baseDir    = filepath.Join(*bootstrap.HomeFlag, "/templates/base.html")
-	layoutsDir = filepath.Join(*bootstrap.HomeFlag, "/templates/layouts")
-	formsDir   = filepath.Join(*bootstrap.HomeFlag, "/templates/forms")
+	log = bootstrap.GetLog()
 )
 
 // TemplateRegistry defines the template registry struct
@@ -25,6 +23,7 @@ type TemplateRegistry struct {
 
 // Render Implements e.Renderer interface
 func (t *TemplateRegistry) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
+
 	tmpl, ok := t.templates[name]
 	if !ok {
 		err := errors.New("Template not found -> " + name)
@@ -37,7 +36,7 @@ func (t *TemplateRegistry) Render(w io.Writer, name string, data interface{}, c 
 func readCurrentDir(dir string) []string {
 	file, err := os.Open(dir)
 	if err != nil {
-		//log.Fatal("Failed opening directory")
+		//Log.Fatal("Failed opening directory")
 		log.Info("Failed opening directory")
 
 	}
@@ -49,6 +48,11 @@ func readCurrentDir(dir string) []string {
 
 //InitViews initializes the GUI
 func InitViews(e *echo.Echo) {
+	var (
+		baseDir    = filepath.Join(*bootstrap.HomeFlag, "/templates/base.html")
+		layoutsDir = filepath.Join(*bootstrap.HomeFlag, "/templates/layouts")
+		formsDir   = filepath.Join(*bootstrap.HomeFlag, "/templates/forms")
+	)
 	staticfiles := filepath.Join(*bootstrap.HomeFlag, "/staticfiles")
 	e.Static("/staticfiles", staticfiles)
 	templates := make(map[string]*template.Template)

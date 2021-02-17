@@ -8,7 +8,7 @@ import (
 
 	"github.com/asaskevich/govalidator"
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/gommon/log"
+	
 )
 
 /*////////////Helper Functions///////////////////*/

@@ -14,8 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/labstack/gommon/log"
-
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 )
 
@@ -32,7 +30,10 @@ type LandbSoap struct {
 	Client    *http.Client
 }
 
-var soap LandbSoap
+var (
+	soap LandbSoap
+	log = bootstrap.GetLog()
+)
 
 //Conn is nothing
 func Conn() *LandbSoap {

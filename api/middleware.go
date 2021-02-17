@@ -12,7 +12,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/gommon/log"
+
 )
 
 //CheckAuthorization checks if user is in the egroup and if he is allowed to create in the hostgroup

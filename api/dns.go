@@ -4,7 +4,6 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/labstack/gommon/log"
 	landbsoap "gitlab.cern.ch/lb-experts/goermis/landb"
 )
 
