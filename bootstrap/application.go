@@ -50,7 +50,7 @@ type Config struct {
 var (
 	configFileFlag = flag.String("config", "/usr/local/etc/goermis.yaml", "specify configuration file path")
 	//HomeFlag grabs the location of staticfiles & templates
-	HomeFlag   = flag.String("home", "/var/lib/ermis/", "specify statics path")
+	HomeFlag = flag.String("home", "/var/lib/ermis/", "specify statics path")
 	//DebugLevel enable flag
 	DebugLevel = flag.Bool("debug", false, "display debug messages")
 )
@@ -116,9 +116,9 @@ func GetLog() *log.Logger {
 	log := log.New("\r\n")
 	//Init log in the bootstrap package, since its the first that its executed
 	if *DebugLevel {
-		log.SetLevel(1)
+		log.SetLevel(1) //DEBUG
 	} else {
-		log.SetLevel(2)
+		log.SetLevel(2) //INFO
 	}
 
 	//Init log in the bootstrap package, since its the first that its executed
