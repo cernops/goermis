@@ -304,7 +304,7 @@ def step_impl(context, req):  # pylint:disable=too-many-branches,too-many-statem
             context.response = requests.get(url, params={
                                             'alias_name': example_alias_name},  headers=headers, auth=HTTPKerberosAuth(), verify=cafile)
             data = context.response.json()
-            
+
         except Exception as e:
             print(str(e))
             assert False
@@ -349,8 +349,7 @@ def step_impl(context, req):  # pylint:disable=too-many-branches,too-many-statem
         except Exception as e:
             print(str(e))
             assert False
-        data[u'objects'][0][u'alarms']=[]
-     
+        data[u'objects'][0][u'alarms'] = []
 
     elif req == "have updated alarm":
         try:
