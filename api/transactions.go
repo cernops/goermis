@@ -5,7 +5,6 @@ import (
 	"errors"
 	"time"
 
-	
 	cgorm "gitlab.cern.ch/lb-experts/goermis/db"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"

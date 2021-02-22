@@ -30,7 +30,7 @@ func mysqlConn() {
 	if *bootstrap.DebugLevel {
 		value = 4 //INFO
 	} else {
-		value = 2  //ERROR
+		value = 2 //ERROR
 	}
 	newLogger := logger.New(
 		log,

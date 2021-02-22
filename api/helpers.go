@@ -8,7 +8,6 @@ import (
 
 	"github.com/asaskevich/govalidator"
 	"github.com/labstack/echo/v4"
-	
 )
 
 /*////////////Helper Functions///////////////////*/
@@ -165,23 +164,23 @@ func customValidators() {
 	govalidator.TagMap["alarms"] = govalidator.Validator(func(str string) bool {
 
 		if len(str) > 0 {
-				alarm := strings.Split(str, ":")
-				if !stringInSlice(alarm[0], []string{"minimum"}) {
-					log.Error("No valid type of alarm")
-					return false
-				}
-				if !govalidator.IsEmail(alarm[1]) {
-					log.Error("No valid e-mail address " + alarm[1] + " in alarm " + str)
-					return false
-
-				}
-				if !govalidator.IsInt(alarm[2]) {
-					log.Error("No valid parameter value " + alarm[2] + " in alarm " + str)
-					return false
-
-				}
+			alarm := strings.Split(str, ":")
+			if !stringInSlice(alarm[0], []string{"minimum"}) {
+				log.Error("No valid type of alarm")
+				return false
 			}
-		
+			if !govalidator.IsEmail(alarm[1]) {
+				log.Error("No valid e-mail address " + alarm[1] + " in alarm " + str)
+				return false
+
+			}
+			if !govalidator.IsInt(alarm[2]) {
+				log.Error("No valid parameter value " + alarm[2] + " in alarm " + str)
+				return false
+
+			}
+		}
+
 		return true
 	})
 

@@ -45,6 +45,9 @@ type Config struct {
 		LoggingFile string `yaml:"logging_file"`
 		Stdout      bool
 	}
+	DNS struct {
+		Manager string
+	}
 }
 
 var (

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
-
 )
 
 //Group decides user authorization

@@ -25,6 +25,8 @@ certs:
    ca_cert:        --change--
 log:  
   logging_file:    --change--
-  stdout:          --change--   
+  stdout:          --change-- 
+dns:
+  manager:         --change--  
 
   
