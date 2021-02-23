@@ -50,11 +50,14 @@ func aliasUpdateTransactions(a Alias) (err error) {
 //deleteTransactions deletes an entry and its relations from DB, with transactions
 func deleteTransactions(alias Alias) (err error) {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
+		//Delete alias and its cnames/alarms
 		if tx.Select(clause.Associations).
 			Delete(&alias); err != nil {
 			return errors.New("Failed to delete alias from DB with error: " + err.Error())
 
 		}
+		//Nodes are not deleted on the previous step, because
+		//of the custom many-2-many relation
 		//Delete node with no other relations
 		for _, relation := range alias.Relations {
 			if tx.Model(&relation.Node).Association("Aliases").Count() == 0 {
