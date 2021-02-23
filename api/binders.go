@@ -55,7 +55,7 @@ func sanitazeInCreation(c echo.Context, resource Resource) (object Alias) {
 	//Cnames
 	object.Cnames = []Cname{}
 	if len(resource.Cnames) != 0 {
-		split := explode(contentType, resource.Cnames)
+		split := Explode(contentType, resource.Cnames)
 		for _, cname := range split {
 			object.Cnames = append(object.Cnames, Cname{Cname: cname})
 		}
@@ -78,9 +78,9 @@ func sanitazeInCreation(c echo.Context, resource Resource) (object Alias) {
 		object.BestHosts = resource.BestHosts
 	}
 	//View
-	if stringInSlice(strings.ToLower(resource.External), []string{"yes", "external"}) {
+	if StringInSlice(strings.ToLower(resource.External), []string{"yes", "external"}) {
 		object.External = "yes"
-	} else if stringInSlice(strings.ToLower(resource.External), []string{"no", "internal"}) {
+	} else if StringInSlice(strings.ToLower(resource.External), []string{"no", "internal"}) {
 		object.External = "no"
 	}
 
@@ -180,7 +180,7 @@ func parse(queryResults []Alias) Objects {
 		if IsSuperuser() {
 			temp.Pwned = true
 		} else {
-			temp.Pwned = stringInSlice(temp.Hostgroup, GetUsersHostgroups())
+			temp.Pwned = StringInSlice(temp.Hostgroup, GetUsersHostgroups())
 		}
 
 		parsed.Objects = append(parsed.Objects, temp)
@@ -195,7 +195,7 @@ func sanitazeInUpdate(c echo.Context, current Alias, new Resource) Alias {
 	//Cnames
 	current.Cnames = []Cname{}
 	if len(new.Cnames) != 0 {
-		split := explode(contentType, new.Cnames)
+		split := Explode(contentType, new.Cnames)
 		for _, cname := range split {
 			current.Cnames = append(current.Cnames,
 				Cname{
@@ -208,13 +208,13 @@ func sanitazeInUpdate(c echo.Context, current Alias, new Resource) Alias {
 	//Alarms
 	current.Alarms = []Alarm{}
 	if len(new.Alarms) != 0 {
-		split := explode(contentType, new.Alarms)
+		split := Explode(contentType, new.Alarms)
 		for _, alarm := range split {
-			element := deleteEmpty(strings.Split(alarm, ":"))
+			element := DeleteEmpty(strings.Split(alarm, ":"))
 			current.Alarms = append(current.Alarms, Alarm{
 				Name:         element[0],
 				Recipient:    element[1],
-				Parameter:    stringToInt(element[2]),
+				Parameter:    StringToInt(element[2]),
 				AlarmAliasID: current.ID,
 				Alias:        current.AliasName})
 
@@ -226,7 +226,7 @@ func sanitazeInUpdate(c echo.Context, current Alias, new Resource) Alias {
 	fields := map[bool][]string{false: new.AllowedNodes, true: new.ForbiddenNodes}
 	for k, field := range fields {
 		if len(field) != 0 {
-			split := explode(contentType, field)
+			split := Explode(contentType, field)
 			for _, node := range split {
 				current.Relations = append(current.Relations, &Relation{
 					AliasID:   current.ID,
@@ -242,9 +242,9 @@ func sanitazeInUpdate(c echo.Context, current Alias, new Resource) Alias {
 	}
 
 	if new.External != "" {
-		if stringInSlice(new.External, []string{"yes", "external"}) {
+		if StringInSlice(new.External, []string{"yes", "external"}) {
 			current.External = "yes"
-		} else if stringInSlice(new.External, []string{"no", "internal"}) {
+		} else if StringInSlice(new.External, []string{"no", "internal"}) {
 			current.External = "no"
 		}
 	}

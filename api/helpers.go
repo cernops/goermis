@@ -8,11 +8,12 @@ import (
 
 	"github.com/asaskevich/govalidator"
 	"github.com/labstack/echo/v4"
-	
 )
 
 /*////////////Helper Functions///////////////////*/
-func containsCname(s []Cname, e string) bool {
+
+//ContainsCname returns true if a cname can be found in a list of Cname objects
+func ContainsCname(s []Cname, e string) bool {
 	for _, a := range s {
 		if a.Cname == e {
 			return true
@@ -30,12 +31,15 @@ echo binder we are using binds the whole string of elements in the [0] of our []
 Since, the revamp of the UI has not been part of my project scope(where we could change how data is sent),
 explode solves that issue, by splitting the element [0] when content type is form.
 */
-func explode(contentType string, slice []string) []string {
+
+//Explode takes as input a slice if the first and only element is a comma-separated
+//string , it splits that string and returns a full slice
+func Explode(contentType string, slice []string) []string {
 	if contentType == "application/json" {
 		return slice
 
 	} else if contentType == "application/x-www-form-urlencoded" {
-		exploded := deleteEmpty(strings.Split(slice[0], ","))
+		exploded := DeleteEmpty(strings.Split(slice[0], ","))
 		return exploded
 	} else {
 		log.Error("Received an unpredictable content type, not sure how to bind array fields")
@@ -44,8 +48,8 @@ func explode(contentType string, slice []string) []string {
 
 }
 
-//containsAlarm checks if an alarm object is in a slice of objects
-func containsAlarm(s []Alarm, a Alarm) bool {
+//ContainsAlarm checks if an alarm object is in a slice of objects
+func ContainsAlarm(s []Alarm, a Alarm) bool {
 	for _, alarm := range s {
 		if alarm.Name == a.Name &&
 			alarm.Recipient == a.Recipient &&
@@ -57,9 +61,9 @@ func containsAlarm(s []Alarm, a Alarm) bool {
 
 }
 
-//containsNode checks if a node has a relation with an alias
+//ContainsNode checks if a node has a relation with an alias
 // and the status of that relation(allowed or forbidden)
-func containsNode(a []*Relation, b *Relation) (bool, bool) {
+func ContainsNode(a []*Relation, b *Relation) (bool, bool) {
 	for _, v := range a {
 		if v.Node.NodeName == b.Node.NodeName {
 			if v.Blacklist == b.Blacklist {
@@ -87,8 +91,8 @@ func findAliasID(name string) int {
 	return alias.ID
 }
 
-//deleteEmpty makes sure we do not have empty values in our slices
-func deleteEmpty(s []string) []string {
+//DeleteEmpty makes sure we do not have empty values in our slices
+func DeleteEmpty(s []string) []string {
 	var r []string
 	for _, str := range s {
 		if str != "" {
@@ -98,8 +102,8 @@ func deleteEmpty(s []string) []string {
 	return r
 }
 
-//stringInSlice checks if a string is in a slice
-func stringInSlice(a string, list []string) bool {
+//StringInSlice checks if a string is in a slice
+func StringInSlice(a string, list []string) bool {
 	for _, b := range list {
 		if b == a {
 			return true
@@ -108,8 +112,8 @@ func stringInSlice(a string, list []string) bool {
 	return false
 }
 
-//stringToInt converts a string to a int. It is used to hide error checks
-func stringToInt(s string) (i int) {
+//StringToInt converts a string to a int. It is used to hide error checks
+func StringToInt(s string) (i int) {
 	i, err := strconv.Atoi(s)
 	if err != nil {
 		log.Error("Error while converting string to int")
@@ -117,12 +121,13 @@ func stringToInt(s string) (i int) {
 	return i
 }
 
-func equal(cname1, cname2 []Cname) bool {
+//Equal compares two arrays of Cname type
+func Equal(cname1, cname2 []Cname) bool {
 	if len(cname1) != len(cname2) {
 		return false
 	}
 	for _, v := range cname1 {
-		if !containsCname(cname2, v.Cname) {
+		if !ContainsCname(cname2, v.Cname) {
 			return false
 		}
 	}
@@ -165,28 +170,28 @@ func customValidators() {
 	govalidator.TagMap["alarms"] = govalidator.Validator(func(str string) bool {
 
 		if len(str) > 0 {
-				alarm := strings.Split(str, ":")
-				if !stringInSlice(alarm[0], []string{"minimum"}) {
-					log.Error("No valid type of alarm")
-					return false
-				}
-				if !govalidator.IsEmail(alarm[1]) {
-					log.Error("No valid e-mail address " + alarm[1] + " in alarm " + str)
-					return false
-
-				}
-				if !govalidator.IsInt(alarm[2]) {
-					log.Error("No valid parameter value " + alarm[2] + " in alarm " + str)
-					return false
-
-				}
+			alarm := strings.Split(str, ":")
+			if !StringInSlice(alarm[0], []string{"minimum"}) {
+				log.Error("No valid type of alarm")
+				return false
 			}
-		
+			if !govalidator.IsEmail(alarm[1]) {
+				log.Error("No valid e-mail address " + alarm[1] + " in alarm " + str)
+				return false
+
+			}
+			if !govalidator.IsInt(alarm[2]) {
+				log.Error("No valid parameter value " + alarm[2] + " in alarm " + str)
+				return false
+
+			}
+		}
+
 		return true
 	})
 
 	govalidator.TagMap["best_hosts"] = govalidator.Validator(func(str string) bool {
-		return stringToInt(str) >= -1
+		return StringToInt(str) >= -1
 
 	})
 

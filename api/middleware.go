@@ -55,10 +55,10 @@ func askTeigi(c echo.Context, nextHandler echo.HandlerFunc, username string) err
 	//In this step we check username , against both hostgroups.
 	//We need this step to prevent unauthorized alias movements.
 	if newHg != "" {
-		authInNewHg = stringInSlice(newHg, GetUsersHostgroups())
+		authInNewHg = StringInSlice(newHg, GetUsersHostgroups())
 	}
 	if oldHg != "" {
-		authInOldHg = stringInSlice(oldHg, GetUsersHostgroups())
+		authInOldHg = StringInSlice(oldHg, GetUsersHostgroups())
 	}
 
 	switch c.Request().Method {

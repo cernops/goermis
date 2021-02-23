@@ -169,7 +169,7 @@ func (alias Alias) updateNodes() (err error) {
 	con.Preload("Node").Where("alias_id=?", alias.ID).Find(&relationsInDB)
 
 	for _, r := range relationsInDB {
-		if ok, _ := containsNode(alias.Relations, r); !ok {
+		if ok, _ := ContainsNode(alias.Relations, r); !ok {
 			if err = deleteNodeTransactions(r); err != nil {
 				return errors.New("Failed to delete existing node " +
 					r.Node.NodeName + " while updating, with error: " + err.Error())
@@ -177,13 +177,13 @@ func (alias Alias) updateNodes() (err error) {
 		}
 	}
 	for _, r := range alias.Relations {
-		if ok, _ := containsNode(relationsInDB, r); !ok {
+		if ok, _ := ContainsNode(relationsInDB, r); !ok {
 			if err = addNodeTransactions(r); err != nil {
 				return errors.New("Failed to add new node " +
 					r.Node.NodeName + " while updating, with error: " + err.Error())
 			}
 			//If relation exists we also check if user modified its privileges
-		} else if ok, privilege := containsNode(relationsInDB, r); ok && !privilege {
+		} else if ok, privilege := ContainsNode(relationsInDB, r); ok && !privilege {
 			if err = updatePrivilegeTransactions(r); err != nil {
 				return errors.New("Failed to update privilege for node " +
 					r.Node.NodeName + " while updating, with error: " + err.Error())
@@ -207,7 +207,7 @@ func (alias Alias) updateCnames() (err error) {
 
 	if len(alias.Cnames) > 0 { //there are cnames, delete and add accordingly
 		for _, v := range cnamesInDB {
-			if !containsCname(alias.Cnames, v.Cname) {
+			if !ContainsCname(alias.Cnames, v.Cname) {
 				if err = deleteCnameTransactions(v); err != nil {
 					return errors.New("Failed to delete existing cname " +
 						v.Cname + " while updating, with error: " + err.Error())
@@ -216,7 +216,7 @@ func (alias Alias) updateCnames() (err error) {
 		}
 
 		for _, v := range alias.Cnames {
-			if !containsCname(cnamesInDB, v.Cname) {
+			if !ContainsCname(cnamesInDB, v.Cname) {
 				if err = addCnameTransactions(v); err != nil {
 					return errors.New("Failed to add new cname " +
 						v.Cname + " while updating, with error: " + err.Error())
@@ -246,7 +246,7 @@ func (alias Alias) updateAlarms() (err error) {
 	con.Model(&alias).Association("Alarms").Find(&alarmsInDB)
 	if len(alias.Alarms) > 0 {
 		for _, a := range alarmsInDB {
-			if !containsAlarm(alias.Alarms, a) {
+			if !ContainsAlarm(alias.Alarms, a) {
 				if err = deleteAlarmTransactions(a); err != nil {
 					return errors.New("Failed to delete existing alarm " +
 						a.Name + " while updating, with error: " + err.Error())
@@ -255,7 +255,7 @@ func (alias Alias) updateAlarms() (err error) {
 		}
 
 		for _, a := range alias.Alarms {
-			if !containsAlarm(alarmsInDB, a) {
+			if !ContainsAlarm(alarmsInDB, a) {
 				if err = addAlarmTransactions(a); err != nil {
 					return errors.New("Failed to add alarm " +
 						a.Name + ":" +
