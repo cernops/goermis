@@ -2,13 +2,13 @@ package api
 
 /*This file contains the route handlers */
 import (
+	"errors"
 	"net"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/asaskevich/govalidator"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/labstack/echo/v4"
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 )
@@ -23,11 +23,10 @@ var (
 	log = bootstrap.GetLog()
 )
 
-//GetAlias returns a list of ALL aliases
-func GetAlias(c echo.Context) error {
+func get(c echo.Context) ([]Alias, error) {
 
 	var (
-		queryResults []Alias
+		queryResults = []Alias{}
 		e            error
 	)
 	username := GetUsername()
@@ -37,14 +36,15 @@ func GetAlias(c echo.Context) error {
 		//If empty values provided,the MySQL query returns all aliases
 		if queryResults, e = GetObjects("all"); e != nil {
 			log.Error("[" + username + "] " + e.Error())
-			return echo.NewHTTPError(http.StatusBadRequest, e.Error())
+			return queryResults, e
 		}
 	} else {
 		log.Info("[" + username + "] " + " is querying for alias with name/ID = " + param)
 		//Validate that the parameter is DNS-compatible
 		if !govalidator.IsDNSName(param) {
-			log.Error("[" + username + "] " + "Wrong type of query parameter.Expected alphanum, received " + param)
-			return echo.NewHTTPError(http.StatusBadRequest)
+			e := errors.New("[" + username + "] " + "Wrong type of query parameter.Expected alphanum, received " + param)
+			log.Error(e)
+			return queryResults, e
 		}
 
 		if _, err := strconv.Atoi(param); err != nil {
@@ -55,76 +55,97 @@ func GetAlias(c echo.Context) error {
 
 		if queryResults, e = GetObjects(string(param)); e != nil {
 			log.Error("[" + username + "]" + "Unable to get alias" + param + " : " + e.Error())
-			return echo.NewHTTPError(http.StatusBadRequest, e.Error())
+			return queryResults, e
 		}
 
 	}
 
 	defer c.Request().Body.Close()
+	return queryResults, nil
+
+}
+
+//GetAlias returns a list of ALL aliases
+func GetAlias(c echo.Context) error {
+	queryResults, e := get(c)
+	if e != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, e.Error())
+	}
+
 	return c.JSON(http.StatusOK, parse(queryResults))
+}
+
+//GetAliasRaw returns row data
+func GetAliasRaw(c echo.Context) error {
+	queryResults, e := get(c)
+	if e != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, e.Error())
+	}
+
+	return c.JSON(http.StatusOK, queryResults)
+
 }
 
 //CreateAlias creates a new alias entry
 func CreateAlias(c echo.Context) error {
 
-	var temp Alias
+	var temp Resource
 	username := GetUsername()
 
 	if err := c.Bind(&temp); err != nil {
 		log.Warn("[" + username + "] " + "Failed to bind params " + err.Error())
 	}
-	spew.Dump(temp)
 	defer c.Request().Body.Close()
 	log.Info("[" + username + "] " + "Ready to create alias " + temp.AliasName)
-	/*
-		//Check for duplicates
-		retrieved, _ := GetObjects(temp.AliasName)
-		if len(retrieved) != 0 {
-			return MessageToUser(c, http.StatusConflict,
-				"Alias "+retrieved[0].AliasName+" already exists ", "home.html")
 
-		}
-		log.Info("[" + username + "] " + "Duplicate check passed for alias " + temp.AliasName)
-		alias := sanitazeInCreation(c, temp)
+	//Check for duplicates
+	retrieved, _ := GetObjects(temp.AliasName)
+	if len(retrieved) != 0 {
+		return MessageToUser(c, http.StatusConflict,
+			"Alias "+retrieved[0].AliasName+" already exists ", "home.html")
 
-		log.Info("[" + username + "] " + "Sanitazed succesfully " + temp.AliasName)
+	}
+	log.Info("[" + username + "] " + "Duplicate check passed for alias " + temp.AliasName)
+	alias := sanitazeInCreation(c, temp)
 
-		//Validate structure
-		if ok, err := govalidator.ValidateStruct(alias); err != nil || ok == false {
+	log.Info("[" + username + "] " + "Sanitazed succesfully " + temp.AliasName)
+
+	//Validate structure
+	if ok, err := govalidator.ValidateStruct(alias); err != nil || ok == false {
+		return MessageToUser(c, http.StatusBadRequest,
+			"Validation error for "+temp.AliasName+" : "+err.Error(), "home.html")
+	}
+
+	log.Info("[" + username + "] " + "Validation passed for alias " + temp.AliasName)
+
+	//Create object in DB
+	if err := alias.createObjectInDB(); err != nil {
+		return MessageToUser(c, http.StatusBadRequest,
+			"Creation error for "+temp.AliasName+" : "+err.Error(), "home.html")
+	}
+
+	log.Info("[" + username + "] " + "Created in DB, now creating in DNS alias: " + alias.AliasName)
+
+	//Create in DNS
+	if err := alias.createInDNS(); err != nil {
+
+		log.Error("[" + username + "] " + "Failed to create entry in DNS, initiating rollback for alias: " + alias.AliasName)
+
+		//We dont know the newly assigned ID for our alias
+		//We need the ID for clearing its associations
+		alias.ID = findAliasID(alias.AliasName)
+
+		//If it fails to create alias in DNS, we delete from DB what we created in the previous step.
+		if err := alias.deleteObjectInDB(); err != nil {
+
+			//Failed to rollback the newly created alias
 			return MessageToUser(c, http.StatusBadRequest,
-				"Validation error for "+temp.AliasName+" : "+err.Error(), "home.html")
+				"Failed to delete stray alias "+alias.AliasName+"from DB after failing to create in DNS, with error"+": "+err.Error(), "home.html")
 		}
-
-		log.Info("[" + username + "] " + "Validation passed for alias " + temp.AliasName)
-
-		//Create object in DB
-		if err := alias.createObjectInDB(); err != nil {
-			return MessageToUser(c, http.StatusBadRequest,
-				"Creation error for "+temp.AliasName+" : "+err.Error(), "home.html")
-		}
-
-		log.Info("[" + username + "] " + "Created in DB, now creating in DNS alias: " + alias.AliasName)
-
-		//Create in DNS
-		if err := alias.createInDNS(); err != nil {
-
-			log.Error("[" + username + "] " + "Failed to create entry in DNS, initiating rollback for alias: " + alias.AliasName)
-
-			//We dont know the newly assigned ID for our alias
-			//We need the ID for clearing its associations
-			alias.ID = findAliasID(alias.AliasName)
-
-			//If it fails to create alias in DNS, we delete from DB what we created in the previous step.
-			if err := alias.deleteObjectInDB(); err != nil {
-
-				//Failed to rollback the newly created alias
-				return MessageToUser(c, http.StatusBadRequest,
-					"Failed to delete stray alias "+alias.AliasName+"from DB after failing to create in DNS, with error"+": "+err.Error(), "home.html")
-			}
-			//Failed to create in DNS, but managed to delete the newly created alias in DB
-			return MessageToUser(c, http.StatusBadRequest,
-				"Failed to create "+alias.AliasName+" in DNS with error"+": "+err.Error(), "home.html")
-		}*/
+		//Failed to create in DNS, but managed to delete the newly created alias in DB
+		return MessageToUser(c, http.StatusBadRequest,
+			"Failed to create "+alias.AliasName+" in DNS with error"+": "+err.Error(), "home.html")
+	}
 	//Success message
 	return MessageToUser(c, http.StatusCreated,
 		temp.AliasName+" created successfully ", "home.html")

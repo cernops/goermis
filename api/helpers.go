@@ -67,6 +67,7 @@ func ContainsNode(a []*Relation, b *Relation) (bool, bool) {
 	for _, v := range a {
 		if v.Node.NodeName == b.Node.NodeName {
 			if v.Blacklist == b.Blacklist {
+				//name, blacklist
 				return true, true
 			}
 			return true, false

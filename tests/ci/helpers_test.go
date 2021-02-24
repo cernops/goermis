@@ -1,11 +1,11 @@
-package api
+package ci
 
 import (
 	"fmt"
 	"reflect"
 	"testing"
 
-	api "gitlab.cern.ch/lb-experts/goermis/api"
+	"gitlab.cern.ch/lb-experts/goermis/api"
 )
 
 func TestContainsCname(t *testing.T) {
@@ -86,12 +86,79 @@ func TestContainsAlarm(t *testing.T) {
 
 	}
 	fmt.Println("Now we will test for the non existing alarm")
-	if  api.ContainsAlarm(alarms, NonExistingAlarm) {
+	if api.ContainsAlarm(alarms, NonExistingAlarm) {
 		t.Errorf("Could find alarm %v even though it doesn't exist", NonExistingAlarm)
 
 	}
 }
 
 func TestContainsNode(t *testing.T) {
+	type test struct {
+		input             *api.Relation
+		expectedName      bool
+		expectedBlacklist bool
+	}
+
+	testCases := []test{
+		{
+			input: &api.Relation{
+				Blacklist: false,
+				Node: &api.Node{
+					NodeName: "test1.cern.ch",
+				},
+			},
+			expectedName:      true,
+			expectedBlacklist: true,
+		},
+
+		{
+			input: &api.Relation{
+				Blacklist: true,
+				Node: &api.Node{
+					NodeName: "test1.cern.ch",
+				},
+			},
+			expectedName:      true,
+			expectedBlacklist: false,
+		},
+		{
+			input: &api.Relation{
+				Blacklist: true,
+				Node: &api.Node{
+					NodeName: "test12.cern.ch",
+				},
+			},
+			expectedName:      false,
+			expectedBlacklist: false,
+		},
+	}
+
+	relations := []*api.Relation{
+		{
+			Blacklist: false,
+			Node: &api.Node{
+				NodeName: "test1.cern.ch",
+			},
+		},
+		{
+			Blacklist: true,
+			Node: &api.Node{
+				NodeName: "testme.cern.ch",
+			},
+		},
+		{
+			Blacklist: false,
+			Node: &api.Node{
+				NodeName: "test56.cern.ch",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		if name, bl := api.ContainsNode(relations, tc.input); name != tc.expectedName || bl != tc.expectedBlacklist {
+			t.Errorf("We did not receive what we expected for %v\nWe received: %v, %v\nWe expected: %v, %v", tc.input.Node.NodeName, name, bl, tc.expectedName, tc.expectedBlacklist)
+		}
+	}
 
 }
+
