@@ -19,10 +19,11 @@ include:
   cp tests/landb/goermis.yaml /usr/local/etc/goermis.yaml
   sed -i -e "s/##REPLACE_BY_USER##/${SOAPUSER}/g" /usr/local/etc/goermis.yaml
   sed -i -e "s/##REPLACE_BY_PASSWORD##/${SOAPPASSWORD}/g" /usr/local/etc/goermis.yaml
-  #- cd tests/landb
-  #dnf builddep -y  *.spec
-  #yum install -y golang gcc
-  #go version
+  sed -i -e "s/##REPLACE_BY_DB##/${DATABASE}/g" /usr/local/etc/goermis.yaml
+  sed -i -e "s/##REPLACE_BY_USERNAME##/${DB_USERNAME}/g" /usr/local/etc/goermis.yaml
+  sed -i -e "s/##REPLACE_BY_DB_PASSWORD##/${DB_PASSWORD}/g" /usr/local/etc/goermis.yaml
+  sed -i -e "s/##REPLACE_BY_HOST##/${DB_HOST}/g" /usr/local/etc/goermis.yaml
+  sed -i -e "s/##REPLACE_BY_PORT##/${DB_PORT}/g" /usr/local/etc/goermis.yaml
   echo "$ERMISCERT" > /etc/httpd/conf/ermiscert.pem
   echo "$ERMISKEY" > /etc/httpd/conf/ermiskey.pem
   ls -al /etc/httpd/conf/
@@ -78,7 +79,7 @@ behave:
     - behave . -D ermistst=$ERMISTST -D ermists=$ERMISTS
 
 landb:
-  image: gitlab-registry.cern.ch/ai-config-team/ai-tools
+  #image: gitlab-registry.cern.ch/ai-config-team/ai-tools
   stage: prebuild
   allow_failure: false
   script:
@@ -113,8 +114,12 @@ build_docker_qa:
 
 test-go13:
   stage: test
+  allow_failure: false
   script:
+    - *patch_version
     - *installGo13
+    - *config
+    - echo "READY TO DO START THE CI TESTS"
     - go13 test -v -cover ./tests/ci/...
     - go13 test -race ./tests/ci/...
 
