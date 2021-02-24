@@ -3,9 +3,31 @@ image: gitlab-registry.cern.ch/linuxsupport/cc7-base:latest
 
 include:
   - 'https://gitlab.cern.ch/linuxsupport/rpmci/raw/master/rpm-ci.yml'
-  - project: lb-experts/golbclient
-    file: .gitlab-ci_go.yml
-    ref: psaiz_devel
+  - ref: psaiz_devel
+
+
+.installGo13: &installGo13 |
+  mkdir /go13
+  yum install -y gcc
+  curl https://dl.google.com/go/go1.13.14.linux-amd64.tar.gz  | tar -zxC /go13
+  ln -s /go13/go/bin/go /usr/bin/go13
+  export GOPATH=/go
+  go13 get ./...
+
+
+.config: &config |
+  - mkdir -p /usr/local/etc /etc/httpd/conf/
+  - cp tests/landb/goermis.yaml /usr/local/etc/goermis.yaml
+  - sed -i -e "s/##REPLACE_BY_USER##/${SOAPUSER}/g" /usr/local/etc/goermis.yaml
+  - sed -i -e "s/##REPLACE_BY_PASSWORD##/${SOAPPASSWORD}/g" /usr/local/etc/goermis.yaml
+  #- cd tests/landb
+  - dnf builddep -y  *.spec
+  - yum install -y golang gcc
+  - go version
+  - echo "$ERMISCERT" > /etc/httpd/conf/ermiscert.pem
+  - echo "$ERMISKEY" > /etc/httpd/conf/ermiskey.pem
+  - ls -al /etc/httpd/conf/
+  - chmod 600 /etc/httpd/conf/ermiscert.pem /etc/httpd/conf/ermiskey.pem
 
 variables:
   KOJI_TAG: 'lb'
@@ -37,7 +59,13 @@ build_rpm7:
   before_script:
     - *patch_version
     - yum-builddep -y --disableplugin=protectbase,priorities *.spec
-    
+
+build-go13:
+  stage: prebuild
+  script:
+    - *installGo13
+    - go13 build -race ./...
+
 behave:
   image: gitlab-registry.cern.ch/ai-config-team/ai-tools
   stage: prebuild
@@ -56,20 +84,10 @@ landb:
   allow_failure: false
   script:
     - *patch_version
+    - *installGo13
+    - *config
     - echo "READY TO DO THE SOAP CALL"
-    - mkdir -p /usr/local/etc /etc/httpd/conf/
-    - cp tests/landb/goermis.yaml /usr/local/etc/goermis.yaml
-    - sed -i -e "s/##REPLACE_BY_USER##/${SOAPUSER}/g" /usr/local/etc/goermis.yaml
-    - sed -i -e "s/##REPLACE_BY_PASSWORD##/${SOAPPASSWORD}/g" /usr/local/etc/goermis.yaml
-    #- cd tests/landb
-    - dnf builddep -y  *.spec
-    - yum install -y golang gcc
-    - go version
-    - echo "$ERMISCERT" > /etc/httpd/conf/ermiscert.pem
-    - echo "$ERMISKEY" > /etc/httpd/conf/ermiskey.pem
-    - ls -al /etc/httpd/conf/
-    - chmod 600 /etc/httpd/conf/ermiscert.pem /etc/httpd/conf/ermiskey.pem
-    - go test .
+    - go13 test .
 
 
 
@@ -92,5 +110,20 @@ build_docker_qa:
   variables:
     DOCKER_FILE: Dockerfile.qa
     TO: ${CI_REGISTRY_IMAGE}/qa:${CI_COMMIT_BRANCH}
+
+
+test-go13:
+  stage: test
+  script:
+    - *installGo13
+    - go13 test -v -cover ./tests/ci/...
+    - go13 test -race ./tests/ci/...
+
+bench-go13:
+  stage: test
+  script:
+    - *installGo13
+    - go13 test ./tests/benchmarking/... -bench=. -benchmem
+    - go13 test ./tests/benchmarking/... -bench=. -benchmem -race
 
 
