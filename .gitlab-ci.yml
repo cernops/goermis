@@ -3,7 +3,6 @@ image: gitlab-registry.cern.ch/linuxsupport/cc7-base:latest
 
 include:
   - 'https://gitlab.cern.ch/linuxsupport/rpmci/raw/master/rpm-ci.yml'
-  - ref: psaiz_devel
 
 
 .installGo13: &installGo13 |
