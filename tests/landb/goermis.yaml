@@ -9,3 +9,17 @@ certs:
    goermis_cert: /etc/httpd/conf/ermiscert.pem
    goermis_key: /etc/httpd/conf/ermiskey.pem
    ca_cert: /etc/httpd/conf/ca.pem
+
+database:
+   adapter: mysql
+   database: ##REPLACE_BY_DB##
+   username: ##REPLACE_BY_USERNAME##
+   password: ##REPLACE_BY_DB_PASSWORD##
+   host: ##REPLACE_BY_HOST##
+   port: ##REPLACE_BY_PORT##  
+   idle_conns: 10
+   open_conns: 100
+   sslmode: disable
+log:  
+  logging_file: /var/log/ermis/ermis.log
+  stdout: true
