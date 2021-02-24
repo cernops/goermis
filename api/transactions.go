@@ -5,8 +5,7 @@ import (
 	"errors"
 	"time"
 
-	
-	cgorm "gitlab.cern.ch/lb-experts/goermis/db"
+	"gitlab.cern.ch/lb-experts/goermis/db"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -204,12 +203,13 @@ func deleteAlarmTransactions(alarm Alarm) error {
 
 // WithinTransaction  accept dBFunc as parameter call dBFunc function within transaction begin, and commit and return error from dBFunc
 func WithinTransaction(fn dBFunc) (err error) {
-	tx := cgorm.ManagerDB().Begin() // start db transaction
+	tx := db.ManagerDB().Begin() // start db transaction
 	defer tx.Commit()
 	err = fn(tx)
-
 	if err != nil {
+		tx.Rollback()
+		return err
 	}
-	return err
+	return nil
 
 }

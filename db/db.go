@@ -1,6 +1,7 @@
 package db
 
 import (
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -30,7 +31,7 @@ func mysqlConn() {
 	if *bootstrap.DebugLevel {
 		value = 4 //INFO
 	} else {
-		value = 2  //ERROR
+		value = 2 //ERROR
 	}
 	newLogger := logger.New(
 		log,
@@ -42,15 +43,37 @@ func mysqlConn() {
 	)
 
 	connection := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local", cfg.Database.Username, cfg.Database.Password, cfg.Database.Host, cfg.Database.Port, cfg.Database.Database)
-	if db, err = gorm.Open(mysql.Open(connection), &gorm.Config{
+	//A generic interface that allows us pinging, pooling, and managing idle connections
+	sqlDB, err := sql.Open(cfg.Database.Adapter, connection)
+
+	/*On top of the generic sql interface, we create a
+	gorm interface that allows us to actually use the gorm tools
+	Reference: https://gorm.io/docs/generic_interface.html */
+	if db, err = gorm.Open(mysql.New(mysql.Config{
+		Conn: sqlDB,
+	}), &gorm.Config{
 		Logger: newLogger,
 		NamingStrategy: schema.NamingStrategy{
 			SingularTable: true,
 			TablePrefix:   "ermis_api_",
 		},
 	}); err != nil {
+		sqlDB.Close()
 		fmt.Println("Connection  error")
 	}
+
+	sqlDB.Ping()
+	sqlDB.SetConnMaxIdleTime(time.Duration(cfg.Database.MaxIdleTime) * time.Minute)
+
+	// SetMaxIdleConns sets the maximum number of connections in the idle connection pool.
+	sqlDB.SetMaxIdleConns(cfg.Database.IdleConns)
+
+	// SetMaxOpenConns sets the maximum number of open connections to the database.
+	sqlDB.SetMaxOpenConns(cfg.Database.OpenConns)
+
+	// SetConnMaxLifetime sets the maximum amount of time a connection may be reused.
+	sqlDB.SetConnMaxLifetime(time.Duration(cfg.Database.ConnMaxLifetime) * time.Minute)
+
 }
 
 //ManagerDB return GORM's database connection instance.

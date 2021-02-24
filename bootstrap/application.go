@@ -19,15 +19,17 @@ type Config struct {
 		AppEnv     string `yaml:"app_env"`
 	}
 	Database struct {
-		Adapter   string
-		Database  string
-		Username  string
-		Password  string
-		Host      string
-		Port      int
-		IdleConns int `yaml:"idle_conns"`
-		OpenConns int `yaml:"open_conns"`
-		Sslmode   string
+		Adapter         string
+		Database        string
+		Username        string
+		Password        string
+		Host            string
+		Port            int
+		IdleConns       int `yaml:"idle_conns"`
+		OpenConns       int `yaml:"open_conns"`
+		MaxIdleTime     int `yaml:"max_idle_time"`
+		ConnMaxLifetime int `yaml:"conn_max_lifetime"`
+		Sslmode         string
 	}
 	Soap struct {
 		SoapUser     string `yaml:"soap_user"`

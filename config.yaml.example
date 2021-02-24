@@ -12,7 +12,11 @@ database:
    port:           --change--  
    idle_conns:     --change--
    open_conns:     --change--
-   sslmode:        --change--
+   #in minutes
+   max_idle_time:  --change--
+   conn_max_lifetime: --change--
+   sslmode: disable
+
 soap:   
    soap_user:      --change--
    soap_password:  --change--
