@@ -15,18 +15,18 @@ include:
 
 
 .config: &config |
-  - mkdir -p /usr/local/etc /etc/httpd/conf/
-  - cp tests/landb/goermis.yaml /usr/local/etc/goermis.yaml
-  - sed -i -e "s/##REPLACE_BY_USER##/${SOAPUSER}/g" /usr/local/etc/goermis.yaml
-  - sed -i -e "s/##REPLACE_BY_PASSWORD##/${SOAPPASSWORD}/g" /usr/local/etc/goermis.yaml
+  mkdir -p /usr/local/etc /etc/httpd/conf/
+  cp tests/landb/goermis.yaml /usr/local/etc/goermis.yaml
+  sed -i -e "s/##REPLACE_BY_USER##/${SOAPUSER}/g" /usr/local/etc/goermis.yaml
+  sed -i -e "s/##REPLACE_BY_PASSWORD##/${SOAPPASSWORD}/g" /usr/local/etc/goermis.yaml
   #- cd tests/landb
-  - dnf builddep -y  *.spec
-  - yum install -y golang gcc
-  - go version
-  - echo "$ERMISCERT" > /etc/httpd/conf/ermiscert.pem
-  - echo "$ERMISKEY" > /etc/httpd/conf/ermiskey.pem
-  - ls -al /etc/httpd/conf/
-  - chmod 600 /etc/httpd/conf/ermiscert.pem /etc/httpd/conf/ermiskey.pem
+  #dnf builddep -y  *.spec
+  #yum install -y golang gcc
+  #go version
+  echo "$ERMISCERT" > /etc/httpd/conf/ermiscert.pem
+  echo "$ERMISKEY" > /etc/httpd/conf/ermiskey.pem
+  ls -al /etc/httpd/conf/
+  chmod 600 /etc/httpd/conf/ermiscert.pem /etc/httpd/conf/ermiskey.pem
 
 variables:
   KOJI_TAG: 'lb'
