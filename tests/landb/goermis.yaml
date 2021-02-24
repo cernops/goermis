@@ -1,0 +1,11 @@
+---
+soap:
+   soap_user: ##REPLACE_BY_USER##
+   soap_password: ##REPLACE_BY_PASSWORD##
+   soap_keyname_e: ITPES-EXTERNAL
+   soap_keyname_i: ITPES-INTERNAL
+   soap_url: https://network.cern.ch/sc/soap/soap.fcgi?v=6
+certs:
+   goermis_cert: /etc/httpd/conf/ermiscert.pem
+   goermis_key: /etc/httpd/conf/ermiskey.pem
+   ca_cert: /etc/httpd/conf/ca.pem
