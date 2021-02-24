@@ -19,6 +19,9 @@ database:
    port: ##REPLACE_BY_PORT##  
    idle_conns: 10
    open_conns: 100
+    #in minutes
+   max_idle_time:  2
+   conn_max_lifetime: 10
    sslmode: disable
 log:  
   logging_file: /var/log/ermis/ermis.log
