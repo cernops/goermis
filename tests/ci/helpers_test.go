@@ -162,3 +162,73 @@ func TestContainsNode(t *testing.T) {
 
 }
 
+/*For testing FindNodeID and FindAliasID, there is an alias
+manually created beforehand */
+func TestFindAliasID(t *testing.T) {
+	type alias struct {
+		input    string
+		expected int
+	}
+	aliases := []alias{
+		//legit alias
+		{input: "seed.cern.ch", //seed entry , which is used also for tests
+			expected: 84},
+		//non existing alias
+		{input: "idontexist.cern.ch",
+			expected: 0},
+	}
+
+	for _, alias := range aliases {
+		output := api.FindAliasID(alias.input)
+		if output != alias.expected {
+			t.Errorf("Failed to find the correct alias ID.\nExpected:%v\nReceived:%v\n", alias.expected, output)
+		}
+	}
+}
+
+func TestFindNodeID(t *testing.T) {
+	type node struct {
+		input    string
+		expected int
+	}
+	nodes := []node{
+		//legit node
+		{input: "testnode.cern.ch", //testnode is declared for alias seed.cern.ch
+			expected: 118},
+		//non existing node
+		{input: "nonexistent.cern.ch",
+			expected: 0},
+	}
+
+	for _, node := range nodes {
+		output := api.FindNodeID(node.input)
+		if output != node.expected {
+			t.Errorf("Failed to find the correct alias ID.\nExpected:%v\nReceived:%v\n", node.expected, output)
+		}
+	}
+}
+
+func TestDeleteEmpty(t *testing.T) {
+	type slice struct {
+		input    []string
+		expected []string
+	}
+	slices := []slice{
+		{
+			input:    []string{"a", "b", "c", "d"},
+			expected: []string{"a", "b", "c", "d"},
+		},
+		{
+			input:    []string{"a", "", "", "d"},
+			expected: []string{"a", "d"},
+		},
+	}
+	for _, slice := range slices {
+		output := api.DeleteEmpty(slice.input)
+		if !reflect.DeepEqual(output, slice.expected) {
+			t.Errorf("Failed test for DeleteEmpty\nExpected:%v\nReceived:%v\n", slice.expected, output)
+
+		}
+
+	}
+}

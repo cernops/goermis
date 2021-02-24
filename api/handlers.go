@@ -23,6 +23,27 @@ var (
 	log = bootstrap.GetLog()
 )
 
+//GetAlias returns aliases objects, where cnames/alarms/nodes are condensed to a list of names
+func GetAlias(c echo.Context) error {
+	queryResults, e := get(c)
+	if e != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, e.Error())
+	}
+
+	return c.JSON(http.StatusOK, parse(queryResults))
+}
+
+//GetAliasRaw returns aliases objects, where alarms/cnames/nodes objects are fully represented
+func GetAliasRaw(c echo.Context) error {
+	queryResults, e := get(c)
+	if e != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, e.Error())
+	}
+
+	return c.JSON(http.StatusOK, queryResults)
+
+}
+
 func get(c echo.Context) ([]Alias, error) {
 
 	var (
@@ -62,27 +83,6 @@ func get(c echo.Context) ([]Alias, error) {
 
 	defer c.Request().Body.Close()
 	return queryResults, nil
-
-}
-
-//GetAlias returns a list of ALL aliases
-func GetAlias(c echo.Context) error {
-	queryResults, e := get(c)
-	if e != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, e.Error())
-	}
-
-	return c.JSON(http.StatusOK, parse(queryResults))
-}
-
-//GetAliasRaw returns row data
-func GetAliasRaw(c echo.Context) error {
-	queryResults, e := get(c)
-	if e != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, e.Error())
-	}
-
-	return c.JSON(http.StatusOK, queryResults)
 
 }
 
@@ -133,7 +133,7 @@ func CreateAlias(c echo.Context) error {
 
 		//We dont know the newly assigned ID for our alias
 		//We need the ID for clearing its associations
-		alias.ID = findAliasID(alias.AliasName)
+		alias.ID = FindAliasID(alias.AliasName)
 
 		//If it fails to create alias in DNS, we delete from DB what we created in the previous step.
 		if err := alias.deleteObjectInDB(); err != nil {

@@ -1,4 +1,4 @@
-package landbsoap
+package ci
 
 import (
 	"fmt"

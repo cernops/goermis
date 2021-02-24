@@ -78,15 +78,15 @@ func ContainsNode(a []*Relation, b *Relation) (bool, bool) {
 
 }
 
-//find returns the ID of a node. If it doesnt exists, returns 0
-func findNodeID(name string) int {
+//FindNodeID returns the ID of a node. If it doesnt exists, returns 0
+func FindNodeID(name string) int {
 	var node Node
 	con.Select("id").Where("node_name=?", name).Find(&node)
 	return node.ID
 }
 
-//find returns the ID of a node. If it doesnt exists, returns 0
-func findAliasID(name string) int {
+//FindAliasID returns the ID of a node. If it doesnt exists, returns 0
+func FindAliasID(name string) int {
 	var alias Alias
 	con.Select("id").Where("alias_name=?", name).Find(&alias)
 	return alias.ID

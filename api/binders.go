@@ -230,10 +230,10 @@ func sanitazeInUpdate(c echo.Context, current Alias, new Resource) Alias {
 			for _, node := range split {
 				current.Relations = append(current.Relations, &Relation{
 					AliasID:   current.ID,
-					NodeID:    findNodeID(node),
+					NodeID:    FindNodeID(node),
 					Blacklist: k,
 					Node: &Node{
-						ID:               findNodeID(node),
+						ID:               FindNodeID(node),
 						NodeName:         node,
 						LastModification: time.Now(),
 						Hostgroup:        current.Hostgroup}})
