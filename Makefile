@@ -4,12 +4,12 @@ SPECFILE ?= ermis.spec
 PKG ?= $(shell rpm -q --specfile $(SPECFILE) --queryformat "%{name}-%{version}\n" | head -n 1)
 
 installgo:
-	mkdir -p /go13
+	mkdir -p /go15
 	yum -y install git gcc
-	curl https://dl.google.com/go/go1.13.14.linux-amd64.tar.gz  | tar -zxC /go13
+	curl https://dl.google.com/go/go1.15.8.linux-amd64.tar.gz  | tar -zxC /go15
 	rm -f /usr/bin/go
-	ln -s /go13/go/bin/go /usr/bin/go
-	export GOPATH=/go13
+	ln -s /go15/go/bin/go /usr/bin/go
+	export GOPATH=/go15
 	go get ./...
 
 srpm: installgo
