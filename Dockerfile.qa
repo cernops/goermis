@@ -1,9 +1,7 @@
-FROM cern/c8-base
+FROM 1.15.8-alpine
 LABEL maintainer="LB-Experts <lb-experts@cern.ch>"
 WORKDIR /
-RUN   yum -y install  git  gcc &&\
-      curl https://dl.google.com/go/go1.15.8.linux-amd64.tar.gz  | tar -zxC /usr/local &&\
-      export PATH=$PATH:/usr/local/go/bin
+RUN   yum -y install  git 
 COPY .  .
 RUN go version &&\
     go mod download &&\
