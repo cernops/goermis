@@ -8,7 +8,7 @@ COPY .  .
 RUN go version &&\
     go mod download &&\
     go build -o goermis .   &&\
-    mkdir -p  /var/lib/ermis/ /var/log/ermis/  &&\
+    mkdir -p  /var/lib/ermis/ /var/log/ermis/  
     
 COPY staticfiles      /var/lib/ermis/staticfiles
 COPY templates        /var/lib/ermis/templates
