@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"time"
 
+	_ "github.com/go-sql-driver/mysql" //test
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
+
+	
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
