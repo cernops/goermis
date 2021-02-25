@@ -8,8 +8,7 @@ import (
 	_ "github.com/go-sql-driver/mysql" //test
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 
-	
-	"gorm.io/driver/mysql"
+	gsql "gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
@@ -52,7 +51,7 @@ func mysqlConn() {
 	/*On top of the generic sql interface, we create a
 	gorm interface that allows us to actually use the gorm tools
 	Reference: https://gorm.io/docs/generic_interface.html */
-	if db, err = gorm.Open(mysql.New(mysql.Config{
+	if db, err = gorm.Open(gsql.New(gsql.Config{
 		Conn: sqlDB,
 	}), &gorm.Config{
 		Logger: newLogger,
