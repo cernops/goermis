@@ -11,6 +11,7 @@ import (
 	"github.com/asaskevich/govalidator"
 	"github.com/labstack/echo/v4"
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
+	"gitlab.cern.ch/lb-experts/goermis/db"
 )
 
 func init() {
@@ -321,10 +322,10 @@ func CheckNameDNS(c echo.Context) error {
 
 	aliasToResolve := c.QueryParam("hostname")
 	//Search cnames with the same name
-	con.Model(&Cname{}).Where("cname=?", aliasToResolve).Count(&result)
+	db.Conn.Model(&Cname{}).Where("cname=?", aliasToResolve).Count(&result)
 	if result == 0 {
 		//Search aliases
-		con.Model(&Alias{}).Where("alias_name=?", aliasToResolve+".cern.ch").Count(&result)
+		db.Conn.Model(&Alias{}).Where("alias_name=?", aliasToResolve+".cern.ch").Count(&result)
 	}
 	if result == 0 {
 		r, _ := net.LookupHost(aliasToResolve)

@@ -8,6 +8,7 @@ import (
 
 	"github.com/asaskevich/govalidator"
 	"github.com/labstack/echo/v4"
+	"gitlab.cern.ch/lb-experts/goermis/db"
 )
 
 /*////////////Helper Functions///////////////////*/
@@ -81,14 +82,14 @@ func ContainsNode(a []*Relation, b *Relation) (bool, bool) {
 //FindNodeID returns the ID of a node. If it doesnt exists, returns 0
 func FindNodeID(name string) int {
 	var node Node
-	con.Select("id").Where("node_name=?", name).Find(&node)
+	db.Conn.Select("id").Where("node_name=?", name).Find(&node)
 	return node.ID
 }
 
 //FindAliasID returns the ID of a node. If it doesnt exists, returns 0
 func FindAliasID(name string) int {
 	var alias Alias
-	con.Select("id").Where("alias_name=?", name).Find(&alias)
+	db.Conn.Select("id").Where("alias_name=?", name).Find(&alias)
 	return alias.ID
 }
 

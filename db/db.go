@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	_ "github.com/go-sql-driver/mysql" //test
+	_ "github.com/go-sql-driver/mysql" // driver for sql connection
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 
 	gsql "gorm.io/driver/mysql"
@@ -18,13 +18,14 @@ import (
 type GormLogger struct{}
 
 var (
-	db  *gorm.DB
-	cfg = bootstrap.GetConf()
-	log = bootstrap.GetLog()
+	//Conn serves to have a single connection to DB
+	Conn *gorm.DB
+	cfg  = bootstrap.GetConf()
+	log  = bootstrap.GetLog()
 )
 
-// mysqlConn: setup mysql database connection using the configuration from database.yaml
-func mysqlConn() {
+// MysqlConn setup mysql database connection using the configuration from database.yaml
+func MysqlConn() {
 	var (
 		err   error
 		value int
@@ -51,7 +52,7 @@ func mysqlConn() {
 	/*On top of the generic sql interface, we create a
 	gorm interface that allows us to actually use the gorm tools
 	Reference: https://gorm.io/docs/generic_interface.html */
-	if db, err = gorm.Open(gsql.New(gsql.Config{
+	if Conn, err = gorm.Open(gsql.New(gsql.Config{
 		Conn: sqlDB,
 	}), &gorm.Config{
 		Logger: newLogger,
@@ -65,8 +66,11 @@ func mysqlConn() {
 	}
 
 	sqlDB.Ping()
-	sqlDB.SetConnMaxIdleTime(time.Duration(cfg.Database.MaxIdleTime) * time.Minute)
 
+	/*This can be used only with go version > 1.15. As of now, Feb 2021 , it cannot be
+	//used because that version is not yet supported in CC8*/
+	//sqlDB.SetConnMaxIdleTime(time.Duration(cfg.Database.MaxIdleTime) * time.Minute)
+	
 	// SetMaxIdleConns sets the maximum number of connections in the idle connection pool.
 	sqlDB.SetMaxIdleConns(cfg.Database.IdleConns)
 
@@ -76,17 +80,4 @@ func mysqlConn() {
 	// SetConnMaxLifetime sets the maximum amount of time a connection may be reused.
 	sqlDB.SetConnMaxLifetime(time.Duration(cfg.Database.ConnMaxLifetime) * time.Minute)
 
-}
-
-//ManagerDB return GORM's database connection instance.
-func ManagerDB() *gorm.DB {
-	var adapter string
-	adapter = cfg.Database.Adapter
-	if adapter == "mysql" {
-		mysqlConn()
-	} else {
-		log.Panicf("Undefined connection '%s' on the configuration file", adapter)
-	}
-
-	return db
 }
