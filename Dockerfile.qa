@@ -1,10 +1,15 @@
-FROM golang-1.15.8
+FROM cern/c8-base
 LABEL maintainer="LB-Experts <lb-experts@cern.ch>"
-RUN   yum -y install  git  
+WORKDIR /
+RUN   yum -y install  git  gcc &&\
+      curl https://dl.google.com/go/go1.15.8.linux-amd64.tar.gz  | tar -zxC /usr/local &&\
+      export PATH=$PATH:/usr/local/go/bin
 COPY .  .
-RUN go mod download
-RUN go build -o goermis .
-RUN  mkdir -p  /var/lib/ermis/ /var/log/ermis/
+RUN go version &&\
+    go mod download &&\
+    go build -o goermis .   &&\
+    mkdir -p  /var/lib/ermis/ /var/log/ermis/  &&\
+    
 COPY staticfiles      /var/lib/ermis/staticfiles
 COPY templates        /var/lib/ermis/templates
 EXPOSE 8080
