@@ -55,6 +55,8 @@ var (
 	HomeFlag = flag.String("home", "/var/lib/ermis/", "specify statics path")
 	//DebugLevel enable flag
 	DebugLevel = flag.Bool("debug", false, "display debug messages")
+	//Log tesst
+	Log = log.New("\r\n")
 )
 
 //ParseFlags checks the command line arguments
@@ -68,7 +70,7 @@ func ParseFlags() {
 func GetConf() *Config {
 	cfg, err := NewConfig(*configFileFlag)
 	if err != nil {
-		log.Fatal(err)
+		Log.Fatal(err)
 
 	}
 	return cfg
@@ -113,33 +115,36 @@ func ValidateConfigFile(path string) error {
 	return nil
 }
 
-//GetLog returns a configured log instance
-func GetLog() *log.Logger {
-	log := log.New("\r\n")
+//SetLog returns a configured log instance
+func SetLog() {
 	//Init log in the bootstrap package, since its the first that its executed
 	if *DebugLevel {
-		log.SetLevel(1) //DEBUG
+		Log.SetLevel(1) //DEBUG
 	} else {
-		log.SetLevel(2) //INFO
+		Log.SetLevel(2) //INFO
 	}
 
 	//Init log in the bootstrap package, since its the first that its executed
 
-	log.SetHeader("${time_rfc3339} ${level} ${short_file} ${line} ")
+	Log.SetHeader("${time_rfc3339} ${level} ${short_file} ${line} ")
 	file, err := os.OpenFile(GetConf().Log.LoggingFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
-		log.Error("Failed to log to file, using default stderr" + err.Error())
+		Log.Error("Failed to log to file, using default stderr" + err.Error())
 	}
 	if GetConf().Log.Stdout {
-		log.Info("File and console set as output")
 		mw := io.MultiWriter(os.Stdout, file)
-		log.SetOutput(mw)
+		Log.SetOutput(mw)
+		Log.Info("File and console set as output")
 
 	} else {
-		log.Info("File set as logger output")
-		log.SetOutput(file)
+		Log.Info("File set as logger output")
+		Log.SetOutput(file)
 
 	}
 
-	return log
+}
+
+//GetLog returns the log instance
+func GetLog() *log.Logger {
+	return Log
 }

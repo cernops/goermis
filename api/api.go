@@ -97,7 +97,7 @@ type (
 func GetObjects(param string) (query []Alias, err error) {
 
 	//Preload bottom-to-top, starting with the Relations & Nodes first
-	nodes := db.Conn.Preload("Relations")       //Relations
+	nodes := db.GetConn().Preload("Relations")       //Relations
 	nodes = nodes.Preload("Relations.Node") //From the relations, we find the node names then
 	if param == "all" {                     //get all aliases
 		err = nodes.
@@ -166,7 +166,7 @@ func (alias Alias) updateNodes() (err error) {
 		relationsInDB []*Relation
 	)
 	//Let's find the registered nodes for this alias
-	db.Conn.Preload("Node").Where("alias_id=?", alias.ID).Find(&relationsInDB)
+	db.GetConn().Preload("Node").Where("alias_id=?", alias.ID).Find(&relationsInDB)
 
 	for _, r := range relationsInDB {
 		if ok, _ := ContainsNode(alias.Relations, r); !ok {
@@ -203,7 +203,7 @@ func (alias Alias) updateCnames() (err error) {
 		cnamesInDB []Cname
 	)
 	//Let's see what cnames are already registered for this alias
-	db.Conn.Model(&alias).Association("Cnames").Find(&cnamesInDB)
+	db.GetConn().Model(&alias).Association("Cnames").Find(&cnamesInDB)
 
 	if len(alias.Cnames) > 0 { //there are cnames, delete and add accordingly
 		for _, v := range cnamesInDB {
@@ -243,7 +243,7 @@ func (alias Alias) updateAlarms() (err error) {
 		alarmsInDB []Alarm
 	)
 	//Let's see what alarms are already registered for this alias
-	db.Conn.Model(&alias).Association("Alarms").Find(&alarmsInDB)
+	db.GetConn().Model(&alias).Association("Alarms").Find(&alarmsInDB)
 	if len(alias.Alarms) > 0 {
 		for _, a := range alarmsInDB {
 			if !ContainsAlarm(alias.Alarms, a) {

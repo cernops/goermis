@@ -203,7 +203,7 @@ func deleteAlarmTransactions(alarm Alarm) error {
 
 // WithinTransaction  accept dBFunc as parameter call dBFunc function within transaction begin, and commit and return error from dBFunc
 func WithinTransaction(fn dBFunc) (err error) {
-	tx := db.Conn.Begin() // start db transaction
+	tx := db.GetConn().Begin() // start db transaction
 	defer tx.Commit()
 	err = fn(tx)
 	if err != nil {

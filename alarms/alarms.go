@@ -25,7 +25,7 @@ var (
 //Otherwise notifies by e-mail and updates the DB
 func PeriodicAlarmCheck() {
 	var alarms []api.Alarm
-	if err := db.Conn.Find(&alarms).
+	if err := db.GetConn().Find(&alarms).
 		Error; err != nil {
 		log.Error("Could not retrieve alarms", err.Error())
 	}
@@ -54,12 +54,12 @@ func processThis(alarm api.Alarm) (err error) {
 	}
 
 	if alarm.LastActive.Valid {
-		err = db.Conn.Model(&alarm).Updates(api.Alarm{
+		err = db.GetConn().Model(&alarm).Updates(api.Alarm{
 			Active:     newActive,
 			LastActive: alarm.LastActive,
 			LastCheck:  alarm.LastCheck}).Error
 	} else {
-		err = db.Conn.Model(&alarm).Updates(api.Alarm{
+		err = db.GetConn().Model(&alarm).Updates(api.Alarm{
 			Active:    newActive,
 			LastCheck: alarm.LastCheck}).Error
 	}

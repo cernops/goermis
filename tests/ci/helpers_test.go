@@ -173,8 +173,8 @@ func TestFindAliasID(t *testing.T) {
 		//legit alias
 		{input: "seed.cern.ch", //seed entry , which is used also for tests
 			expected: 84},
-		//non existing alias
-		{input: "idontexist.cern.ch",
+	    //nonexistent
+		{input: "idontexist.cern.ch", //seed entry , which is used also for tests
 			expected: 0},
 	}
 

@@ -22,16 +22,21 @@ const (
 	Release = "3"
 )
 
+var (
+	log = bootstrap.GetLog()
+)
+
 func main() {
 	bootstrap.ParseFlags()
-	log := bootstrap.GetLog()
+	bootstrap.SetLog()
 	log.Info("============Service Started=============")
-	db.MysqlConn()
+	defer db.Close()
 	// Echo instance
 	echo := router.New()
 
 	//Initiate template views
 	views.InitViews(echo)
+
 	autoMigrateTables()
 
 	//Alarms periodic check/update
@@ -78,13 +83,13 @@ func main() {
 	defer cancel()
 	if err := echo.Shutdown(ctx); err != nil {
 		log.Fatal("Fatal error while shutting server down " + err.Error())
-        
+
 	}
 
 }
 
 // autoMigrateTables: migrate table columns using GORM. Will not delete/change types for security reasons
 func autoMigrateTables() {
-	db.Conn.AutoMigrate(&api.Alias{}, &api.Node{}, &api.Cname{}, &api.Alarm{}, &api.Relation{})
+	db.GetConn().AutoMigrate(&api.Alias{}, &api.Node{}, &api.Cname{}, &api.Alarm{}, &api.Relation{})
 
 }

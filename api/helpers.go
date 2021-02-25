@@ -10,7 +10,9 @@ import (
 	"github.com/labstack/echo/v4"
 	"gitlab.cern.ch/lb-experts/goermis/db"
 )
-
+var (
+	conn = db.GetConn()
+)
 /*////////////Helper Functions///////////////////*/
 
 //ContainsCname returns true if a cname can be found in a list of Cname objects
@@ -82,14 +84,14 @@ func ContainsNode(a []*Relation, b *Relation) (bool, bool) {
 //FindNodeID returns the ID of a node. If it doesnt exists, returns 0
 func FindNodeID(name string) int {
 	var node Node
-	db.Conn.Select("id").Where("node_name=?", name).Find(&node)
+	conn.Select("id").Where("node_name=?", name).Find(&node)
 	return node.ID
 }
 
 //FindAliasID returns the ID of a node. If it doesnt exists, returns 0
 func FindAliasID(name string) int {
 	var alias Alias
-	db.Conn.Select("id").Where("alias_name=?", name).Find(&alias)
+	db.GetConn().Select("id").Where("alias_name=?", name).Find(&alias)
 	return alias.ID
 }
 

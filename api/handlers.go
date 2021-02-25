@@ -322,10 +322,10 @@ func CheckNameDNS(c echo.Context) error {
 
 	aliasToResolve := c.QueryParam("hostname")
 	//Search cnames with the same name
-	db.Conn.Model(&Cname{}).Where("cname=?", aliasToResolve).Count(&result)
+	db.GetConn().Model(&Cname{}).Where("cname=?", aliasToResolve).Count(&result)
 	if result == 0 {
 		//Search aliases
-		db.Conn.Model(&Alias{}).Where("alias_name=?", aliasToResolve+".cern.ch").Count(&result)
+		db.GetConn().Model(&Alias{}).Where("alias_name=?", aliasToResolve+".cern.ch").Count(&result)
 	}
 	if result == 0 {
 		r, _ := net.LookupHost(aliasToResolve)
