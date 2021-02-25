@@ -1,16 +1,16 @@
 FROM cern/c8-base
 LABEL maintainer="LB-Experts <lb-experts@cern.ch>"
 RUN   yum -y install  git  &&\
-      mkdir /go15  &&\
+      mkdir /go  &&\
       yum install -y gcc  &&\
-      curl https://dl.google.com/go/go1.15.8.linux-amd64.tar.gz  | tar -zxC /go15 &&\
-      ln -s /go15/go/bin/go /usr/bin/go15 &&\
+      curl https://dl.google.com/go/go1.15.8.linux-amd64.tar.gz  | tar -zxC /go &&\
+      ln -s /go/go/bin/go /usr/bin/go &&\
       export GOPATH=/go &&\
-      go15 get ./...
+      go get ./...
 
 COPY .  .
-RUN go15 mod download
-RUN go15 build -o goermis .
+RUN go mod download
+RUN go build -o goermis .
 RUN  mkdir -p  /var/lib/ermis/ /var/log/ermis/
 COPY staticfiles      /var/lib/ermis/staticfiles
 COPY templates        /var/lib/ermis/templates
