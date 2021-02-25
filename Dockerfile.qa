@@ -1,7 +1,6 @@
 FROM golang:1.15
 LABEL maintainer="LB-Experts <lb-experts@cern.ch>"
 WORKDIR /
-RUN   yum -y install  git 
 COPY .  .
 RUN go version &&\
     go mod download &&\
