@@ -5,13 +5,13 @@ include:
   - 'https://gitlab.cern.ch/linuxsupport/rpmci/raw/master/rpm-ci.yml'
 
 
-.installGo15: &installGo15 |
-  mkdir /go15
+.installGo14: &installGo14 |
+  mkdir /go14
   yum install -y gcc
-  curl https://dl.google.com/go/go1.15.8.linux-amd64.tar.gz  | tar -zxC /go15
-  ln -s /go15/go/bin/go /usr/bin/go15
+  curl https://dl.google.com/go/go1.14.2.linux-amd64.tar.gz  | tar -zxC /go14
+  ln -s /go14/go/bin/go /usr/bin/go14
   export GOPATH=/go
-  go15 get ./...
+  go14 get ./...
 
 
 .config: &config |
@@ -60,11 +60,11 @@ build_rpm7:
     - *patch_version
     - yum-builddep -y --disableplugin=protectbase,priorities *.spec
 
-build-go15:
+build-go14:
   stage: prebuild
   script:
-    - *installGo15
-    - go15 build -race ./...
+    - *installGo14
+    - go14 build -race ./...
 
 behave:
   image: gitlab-registry.cern.ch/ai-config-team/ai-tools
@@ -84,10 +84,10 @@ landb:
   allow_failure: false
   script:
     - *patch_version
-    - *installGo15
+    - *installGo14
     - *config
     - echo "READY TO DO THE SOAP CALL"
-    - go15 test .
+    - go14 test .
 
 
 
@@ -117,17 +117,17 @@ test-go15:
   allow_failure: false
   script:
     - *patch_version
-    - *installGo15
+    - *installGo14
     - *config
     - echo "READY TO DO START THE CI TESTS"
-    - go15 test -v -cover ./tests/ci/...
-    - go15 test -race ./tests/ci/...
+    - go14 test -v -cover ./tests/ci/...
+    - go14 test -race ./tests/ci/...
 
-bench-go15:
+bench-go14:
   stage: test
   script:
-    - *installGo15
-    - go15 test ./tests/benchmarking/... -bench=. -benchmem
-    - go15 test ./tests/benchmarking/... -bench=. -benchmem -race
+    - *installGo14
+    - go14 test ./tests/benchmarking/... -bench=. -benchmem
+    - go14 test ./tests/benchmarking/... -bench=. -benchmem -race
 
 
