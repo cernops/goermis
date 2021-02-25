@@ -1,13 +1,6 @@
-FROM cern/c8-base
+FROM golang-1.15.8
 LABEL maintainer="LB-Experts <lb-experts@cern.ch>"
-RUN   yum -y install  git  gcc &&\
-      mkdir /go15  &&\
-      curl https://dl.google.com/go/go1.15.8.linux-amd64.tar.gz  | tar -zxC /go15 &&\
-      ln -s /go15/go/bin/go /usr/bin/go &&\
-      export GOPATH=/go &&\
-      go get ./...
-
-WORKDIR /
+RUN   yum -y install  git  
 COPY .  .
 RUN go mod download
 RUN go build -o goermis .
