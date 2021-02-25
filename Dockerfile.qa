@@ -7,6 +7,7 @@ RUN   yum -y install  git  gcc &&\
       export GOPATH=/go &&\
       go get ./...
 
+WORKDIR /
 COPY .  .
 RUN go mod download
 RUN go build -o goermis .
