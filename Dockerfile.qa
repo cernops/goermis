@@ -1,4 +1,4 @@
-FROM 1.15.8-alpine
+FROM 1.15.8-alpine3.12
 LABEL maintainer="LB-Experts <lb-experts@cern.ch>"
 WORKDIR /
 RUN   yum -y install  git 
