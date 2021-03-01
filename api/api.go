@@ -14,7 +14,6 @@ import (
 )
 
 var (
-	
 	q   string
 	cfg = bootstrap.GetConf() //Getting an instance of config params
 )
@@ -22,23 +21,23 @@ var (
 type (
 	//Alias structure is a model for describing the alias
 	Alias struct { //DB definitions    --Validation-->               //Validation
-		ID               int         `  gorm:"auto_increment;primaryKey"             valid:"optional, numeric"`
-		AliasName        string      `  gorm:"not null;type:varchar(40);unique"      valid:"required,dns" `
-		Behaviour        string      `  gorm:"type:varchar(15);not null"             valid:"optional,alphanum"`
-		BestHosts        int         `  gorm:"type:smallint(6);not null"             valid:"required,int,best_hosts"`
-		External         string      `  gorm:"type:varchar(15);not null"             valid:"required,in(yes|no|external|internal)"`
-		Metric           string      `  gorm:"type:varchar(15);not null"             valid:"in(cmsfrontier),optional"`
-		PollingInterval  int         `  gorm:"type:smallint(6);not null"             valid:"optional,numeric"`
-		Statistics       string      `  gorm:"type:varchar(15);not null"             valid:"optional,alpha"`
-		Clusters         string      `  gorm:"type:longtext;not null"                valid:"optional,alphanum"`
-		Tenant           string      `  gorm:"type:longtext;not null"                valid:"optional,alphanum" `
-		Hostgroup        string      `  gorm:"type:longtext;not null"                valid:"required,hostgroup"`
-		User             string      `  gorm:"type:varchar(40);not null"             valid:"optional,alphanum" `
-		TTL              int         `  gorm:"type:smallint(6);default:60;not null"  valid:"optional,numeric"`
-		LastModification time.Time   `  gorm:"type:date"                             valid:"-"`
-		Cnames           []Cname     `  gorm:"foreignkey:CnameAliasID"               valid:"optional"`
-		Relations        []*Relation `                                               valid:"optional"`
-		Alarms           []Alarm     `  gorm:"foreignkey:AlarmAliasID"               valid:"optional" `
+		ID               int        `  gorm:"auto_increment;primaryKey"             valid:"optional, numeric"`
+		AliasName        string     `  gorm:"not null;type:varchar(40);unique"      valid:"required,dns" `
+		Behaviour        string     `  gorm:"type:varchar(15);not null"             valid:"optional,alphanum"`
+		BestHosts        int        `  gorm:"type:smallint(6);not null"             valid:"required,best_hosts"`
+		External         string     `  gorm:"type:varchar(15);not null"             valid:"required,in(yes|no|external|internal)"`
+		Metric           string     `  gorm:"type:varchar(15);not null"             valid:"in(cmsfrontier),optional"`
+		PollingInterval  int        `  gorm:"type:smallint(6);not null"             valid:"optional,int"`
+		Statistics       string     `  gorm:"type:varchar(15);not null"             valid:"optional,alpha"`
+		Clusters         string     `  gorm:"type:longtext;not null"                valid:"optional,alphanum"`
+		Tenant           string     `  gorm:"type:longtext;not null"                valid:"optional,alphanum" `
+		Hostgroup        string     `  gorm:"type:longtext;not null"                valid:"required,hostgroup"`
+		User             string     `  gorm:"type:varchar(40);not null"             valid:"optional,alphanum" `
+		TTL              int        `  gorm:"type:smallint(6);default:60;not null"  valid:"optional,int"`
+		LastModification time.Time  `  gorm:"type:date"                             valid:"-"`
+		Cnames           []Cname    `  gorm:"foreignkey:CnameAliasID"               valid:"optional"`
+		Relations        []Relation `                                               valid:"optional"`
+		Alarms           []Alarm    `  gorm:"foreignkey:AlarmAliasID"               valid:"optional" `
 	}
 
 	/*For future references, the many-to-many relation is not implemented
@@ -47,21 +46,21 @@ type (
 
 	//Relation describes the many-to-many relation between nodes/aliases
 	Relation struct {
-		ID        int    `  gorm:"not null;auto_increment"  valid:"optional, numeric" `
+		ID        int    `  gorm:"not null;auto_increment"  valid:"optional, int" `
 		Node      *Node  `                                  valid:"optional"`
-		NodeID    int    ` gorm:"not null"                  valid:"optional, numeric"`
+		NodeID    int    ` gorm:"not null"                  valid:"optional, int"`
 		Alias     *Alias `                                  valid:"optional"`
-		AliasID   int    ` gorm:"not null"                  valid:"optional, numeric"`
+		AliasID   int    ` gorm:"not null"                  valid:"optional, int"`
 		Blacklist bool   ` gorm:"not null"                  valid:"-"`
 	}
 	//Alarm describes the one to many relation between an alias and its alarms
 	Alarm struct {
-		ID           int          `  gorm:"auto_increment;primaryKey"   valid:"optional,numeric"`
-		AlarmAliasID int          `  gorm:"not null"                    valid:"optional,numeric"`
+		ID           int          `  gorm:"auto_increment;primaryKey"   valid:"optional,int"`
+		AlarmAliasID int          `  gorm:"not null"                    valid:"optional,int"`
 		Alias        string       `  gorm:"type:varchar(40);not null"   valid:"optional,dns" `
 		Name         string       `  gorm:"type:varchar(20);not null"   valid:"optional,in(minimum)"`
 		Recipient    string       `  gorm:"type:varchar(40);not null"   valid:"optional,email"`
-		Parameter    int          `  gorm:"type:smallint(6);not null"   valid:"optional,int"`
+		Parameter    int          `  gorm:"type:smallint(6);not null"   valid:"optional,range(0|1000)"`
 		Active       bool         `  gorm:"not null"                    valid:"-"`
 		LastCheck    sql.NullTime `  gorm:"type:date"                   valid:"-"`
 		LastActive   sql.NullTime `  gorm:"type:date"                   valid:"-"`
@@ -69,17 +68,17 @@ type (
 
 	//Cname structure is a model for the cname description
 	Cname struct {
-		ID           int    `  gorm:"auto_increment;primaryKey"         valid:"optional,numeric"`
-		CnameAliasID int    `  gorm:"not null"                          valid:"optional,numeric"`
+		ID           int    `  gorm:"auto_increment;primaryKey"         valid:"optional,int"`
+		CnameAliasID int    `  gorm:"not null"                          valid:"optional,int"`
 		Cname        string `  gorm:"type:varchar(40);not null;unique"  valid:"optional,cnames" `
 	}
 
 	//Node structure defines the model for the nodes params Node struct {
 	Node struct {
-		ID               int        `  gorm:"unique;not null;auto_increment;primaryKey"     valid:"optional,numeric" `
+		ID               int        `  gorm:"unique;not null;auto_increment;primaryKey"     valid:"optional,int" `
 		NodeName         string     `  gorm:"not null;type:varchar(40);unique"              valid:"optional,nodes"`
 		LastModification time.Time  `                                                       valid:"-"`
-		Load             int        `                                                       valid:"optional,numeric"`
+		Load             int        `                                                       valid:"optional,int"`
 		State            string     `  gorm:"type:varchar(15);not null"                     valid:"-"`
 		Hostgroup        string     `  gorm:"type:varchar(40);not null"                     valid:"hostgroup"`
 		Aliases          []Relation `                                                       valid:"-"`
@@ -97,9 +96,9 @@ type (
 func GetObjects(param string) (query []Alias, err error) {
 
 	//Preload bottom-to-top, starting with the Relations & Nodes first
-	nodes := db.GetConn().Preload("Relations")       //Relations
-	nodes = nodes.Preload("Relations.Node") //From the relations, we find the node names then
-	if param == "all" {                     //get all aliases
+	nodes := db.GetConn().Preload("Relations") //Relations
+	nodes = nodes.Preload("Relations.Node")    //From the relations, we find the node names then
+	if param == "all" {                        //get all aliases
 		err = nodes.
 			Preload("Cnames").
 			Preload("Alarms").
@@ -163,7 +162,7 @@ func (alias Alias) updateAlias() (err error) {
 //updateNodes updates alias with new nodes
 func (alias Alias) updateNodes() (err error) {
 	var (
-		relationsInDB []*Relation
+		relationsInDB []Relation
 	)
 	//Let's find the registered nodes for this alias
 	db.GetConn().Preload("Node").Where("alias_id=?", alias.ID).Find(&relationsInDB)

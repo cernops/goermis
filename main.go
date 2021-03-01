@@ -28,12 +28,13 @@ var (
 
 func main() {
 	bootstrap.ParseFlags()
-	bootstrap.SetLog()
+
 	log.Info("============Service Started=============")
-	defer db.Close()
+
 	// Echo instance
 	echo := router.New()
-
+	db.InitDB()
+	defer db.Close()
 	//Initiate template views
 	views.InitViews(echo)
 

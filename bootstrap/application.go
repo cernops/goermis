@@ -58,6 +58,33 @@ var (
 	//Log tesst
 	Log = log.New("\r\n")
 )
+func init(){
+	//Init log in the bootstrap package, since its the first that its executed
+	if *DebugLevel {
+		Log.SetLevel(1) //DEBUG
+	} else {
+		Log.SetLevel(2) //INFO
+	}
+
+	//Init log in the bootstrap package, since its the first that its executed
+
+	Log.SetHeader("${time_rfc3339} ${level} ${short_file} ${line} ")
+	file, err := os.OpenFile(GetConf().Log.LoggingFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		Log.Error("Failed to log to file, using default stderr" + err.Error())
+	}
+	if GetConf().Log.Stdout {
+		mw := io.MultiWriter(os.Stdout, file)
+		Log.SetOutput(mw)
+		Log.Info("File and console set as output")
+
+	} else {
+		Log.Info("File set as logger output")
+		Log.SetOutput(file)
+
+	}
+
+}
 
 //ParseFlags checks the command line arguments
 func ParseFlags() {
@@ -115,34 +142,6 @@ func ValidateConfigFile(path string) error {
 	return nil
 }
 
-//SetLog returns a configured log instance
-func SetLog() {
-	//Init log in the bootstrap package, since its the first that its executed
-	if *DebugLevel {
-		Log.SetLevel(1) //DEBUG
-	} else {
-		Log.SetLevel(2) //INFO
-	}
-
-	//Init log in the bootstrap package, since its the first that its executed
-
-	Log.SetHeader("${time_rfc3339} ${level} ${short_file} ${line} ")
-	file, err := os.OpenFile(GetConf().Log.LoggingFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		Log.Error("Failed to log to file, using default stderr" + err.Error())
-	}
-	if GetConf().Log.Stdout {
-		mw := io.MultiWriter(os.Stdout, file)
-		Log.SetOutput(mw)
-		Log.Info("File and console set as output")
-
-	} else {
-		Log.Info("File set as logger output")
-		Log.SetOutput(file)
-
-	}
-
-}
 
 //GetLog returns the log instance
 func GetLog() *log.Logger {

@@ -134,10 +134,15 @@ func CreateAlias(c echo.Context) error {
 
 		//We dont know the newly assigned ID for our alias
 		//We need the ID for clearing its associations
-		alias.ID = FindAliasID(alias.AliasName)
+		newlycreated, err := GetObjects(alias.AliasName)
+		if err != nil {
+			//Failed to rollback the newly created alias
+			return MessageToUser(c, http.StatusBadRequest,
+				"Failed to find the stray alias "+alias.AliasName+"in DB after failing to create it, with error"+": "+err.Error(), "home.html")
+		}
 
 		//If it fails to create alias in DNS, we delete from DB what we created in the previous step.
-		if err := alias.deleteObjectInDB(); err != nil {
+		if err := newlycreated[0].deleteObjectInDB(); err != nil {
 
 			//Failed to rollback the newly created alias
 			return MessageToUser(c, http.StatusBadRequest,
@@ -145,7 +150,7 @@ func CreateAlias(c echo.Context) error {
 		}
 		//Failed to create in DNS, but managed to delete the newly created alias in DB
 		return MessageToUser(c, http.StatusBadRequest,
-			"Failed to create "+alias.AliasName+" in DNS with error"+": "+err.Error(), "home.html")
+			"Failed to create "+alias.AliasName+" in DNS", "home.html")
 	}
 	//Success message
 	return MessageToUser(c, http.StatusCreated,
@@ -245,7 +250,12 @@ func ModifyAlias(c echo.Context) error {
 	}
 	log.Info("[" + username + "] " + "Retrieved existing data for " + temp.AliasName)
 
-	alias := sanitazeInUpdate(c, retrieved[0], temp)
+	alias, err := sanitazeInUpdate(c, retrieved[0], temp)
+	if err != nil {
+		return MessageToUser(c, http.StatusBadRequest,
+			"Failed to sanitize "+temp.AliasName+" : "+err.Error(), "home.html")
+
+	}
 
 	defer c.Request().Body.Close()
 

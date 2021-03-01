@@ -10,9 +10,11 @@ import (
 	"github.com/labstack/echo/v4"
 	"gitlab.cern.ch/lb-experts/goermis/db"
 )
+
 var (
 	conn = db.GetConn()
 )
+
 /*////////////Helper Functions///////////////////*/
 
 //ContainsCname returns true if a cname can be found in a list of Cname objects
@@ -66,7 +68,7 @@ func ContainsAlarm(s []Alarm, a Alarm) bool {
 
 //ContainsNode checks if a node has a relation with an alias
 // and the status of that relation(allowed or forbidden)
-func ContainsNode(a []*Relation, b *Relation) (bool, bool) {
+func ContainsNode(a []Relation, b Relation) (bool, bool) {
 	for _, v := range a {
 		if v.Node.NodeName == b.Node.NodeName {
 			if v.Blacklist == b.Blacklist {
@@ -82,17 +84,14 @@ func ContainsNode(a []*Relation, b *Relation) (bool, bool) {
 }
 
 //FindNodeID returns the ID of a node. If it doesnt exists, returns 0
-func FindNodeID(name string) int {
-	var node Node
-	conn.Select("id").Where("node_name=?", name).Find(&node)
-	return node.ID
-}
+func FindNodeID(name string, relations []Relation) int {
+	for _, n := range relations {
+		if name == n.Node.NodeName {
+			return n.NodeID
+		}
+	}
 
-//FindAliasID returns the ID of a node. If it doesnt exists, returns 0
-func FindAliasID(name string) int {
-	var alias Alias
-	db.GetConn().Select("id").Where("alias_name=?", name).Find(&alias)
-	return alias.ID
+	return 0
 }
 
 //DeleteEmpty makes sure we do not have empty values in our slices
@@ -116,15 +115,6 @@ func StringInSlice(a string, list []string) bool {
 	return false
 }
 
-//StringToInt converts a string to a int. It is used to hide error checks
-func StringToInt(s string) (i int) {
-	i, err := strconv.Atoi(s)
-	if err != nil {
-		log.Error("Error while converting string to int")
-	}
-	return i
-}
-
 //Equal compares two arrays of Cname type
 func Equal(cname1, cname2 []Cname) bool {
 	if len(cname1) != len(cname2) {
@@ -142,6 +132,7 @@ func Equal(cname1, cname2 []Cname) bool {
 
 //customValidators adds our new tags in the govalidator
 func customValidators() {
+
 	govalidator.TagMap["nodes"] = govalidator.Validator(func(str string) bool {
 		if len(str) > 0 {
 			var allowed = regexp.MustCompile(`^[a-z][a-z0-9\-]*[a-z0-9]$`)
@@ -152,6 +143,7 @@ func customValidators() {
 					return false
 				}
 			}
+			return true
 		}
 
 		return true
@@ -166,9 +158,10 @@ func customValidators() {
 				log.Error("Not valid cname: " + str)
 				return false
 			}
+			return true
 		}
 
-		return true
+		return false
 	})
 
 	govalidator.TagMap["alarms"] = govalidator.Validator(func(str string) bool {
@@ -189,13 +182,18 @@ func customValidators() {
 				return false
 
 			}
+			return true
 		}
 
-		return true
+		return false
 	})
 
 	govalidator.TagMap["best_hosts"] = govalidator.Validator(func(str string) bool {
-		return StringToInt(str) >= -1
+		param, err := strconv.Atoi(str)
+		if err != nil {
+			return false
+		}
+		return param >= -1
 
 	})
 

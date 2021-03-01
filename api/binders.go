@@ -190,7 +190,7 @@ func parse(queryResults []Alias) Objects {
 
 /*sanitazeInUpdate generates the ORM model of an alias from
 the binded request data*/
-func sanitazeInUpdate(c echo.Context, current Alias, new Resource) Alias {
+func sanitazeInUpdate(c echo.Context, current Alias, new Resource) (Alias, error) {
 	contentType := c.Request().Header.Get("Content-Type")
 	//Cnames
 	current.Cnames = []Cname{}
@@ -211,10 +211,15 @@ func sanitazeInUpdate(c echo.Context, current Alias, new Resource) Alias {
 		split := Explode(contentType, new.Alarms)
 		for _, alarm := range split {
 			element := DeleteEmpty(strings.Split(alarm, ":"))
+			//Convert param from string to int
+			param, err := strconv.Atoi(element[2])
+			if err != nil {
+				return Alias{}, err
+			}
 			current.Alarms = append(current.Alarms, Alarm{
 				Name:         element[0],
 				Recipient:    element[1],
-				Parameter:    StringToInt(element[2]),
+				Parameter:    param,
 				AlarmAliasID: current.ID,
 				Alias:        current.AliasName})
 
@@ -222,18 +227,20 @@ func sanitazeInUpdate(c echo.Context, current Alias, new Resource) Alias {
 	}
 
 	//Nodes
-	current.Relations = []*Relation{}
+	//Keep a copy of relations, that we need to determine the ID of existing nodes
+	copyOfRelations := current.Relations
+	current.Relations = []Relation{}
 	fields := map[bool][]string{false: new.AllowedNodes, true: new.ForbiddenNodes}
 	for k, field := range fields {
 		if len(field) != 0 {
 			split := Explode(contentType, field)
 			for _, node := range split {
-				current.Relations = append(current.Relations, &Relation{
+				current.Relations = append(current.Relations, Relation{
 					AliasID:   current.ID,
-					NodeID:    FindNodeID(node),
+					NodeID:    FindNodeID(node, copyOfRelations),
 					Blacklist: k,
 					Node: &Node{
-						ID:               FindNodeID(node),
+						ID:               FindNodeID(node, copyOfRelations),
 						NodeName:         node,
 						LastModification: time.Now(),
 						Hostgroup:        current.Hostgroup}})
@@ -271,5 +278,5 @@ func sanitazeInUpdate(c echo.Context, current Alias, new Resource) Alias {
 		current.TTL = new.TTL
 	}
 
-	return current
+	return current, nil
 }

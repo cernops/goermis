@@ -75,7 +75,7 @@ func deleteTransactions(alias Alias) (err error) {
 }
 
 //deleteNodeTransactions deletes  a Node from the database
-func deleteNodeTransactions(v *Relation) (err error) {
+func deleteNodeTransactions(v Relation) (err error) {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
 		//Delete relation
 		if err = tx.Set("gorm:association_autoupdate", false).
@@ -102,7 +102,7 @@ func deleteNodeTransactions(v *Relation) (err error) {
 }
 
 //addNodeTransactions adds a node in the DB
-func addNodeTransactions(v *Relation) (err error) {
+func addNodeTransactions(v Relation) (err error) {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
 		//Either create a new node or find an existing one
 		//Remember that its a many-2-many relationship, so nodes
@@ -130,7 +130,7 @@ func addNodeTransactions(v *Relation) (err error) {
 }
 
 //updatePrivilegeTransactions updates the privilege of a node from allowed to forbidden and vice versa
-func updatePrivilegeTransactions(v *Relation) (err error) {
+func updatePrivilegeTransactions(v Relation) (err error) {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
 		//Update single column blacklist in Relations table
 		if err = tx.Model(&v).

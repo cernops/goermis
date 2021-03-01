@@ -27,8 +27,8 @@ var (
 	value int
 )
 
-// Initiating the db connection
-func init() {
+// InitDB Initiating the db connection
+func InitDB() {
 	//Loglevels for GORM are {INFO,WARN,ERROR,SILENT}
 	if *bootstrap.DebugLevel {
 		value = 4 //this is INFO
@@ -36,7 +36,7 @@ func init() {
 		value = 2 //this is ERROR --> works like DEBUG in this case
 	}
 
-	newLogger := logger.New(
+	DBlogger := logger.New(
 		log, //Here we pass the GORM logs to our default logger
 		logger.Config{
 			SlowThreshold: time.Second,
@@ -49,14 +49,13 @@ func init() {
 
 	//A generic interface that allows us pinging, pooling, and managing idle connections
 	sqlDB, err = sql.Open(cfg.Database.Adapter, connection)
-
 	/*On top of the generic sql interface, we create a
 	gorm interface that allows us to actually use the gorm tools
 	Reference: https://gorm.io/docs/generic_interface.html */
 	if conn, err = gorm.Open(gsql.New(gsql.Config{
 		Conn: sqlDB,
 	}), &gorm.Config{
-		Logger: newLogger,
+		Logger: DBlogger,
 		NamingStrategy: schema.NamingStrategy{
 			SingularTable: true, //keeps table names singular
 			TablePrefix:   "ermis_api_",
