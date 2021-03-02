@@ -15,7 +15,7 @@ import (
 
 form tags --> for binding the form fields from UI,
 json tags -- > binding data sent by kermis CLI
-valid tag--> validation rules, extra funcs in the common.go file*/
+valid tag--> validation rules, extra funcs in the helpers.go file*/
 
 type (
 	//Resource deals with the output from the queries
