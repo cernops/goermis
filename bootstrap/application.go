@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+
 	"os"
 
 	"github.com/labstack/gommon/log"
@@ -52,37 +53,15 @@ type Config struct {
 var (
 	configFileFlag = flag.String("config", "/usr/local/etc/goermis.yaml", "specify configuration file path")
 	//HomeFlag grabs the location of staticfiles & templates
-	HomeFlag   = flag.String("home", "/var/lib/ermis/", "specify statics path")
-	debugLevel = flag.Bool("debug", false, "display debug messages")
+	HomeFlag = flag.String("home", "/var/lib/ermis/", "specify statics path")
+	//DebugLevel enable flag
+	DebugLevel = flag.Bool("debug", false, "display debug messages")
 )
 
 //ParseFlags checks the command line arguments
 func ParseFlags() {
 	//Parse flags
 	flag.Parse()
-	//Init log in the bootstrap package, since its the first that its executed
-	if *debugLevel {
-		log.SetLevel(1)
-	} else {
-		log.SetLevel(2)
-	}
-
-	//Init log in the bootstrap package, since its the first that its executed
-
-	log.SetHeader("${time_rfc3339} ${level} ${short_file} ${line} ")
-	file, err := os.OpenFile(GetConf().Log.LoggingFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		log.Error("Failed to log to file, using default stderr" + err.Error())
-	}
-	if GetConf().Log.Stdout {
-		log.Info("File and console set as output")
-		mw := io.MultiWriter(os.Stdout, file)
-		log.SetOutput(mw)
-	} else {
-		log.Info("File set as logger output")
-		log.SetOutput(file)
-
-	}
 
 }
 
@@ -133,4 +112,35 @@ func ValidateConfigFile(path string) error {
 		return fmt.Errorf("'%s' is a directory, not a normal file", path)
 	}
 	return nil
+}
+
+//GetLog returns a configured log instance
+func GetLog() *log.Logger {
+	log := log.New("\r\n")
+	//Init log in the bootstrap package, since its the first that its executed
+	if *DebugLevel {
+		log.SetLevel(1) //DEBUG
+	} else {
+		log.SetLevel(2) //INFO
+	}
+
+	//Init log in the bootstrap package, since its the first that its executed
+
+	log.SetHeader("${time_rfc3339} ${level} ${short_file} ${line} ")
+	file, err := os.OpenFile(GetConf().Log.LoggingFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		log.Error("Failed to log to file, using default stderr" + err.Error())
+	}
+	if GetConf().Log.Stdout {
+		log.Info("File and console set as output")
+		mw := io.MultiWriter(os.Stdout, file)
+		log.SetOutput(mw)
+
+	} else {
+		log.Info("File set as logger output")
+		log.SetOutput(file)
+
+	}
+
+	return log
 }

@@ -7,10 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jinzhu/gorm"
-	"github.com/labstack/gommon/log"
-	"gitlab.cern.ch/lb-experts/goermis/aiermis/orm"
 	"gitlab.cern.ch/lb-experts/goermis/alarms"
+	"gitlab.cern.ch/lb-experts/goermis/api"
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 	"gitlab.cern.ch/lb-experts/goermis/db"
 	"gitlab.cern.ch/lb-experts/goermis/router"
@@ -26,20 +24,19 @@ const (
 
 func main() {
 	bootstrap.ParseFlags()
-	log.Info("Service Started...")
+	log := bootstrap.GetLog()
+	log.Info("============Service Started=============")
 
 	// Echo instance
 	echo := router.New()
 
 	//Initiate template views
 	views.InitViews(echo)
-	//Create and keep up to date DB tables
-	autoCreateTables(&orm.Alias{}, &orm.Node{}, &orm.Cname{}, &orm.Alarm{}, &orm.Relation{})
 	autoMigrateTables()
 
 	//Alarms periodic check/update
-	log.Info("5 minutes passed, let's check the alarms")
-	ticker := time.NewTicker(5 * time.Minute)
+	log.Info("24 hours passed, preparing to execution check alarms")
+	ticker := time.NewTicker(24 * time.Hour)
 	/*done channel can be used to stop the ticker if needed,
 	by issuing the command "done<-true". For now, it runs constantly */
 	done := make(chan bool)
@@ -86,30 +83,8 @@ func main() {
 
 }
 
-//GORM will create/migrate new data, but will not delete anything for security reasons
-func autoCreateTables(values ...interface{}) error {
-	for _, value := range values {
-		if !db.ManagerDB().HasTable(value) {
-			err := db.ManagerDB().CreateTable(value).Error
-			gorm.DefaultTableNameHandler = func(db *gorm.DB, defaultTableName string) string {
-				return "ermis_api_" + defaultTableName
-			}
-			if err != nil {
-				errClose := db.ManagerDB().Close()
-				if errClose != nil {
-					log.Error("Error while trying to close DB conn.")
-
-				}
-				return err
-
-			}
-		}
-	}
-	return nil
-}
-
 // autoMigrateTables: migrate table columns using GORM. Will not delete/change types for security reasons
 func autoMigrateTables() {
-	db.ManagerDB().AutoMigrate(&orm.Alias{}, &orm.Node{}, &orm.Cname{}, &orm.Alarm{}, &orm.Relation{})
+	db.ManagerDB().AutoMigrate(&api.Alias{}, &api.Node{}, &api.Cname{}, &api.Alarm{}, &api.Relation{})
 
 }

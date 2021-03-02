@@ -1,30 +1,36 @@
 package alarms
 
+/*This file periodically checks the alarms. If needed,
+updates them in DB and notifies user*/
+
 import (
 	"fmt"
 	"net"
 	"net/smtp"
 	"time"
 
-	"github.com/labstack/gommon/log"
 	"github.com/miekg/dns"
-	"gitlab.cern.ch/lb-experts/goermis/aiermis/orm"
+	"gitlab.cern.ch/lb-experts/goermis/api"
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 	"gitlab.cern.ch/lb-experts/goermis/db"
 )
 
 var (
+	log        = bootstrap.GetLog()
 	dnsManager = bootstrap.GetConf().DNS.Manager
 )
 
 //PeriodicAlarmCheck periodically makes sure that the thresholds are respected.
 //Otherwise notifies by e-mail and updates the DB
 func PeriodicAlarmCheck() {
-	var alarms []orm.Alarm
+	var alarms []api.Alarm
 	if err := db.ManagerDB().Find(&alarms).
 		Error; err != nil {
 		log.Error("Could not retrieve alarms", err.Error())
 	}
+	//updateAlert := db.ManagerDB().Raw("UPDATE ermis_api_alert set active = ?, last_active=?, last_check =?  where id =?")
+	//updateNullAlert, err := db.ManagerDB().Raw("UPDATE ermis_api_alert set active = ?, last_check =?  where id =?")
+
 	for _, alarm := range alarms {
 		if err := processThis(alarm); err != nil {
 			log.Error(fmt.Sprintf("Error updating the alert: %v and %v", err, alarm))
@@ -32,14 +38,14 @@ func PeriodicAlarmCheck() {
 	}
 }
 
-func processThis(alarm orm.Alarm) (err error) {
+func processThis(alarm api.Alarm) (err error) {
 	alarm.LastCheck.Time = time.Now()
 	newActive := false
 	if checkAlarm(alarm.Alias, alarm.Name, alarm.Parameter) {
-		log.Warn(" The alarm should be active\n")
+		log.Warn("The alert should be active")
 		newActive = true
 		if !alarm.Active {
-			log.Info("The alert was not active before. Let's send the notification\n")
+			log.Info("The alert was not active before. Let's send the notification")
 			alarm.LastActive = alarm.LastCheck
 			alarm.LastActive.Valid = true
 			sendNotification(alarm.Alias, alarm.Recipient, alarm.Name, alarm.Parameter)
@@ -47,18 +53,17 @@ func processThis(alarm orm.Alarm) (err error) {
 	}
 
 	if alarm.LastActive.Valid {
-		err = db.ManagerDB().Model(&alarm).Updates(orm.Alarm{
+		err = db.ManagerDB().Model(&alarm).Updates(api.Alarm{
 			Active:     newActive,
 			LastActive: alarm.LastActive,
 			LastCheck:  alarm.LastCheck}).Error
 	} else {
-		err = db.ManagerDB().Model(&alarm).Updates(orm.Alarm{
+		err = db.ManagerDB().Model(&alarm).Updates(api.Alarm{
 			Active:    newActive,
 			LastCheck: alarm.LastCheck}).Error
 	}
 	return err
 }
-
 func sendNotification(alias, recipient, name string, parameter int) {
 	log.Info(fmt.Sprintf("Sending a notification to %v that the alert %s on %s has been triggered (less than %d nodes)", recipient, alias, name, parameter))
 	msg := []byte("To: " + alias + "\r\n" +
@@ -80,7 +85,6 @@ func checkAlarm(alias, alert string, parameter int) bool {
 }
 
 func getIpsFromDNS(m *dns.Msg, alias, dnsManager string, dnsType uint16, ips *[]net.IP) error {
-
 	m.SetQuestion(alias+".", dnsType)
 	in, err := dns.Exchange(m, dnsManager+":53")
 	if err != nil {
@@ -102,7 +106,7 @@ func checkMinimumAlarm(alias string, parameter int) bool {
 	m := new(dns.Msg)
 	var ips []net.IP
 	m.SetEdns0(4096, false)
-	log.Info("Getting the ips from the DNS for alias " + alias)
+	log.Info("Getting the ips from the DNS")
 	err := getIpsFromDNS(m, alias, dnsManager, dns.TypeA, &ips)
 
 	if err != nil {
@@ -112,9 +116,9 @@ func checkMinimumAlarm(alias string, parameter int) bool {
 	if err != nil {
 		return true
 	}
-	log.Info(fmt.Sprintf("The list of ips for %v : %v", alias, ips))
+	log.Info(fmt.Sprintf("The list of ips : %v\n", ips))
 	if len(ips) < parameter {
-		log.Info(fmt.Sprintf("There are less than %d nodes (only %d)", parameter, len(ips)))
+		log.Info(fmt.Sprintf("There are less than %d nodes (only %d)\n", parameter, len(ips)))
 		return true
 	}
 
