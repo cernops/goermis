@@ -93,7 +93,7 @@ func (alias Alias) updateDNS(oldObject Alias) (err error) {
 
 	}
 	//2.If there is a change in cnames, update DNS
-	if !Equal(alias.Cnames, oldObject.Cnames) {
+	if !EqualCnames(alias.Cnames, oldObject.Cnames) {
 		if err := alias.updateCnamesInDNS(oldObject.Cnames); err != nil {
 			return err
 		}

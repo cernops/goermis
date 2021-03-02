@@ -10,9 +10,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/labstack/echo/v4"
-
 )
 
 //CheckAuthorization checks if user is in the egroup and if he is allowed to create in the hostgroup
@@ -147,7 +145,6 @@ func findHostgroup(c echo.Context) (newHg string, oldHg string, err error) {
 
 	//Get the hostgroup that is registered for the same alias.
 	alias, _ := GetObjects(aliasToquery)
-	spew.Dump(alias)
 	if len(alias) != 0 {
 		oldHg = alias[0].Hostgroup
 	}

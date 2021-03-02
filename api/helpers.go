@@ -115,8 +115,8 @@ func StringInSlice(a string, list []string) bool {
 	return false
 }
 
-//Equal compares two arrays of Cname type
-func Equal(cname1, cname2 []Cname) bool {
+//EqualCnames compares two arrays of Cname type
+func EqualCnames(cname1, cname2 []Cname) bool {
 	if len(cname1) != len(cname2) {
 		return false
 	}

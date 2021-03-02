@@ -13,9 +13,9 @@ import (
 )
 
 //Group decides user authorization
-type Group struct {
+/*type Group struct {
 	egroupCRUD string
-}
+}*/
 
 //UserAuth describes a teigi connection
 type UserAuth struct {
@@ -32,12 +32,10 @@ type pwnMsg struct {
 }
 
 //CheckCud checks a user if he is member of egroup
-func (l *Group) CheckCud(username string) bool {
-
+func CheckCud(username string) bool {
 	if isMemberOf(username, "ermis-lbaas-admins") {
 		return true
 	}
-
 	return false
 
 }

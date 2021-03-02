@@ -31,36 +31,55 @@ func TestContainsCname(t *testing.T) {
 }
 
 func TestExplode(t *testing.T) {
-	type data struct {
+	type test struct {
+		caseID   int
 		encode   string
-		data     []string
+		input    []string
 		expected []string
 	}
-	tests := []data{
-		{"application/json", []string{"test1", "test2", "test3"}, []string{"test1", "test2", "test3"}},
-		{"application/x-www-form-urlencoded", []string{"test1,test2,test3"}, []string{"test1", "test2", "test3"}},
-		{"random", []string{"test1", "test2", "test3"}, []string{}},
-		{"random", []string{"test1,test2,test3"}, []string{}},
+	testCases := []test{
+		{1, "application/json", []string{"test1", "test2", "test3"}, []string{"test1", "test2", "test3"}},
+		{2, "application/x-www-form-urlencoded", []string{"test1,test2,test3"}, []string{"test1", "test2", "test3"}},
+		{3, "random", []string{"test1", "test2", "test3"}, []string{}},
+		{4, "random", []string{"test1,test2,test3"}, []string{}},
 	}
-	for _, test := range tests {
-		if !reflect.DeepEqual(api.Explode(test.encode, test.data), test.expected) {
-			t.Errorf("Failed test in TestExplode. Expected: %v\n Received: %v\n", test.expected, api.Explode(test.encode, test.data))
+	for _, tc := range testCases {
+		output := api.Explode(tc.encode, tc.input)
+		if !reflect.DeepEqual(output, tc.expected) {
+			t.Errorf("Failed test in TestExplode.\nFAILED CASE ID:%v\nINPUT:\n%v\nEXPECTED: \n%v\nRECEIVED: \n%v\n", tc.caseID, tc.input, tc.expected, output)
 		}
 	}
 
 }
 
 func TestContainsAlarm(t *testing.T) {
-	ExistingAlarm := api.Alarm{
-		Name:      "minimum",
-		Recipient: "lb-experts@cern.ch",
-		Parameter: 1,
+	type test struct {
+		caseID   int
+		input    api.Alarm
+		expected bool
 	}
-	NonExistingAlarm := api.Alarm{
-		Name:      "minimum",
-		Recipient: "it-dep@cern.ch",
-		Parameter: 10,
+
+	testCases := []test{
+		{
+			caseID: 1,
+			input: api.Alarm{
+				Name:      "minimum",
+				Recipient: "lb-experts@cern.ch",
+				Parameter: 1,
+			},
+			expected: true,
+		},
+		{
+			caseID: 2,
+			input: api.Alarm{
+				Name:      "minimum",
+				Recipient: "it-dep@cern.ch",
+				Parameter: 10,
+			},
+			expected: false,
+		},
 	}
+
 	alarms := []api.Alarm{
 		{
 			Name:      "minimum",
@@ -71,38 +90,27 @@ func TestContainsAlarm(t *testing.T) {
 			Name:      "maximum",
 			Recipient: "lb-experts@cern.ch",
 			Parameter: 1,
-		}, {
-			Name:      "minimum",
-			Recipient: "ermis-experts@cern.ch",
-			Parameter: 1,
-		},
-		{
-			Name:      "minimum",
-			Recipient: "lb-experts@cern.ch",
-			Parameter: 2,
 		},
 	}
 	fmt.Println("Now we will test if the alarm can be found")
-	if !api.ContainsAlarm(alarms, ExistingAlarm) {
-		t.Errorf("Could not find alarm %v even though it exists", ExistingAlarm)
-
-	}
-	fmt.Println("Now we will test for the non existing alarm")
-	if api.ContainsAlarm(alarms, NonExistingAlarm) {
-		t.Errorf("Could find alarm %v even though it doesn't exist", NonExistingAlarm)
-
+	for _, tc := range testCases {
+		output := api.ContainsAlarm(alarms, tc.input)
+		if output != tc.expected {
+			t.Errorf("Failed in TestContainsAlarm\nFAILED CASE ID:%v\nI\n%v\nEXPECTED:\n%v\nBut RECEIVED:\n%v\n", tc.caseID, tc.input, tc.expected, output)
+		}
 	}
 }
 
 func TestContainsNode(t *testing.T) {
 	type test struct {
+		caseID            int
 		input             api.Relation
 		expectedName      bool
 		expectedBlacklist bool
 	}
 
 	testCases := []test{
-		{
+		{caseID: 1,
 			input: api.Relation{
 				Blacklist: false,
 				Node: &api.Node{
@@ -113,7 +121,7 @@ func TestContainsNode(t *testing.T) {
 			expectedBlacklist: true,
 		},
 
-		{
+		{caseID: 2,
 			input: api.Relation{
 				Blacklist: true,
 				Node: &api.Node{
@@ -123,7 +131,7 @@ func TestContainsNode(t *testing.T) {
 			expectedName:      true,
 			expectedBlacklist: false,
 		},
-		{
+		{caseID: 3,
 			input: api.Relation{
 				Blacklist: true,
 				Node: &api.Node{
@@ -157,27 +165,30 @@ func TestContainsNode(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		if name, bl := api.ContainsNode(relations, tc.input); name != tc.expectedName || bl != tc.expectedBlacklist {
-			t.Errorf("We did not receive what we expected for %v\nWe received: %v, %v\nWe expected: %v, %v", tc.input.Node.NodeName, name, bl, tc.expectedName, tc.expectedBlacklist)
+		if output1, output2 := api.ContainsNode(relations, tc.input); output1 != tc.expectedName || output2 != tc.expectedBlacklist {
+			t.Errorf("We did not receive what we expected for %v\nFAILED CASE ID:%v\nWE RECEIVED:\n %v, %v\nWE EXPECTED:\n %v,\n %v\n", tc.input.Node.NodeName, tc.caseID, output1, output2, tc.expectedName, tc.expectedBlacklist)
 		}
 	}
 
 }
 
 func TestFindNodeID(t *testing.T) {
-	type node struct {
+	type test struct {
+		caseID   int
 		input    string
 		expected int
 	}
-	nodes := []node{
+	testCases := []test{
 		//legit node
-		{input: "testnode.cern.ch", //testnode is declared for alias seed.cern.ch
+		{caseID: 1,
+			input:    "testnode.cern.ch", //testnode is declared for alias seed.cern.ch
 			expected: 118},
 		//non existing node
-		{input: "nonexistent.cern.ch",
+		{caseID: 2,
+			input:    "nonexistent.cern.ch",
 			expected: 0},
 	}
-
+	//Slice of relations that will be searched
 	relations := []api.Relation{
 		{
 			NodeID: 118,
@@ -187,33 +198,34 @@ func TestFindNodeID(t *testing.T) {
 		},
 	}
 
-	for _, node := range nodes {
-		output := api.FindNodeID(node.input, relations)
-		if output != node.expected {
-			t.Errorf("Failed to find the correct alias ID.\nExpected:%v\nReceived:%v\n", node.expected, output)
+	for _, tc := range testCases {
+		output := api.FindNodeID(tc.input, relations)
+		if output != tc.expected {
+			t.Errorf("Failed to find the correct alias ID.\nFAILED CASE ID:%v\nINPUT:\n%v\nEXPECTED:\n%v\nRECEIVED:\n%v\n", tc.caseID, tc.input, tc.expected, output)
 		}
 	}
 }
 
 func TestDeleteEmpty(t *testing.T) {
-	type slice struct {
+	type test struct {
+		caseID   int
 		input    []string
 		expected []string
 	}
-	slices := []slice{
-		{
+	testCases := []test{
+		{caseID: 1,
 			input:    []string{"a", "b", "c", "d"},
 			expected: []string{"a", "b", "c", "d"},
 		},
-		{
+		{caseID: 2,
 			input:    []string{"a", "", "", "d"},
 			expected: []string{"a", "d"},
 		},
 	}
-	for _, slice := range slices {
-		output := api.DeleteEmpty(slice.input)
-		if !reflect.DeepEqual(output, slice.expected) {
-			t.Errorf("Failed test for DeleteEmpty\nExpected:%v\nReceived:%v\n", slice.expected, output)
+	for _, tc := range testCases {
+		output := api.DeleteEmpty(tc.input)
+		if !reflect.DeepEqual(output, tc.expected) {
+			t.Errorf("Failed test for DeleteEmpty\nFAILED CASE ID:%v\nINPUT:\n%v\nEXPECTED:\n%v\nRECEIVED:\n%v\n", tc.caseID, tc.input, tc.expected, output)
 
 		}
 
@@ -222,16 +234,17 @@ func TestDeleteEmpty(t *testing.T) {
 
 func TestStringInSlice(t *testing.T) {
 	type test struct {
+		caseID   int
 		input1   string
 		input2   []string
 		expected bool
 	}
 	testCases := []test{
-		{
+		{caseID: 1,
 			input1:   "string1",
 			input2:   []string{"string1", "string2", "string3"},
 			expected: true},
-		{
+		{caseID: 2,
 			input1:   "string4",
 			input2:   []string{"string1", "string2", "string3"},
 			expected: false},
@@ -239,19 +252,20 @@ func TestStringInSlice(t *testing.T) {
 	for _, tc := range testCases {
 		output := api.StringInSlice(tc.input1, tc.input2)
 		if !output == tc.expected {
-			t.Errorf("Failed in StringInSlice\nExpected:%v\nReceived%v\n", tc.expected, output)
+			t.Errorf("Failed in StringInSlice\nFAILED CASE ID:%v\nINPUTS:\n%v\n%v\nEXPECTED:\n%v\nRECEIVED:\n%v\n", tc.caseID, tc.input1, tc.input2, tc.expected, output)
 		}
 	}
 }
-func TestEqual(t *testing.T) {
+func TestEqualCnames(t *testing.T) {
 	type test struct {
+		caseID   int
 		input1   []api.Cname
 		input2   []api.Cname
 		expected bool
 	}
 	testCases := []test{
 		//Case 1: Same elements / Same order
-		{
+		{caseID: 1,
 			input1: []api.Cname{
 				{Cname: "cname1"},
 				{Cname: "cname2"},
@@ -265,7 +279,7 @@ func TestEqual(t *testing.T) {
 			expected: true,
 		},
 		//Case 2: Less elements on input1 / Same order
-		{
+		{caseID: 2,
 			input1: []api.Cname{
 				{Cname: "cname1"},
 				{Cname: "cname2"},
@@ -278,7 +292,7 @@ func TestEqual(t *testing.T) {
 			expected: false,
 		},
 		//Case 3: One different element
-		{
+		{caseID: 3,
 			input1: []api.Cname{
 				{Cname: "cname1"},
 				{Cname: "cname2"},
@@ -292,7 +306,7 @@ func TestEqual(t *testing.T) {
 			expected: false,
 		},
 		//Case 4: Same elements, different order
-		{
+		{caseID: 4,
 			input1: []api.Cname{
 				{Cname: "cname2"},
 				{Cname: "cname1"},
@@ -305,8 +319,8 @@ func TestEqual(t *testing.T) {
 			},
 			expected: true,
 		},
-		//Case 4: Missing element from input2
-		{
+		//Case 5: Missing element from input2
+		{caseID: 5,
 			input1: []api.Cname{
 				{Cname: "cname1"},
 				{Cname: "cname2"},
@@ -319,7 +333,7 @@ func TestEqual(t *testing.T) {
 			expected: false,
 		},
 		//Case 6: Empty inputs
-		{
+		{caseID: 6,
 			input1:   []api.Cname{},
 			input2:   []api.Cname{},
 			expected: true,
@@ -327,9 +341,9 @@ func TestEqual(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		output := api.Equal(tc.input1, tc.input2)
+		output := api.EqualCnames(tc.input1, tc.input2)
 		if output != tc.expected {
-			t.Errorf("Failed for TestEqual\nExpected:%v\nReceived:%v\n", tc.expected, output)
+			t.Errorf("Failed for TestEqual\nFAILED CASE ID:%v\nINPUTS:\n%v\n%v\nEXPECTED:\n%v\nRECEIVED:\n%v\n", tc.caseID, tc.input1, tc.input2, tc.expected, output)
 		}
 	}
 }
@@ -839,7 +853,7 @@ func TestValidation(t *testing.T) {
 					{
 						Blacklist: true,
 						Node: &api.Node{
-							NodeName: "testnode.cern.ch",
+							NodeName:  "testnode.cern.ch",
 							Hostgroup: "^&", //malformed
 						},
 						Alias: nil,
@@ -853,7 +867,7 @@ func TestValidation(t *testing.T) {
 	for _, tc := range testCases {
 		output, e := govalidator.ValidateStruct(tc.input)
 		if output != tc.expected {
-			t.Errorf("Failed in TestValidation\nExpected:%v\nReceived:%v\n%v\nTest case:%v\n", tc.expected, output, tc.input, tc.caseID)
+			t.Errorf("Failed in TestValidation\nFAILED CASE ID:%v\nINPUT:\n%v\nEXPECTED:\n%v\nRECEIVED:\n%v\n",tc.caseID,tc.input, tc.expected, output)
 			t.Error(e)
 		}
 	}
