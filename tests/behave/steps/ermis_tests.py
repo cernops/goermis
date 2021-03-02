@@ -24,6 +24,10 @@ alarm = "minimum:lb-experts@cern.ch:1"
 
 KERBEROS_FILENAME = ""
 
+# Tip: When running tests outside aiadm (no access to teigi)
+# the command should be :
+# behave . -D ermists=<base64 password> -D ermistst=<base64 password>
+
 
 def getacct(context, username):
 
