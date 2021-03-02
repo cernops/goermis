@@ -9,8 +9,6 @@ import (
 	"time"
 
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
-
-	"github.com/labstack/gommon/log"
 )
 
 //Group decides user authorization

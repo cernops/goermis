@@ -82,7 +82,7 @@ function loadClusterList(aliasData, mode) {
 //Grabs the data from the API
 function getData(URI, mode) {
   $.get(URI, { format: 'json', limit: 0 }, function (result) {
-    jQuery.each(result.objects, function (index, element) {
+    jQuery.each(result.Objects, function (index, element) {
       aliasData.push(element);
     });
     loadClusterList(aliasData, mode);

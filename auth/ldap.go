@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"github.com/labstack/gommon/log"
+	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 
 	"github.com/go-ldap/ldap/v3"
 )
@@ -12,6 +12,10 @@ const (
 	nestedfilterPrefix    = "(memberOf:1.2.840.113556.1.4.1941:=CN="
 	excludeDisabledPrefix = "(&(!(userAccountControl:1.2.840.113556.1.4.803:=2))(|"
 	excludeDisabled       = true
+)
+
+var (
+	log = bootstrap.GetLog()
 )
 
 func initconnection() *ldap.Conn {

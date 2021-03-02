@@ -5,21 +5,33 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"gitlab.cern.ch/lb-experts/goermis/api"
+	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
+)
 
-	"gitlab.cern.ch/lb-experts/goermis/aiermis/api"
-	m "gitlab.cern.ch/lb-experts/goermis/aiermis/middleware"
+var (
+	log = bootstrap.GetLog()
 )
 
 //New Echo Context
 func New() *echo.Echo {
 	e := echo.New()
+	//CORS
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{"*"},
 		AllowMethods: []string{http.MethodGet, http.MethodHead, http.MethodPut, http.MethodPatch, http.MethodPost, http.MethodDelete},
 		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
 	}))
+
+	//Recover
+	e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{}))
+
+	//UI routes
 	lbweb := e.Group("/lbweb")
-	lbweb.Use(m.CheckAuthorization)
+
+	//Custom middleware in API
+	lbweb.Use(api.CheckAuthorization)
+	//CSRF
 	lbweb.Use(middleware.CSRFWithConfig(middleware.CSRFConfig{
 		Skipper: middleware.DefaultSkipper, TokenLength: 32,
 		TokenLookup: "form:csrf", ContextKey: "csrf", CookieName: "_csrf", CookieMaxAge: 86400,
@@ -36,8 +48,9 @@ func New() *echo.Echo {
 	lbweb.POST("/modify_alias", api.ModifyAlias)
 	lbweb.GET("/checkname", api.CheckNameDNS)
 
+	//CLI routes
 	lbterm := e.Group("/p/api/v1")
-	lbterm.Use(m.CheckAuthorization)
+	lbterm.Use(api.CheckAuthorization)
 	lbterm.GET("/alias/", api.GetAlias)
 	lbterm.DELETE("/alias/", api.DeleteAlias)
 	lbterm.POST("/alias/", api.CreateAlias)
