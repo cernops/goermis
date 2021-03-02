@@ -9,6 +9,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
 	"gitlab.cern.ch/lb-experts/goermis/aiermis/api"
+	"gitlab.cern.ch/lb-experts/goermis/aiermis/common"
 )
 
 //CheckAuthorization checks if user is in the egroup and if he is allowed to create in the hostgroup
@@ -29,7 +30,7 @@ func CheckAuthorization(nextHandler echo.HandlerFunc) echo.HandlerFunc {
 				return askTeigi(c, nextHandler, api.GetUsername())
 			}
 		}
-		return api.MessageToUser(c, http.StatusUnauthorized,
+		return common.MessageToUser(c, http.StatusUnauthorized,
 			"Authorization failed. No username provided", "home.html")
 	}
 }
@@ -43,7 +44,7 @@ func askTeigi(c echo.Context, nextHandler echo.HandlerFunc, username string) err
 	//We extract the hostgroup values from the Req Body and the one in DB, for the same alias.
 	newHg, oldHg, err := findHostgroup(c)
 	if err != nil {
-		return api.MessageToUser(c, http.StatusBadRequest,
+		return common.MessageToUser(c, http.StatusBadRequest,
 			"Failed to process hostgroups "+err.Error(), "home.html")
 
 	}
@@ -51,10 +52,10 @@ func askTeigi(c echo.Context, nextHandler echo.HandlerFunc, username string) err
 	//In this step we check username , against both hostgroups.
 	//We need this step to prevent unauthorized alias movements.
 	if newHg != "" {
-		authInNewHg = api.StringInSlice(newHg, api.GetUsersHostgroups())
+		authInNewHg = common.StringInSlice(newHg, api.GetUsersHostgroups())
 	}
 	if oldHg != "" {
-		authInOldHg = api.StringInSlice(oldHg, api.GetUsersHostgroups())
+		authInOldHg = common.StringInSlice(oldHg, api.GetUsersHostgroups())
 	}
 
 	switch c.Request().Method {
@@ -70,7 +71,7 @@ func askTeigi(c echo.Context, nextHandler echo.HandlerFunc, username string) err
 			log.Info("[" + api.GetUsername() + "] Authorized by teigi for PATCH, using both hg")
 			return nextHandler(c)
 		}
-		return api.MessageToUser(c, http.StatusUnauthorized,
+		return common.MessageToUser(c, http.StatusUnauthorized,
 			api.GetUsername()+" is unauthorized to PATCH in hostgroup "+oldHg, "home.html")
 		//2.In case method is POST...
 	case "POST":
@@ -85,7 +86,7 @@ func askTeigi(c echo.Context, nextHandler echo.HandlerFunc, username string) err
 			log.Info("[" + api.GetUsername() + "] Authorized by teigi for POST")
 			return nextHandler(c)
 		}
-		return api.MessageToUser(c, http.StatusUnauthorized,
+		return common.MessageToUser(c, http.StatusUnauthorized,
 			api.GetUsername()+" is unauthorized to POST in hostgroup "+oldHg, "home.html")
 		// 3.In case method is DELETE...
 	case "DELETE":
@@ -94,10 +95,10 @@ func askTeigi(c echo.Context, nextHandler echo.HandlerFunc, username string) err
 			log.Info("[" + api.GetUsername() + "] Authorized by teigi for DELETE")
 			return nextHandler(c)
 		}
-		return api.MessageToUser(c, http.StatusUnauthorized,
+		return common.MessageToUser(c, http.StatusUnauthorized,
 			api.GetUsername()+" is unauthorized to DELETE from hostgroup "+oldHg, "home.html")
 	default:
-		return api.MessageToUser(c, http.StatusMethodNotAllowed,
+		return common.MessageToUser(c, http.StatusMethodNotAllowed,
 			"Method "+c.Request().Method, "home.html")
 
 	}
@@ -150,7 +151,7 @@ func findHostgroup(c echo.Context) (newHg string, oldHg string, err error) {
 	//In case the hostgroup fields are empty in the request and the DB
 	//we throw a bad request error, because this is a scenario we don't want.
 	if newHg == "" && oldHg == "" {
-		return "", "", api.MessageToUser(c, http.StatusBadRequest,
+		return "", "", common.MessageToUser(c, http.StatusBadRequest,
 			"Not allowed to modify/create/delete without hostgroup", "home.html")
 
 	}

@@ -1,0 +1,22 @@
+{{define "alarms.html"}}
+<fieldset class="webform-component-fieldset collapsible collapsed form-wrapper" id="webform-component-advanced">
+    <legend><span class="fieldset-legend">Alarm Management</span></legend>
+    <div class="fieldset-wrapper">
+        <div class="description">Please provide the alarms for this alias</div>
+        <div class="form-item webform-component webform-component-textfield" id="webform-component-advanced--alarms">
+            <div class=" form-item webform-component webform-component-textfield"
+                id="webform-component-advanced--alarms">
+                <div class="form-item webform-component webform-component-markup" align="center"
+                    id="alarms-name-status">
+                </div>
+                <input type="hidden" id="alarms" name="alarms" value="" maxlength="700" class="form-text" />
+                <table id="myAlarms" border="0" name="alarmsNames" value="" maxlength="512"
+                    class="table table-bordered table-responsive table-striped" style="margin:0px auto auto auto;">
+                </table>
+
+            </div>
+        </div>
+    </div>
+
+</fieldset>
+{{end}}

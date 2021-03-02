@@ -1,0 +1,122 @@
+package alarms
+
+import (
+	"fmt"
+	"net"
+	"net/smtp"
+	"time"
+
+	"github.com/labstack/gommon/log"
+	"github.com/miekg/dns"
+	"gitlab.cern.ch/lb-experts/goermis/aiermis/orm"
+	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
+	"gitlab.cern.ch/lb-experts/goermis/db"
+)
+
+var (
+	dnsManager = bootstrap.GetConf().DNS.Manager
+)
+
+//PeriodicAlarmCheck periodically makes sure that the thresholds are respected.
+//Otherwise notifies by e-mail and updates the DB
+func PeriodicAlarmCheck() {
+	var alarms []orm.Alarm
+	if err := db.ManagerDB().Find(&alarms).
+		Error; err != nil {
+		log.Error("Could not retrieve alarms", err.Error())
+	}
+	for _, alarm := range alarms {
+		if err := processThis(alarm); err != nil {
+			log.Error(fmt.Sprintf("Error updating the alert: %v and %v", err, alarm))
+		}
+	}
+}
+
+func processThis(alarm orm.Alarm) (err error) {
+	alarm.LastCheck.Time = time.Now()
+	newActive := false
+	if checkAlarm(alarm.Alias, alarm.Name, alarm.Parameter) {
+		log.Warn(" The alarm should be active\n")
+		newActive = true
+		if !alarm.Active {
+			log.Info("The alert was not active before. Let's send the notification\n")
+			alarm.LastActive = alarm.LastCheck
+			alarm.LastActive.Valid = true
+			sendNotification(alarm.Alias, alarm.Recipient, alarm.Name, alarm.Parameter)
+		}
+	}
+
+	if alarm.LastActive.Valid {
+		err = db.ManagerDB().Model(&alarm).Updates(orm.Alarm{
+			Active:     newActive,
+			LastActive: alarm.LastActive,
+			LastCheck:  alarm.LastCheck}).Error
+	} else {
+		err = db.ManagerDB().Model(&alarm).Updates(orm.Alarm{
+			Active:    newActive,
+			LastCheck: alarm.LastCheck}).Error
+	}
+	return err
+}
+
+func sendNotification(alias, recipient, name string, parameter int) {
+	log.Info(fmt.Sprintf("Sending a notification to %v that the alert %s on %s has been triggered (less than %d nodes)", recipient, alias, name, parameter))
+	msg := []byte("To: " + alias + "\r\n" +
+		fmt.Sprintf("Subject: Alert on the alias %s: only %d hosts\r\n\r\nThe alert %s (%d) on %s has been triggered", alias, parameter, name, parameter, alias))
+	err := smtp.SendMail("localhost:25", nil, "lbd@cern.ch", []string{recipient}, msg)
+	if err != nil {
+		log.Error(err)
+	}
+
+}
+
+func checkAlarm(alias, alert string, parameter int) bool {
+	log.Info(fmt.Sprintf("Checking if the alarm %s %v on %s is active", alert, parameter, alias))
+	if alert == "minimum" {
+		return checkMinimumAlarm(alias, parameter)
+	}
+	log.Error(fmt.Sprintf("The alert %v (on %v) is not understood!", alert, alias))
+	return true
+}
+
+func getIpsFromDNS(m *dns.Msg, alias, dnsManager string, dnsType uint16, ips *[]net.IP) error {
+
+	m.SetQuestion(alias+".", dnsType)
+	in, err := dns.Exchange(m, dnsManager+":53")
+	if err != nil {
+		log.Error(fmt.Sprintf("Error getting the ipv4 state of dns: %v", err))
+		return err
+	}
+	for _, a := range in.Answer {
+		if t, ok := a.(*dns.A); ok {
+			log.Debug(fmt.Sprintf("From %v, got ipv4 %v", t, t.A))
+			*ips = append(*ips, t.A)
+		} else if t, ok := a.(*dns.AAAA); ok {
+			log.Debug(fmt.Sprintf("From %v, got ipv6 %v", t, t.AAAA))
+			*ips = append(*ips, t.AAAA)
+		}
+	}
+	return nil
+}
+func checkMinimumAlarm(alias string, parameter int) bool {
+	m := new(dns.Msg)
+	var ips []net.IP
+	m.SetEdns0(4096, false)
+	log.Info("Getting the ips from the DNS for alias " + alias)
+	err := getIpsFromDNS(m, alias, dnsManager, dns.TypeA, &ips)
+
+	if err != nil {
+		return true
+	}
+	err = getIpsFromDNS(m, alias, dnsManager, dns.TypeAAAA, &ips)
+	if err != nil {
+		return true
+	}
+	log.Info(fmt.Sprintf("The list of ips for %v : %v", alias, ips))
+	if len(ips) < parameter {
+		log.Info(fmt.Sprintf("There are less than %d nodes (only %d)", parameter, len(ips)))
+		return true
+	}
+
+	return false
+}

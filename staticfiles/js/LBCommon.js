@@ -52,6 +52,7 @@ function initialize_form(retrieveData, action) {
 
   //Initialize table
   initialize_nodes("", mode)
+  initialize_alarms("", mode)
 
 
   //make the user aware that he has to select a cluster to edit before entering any details
@@ -264,7 +265,7 @@ function populateClass(name, clusterObject) {
   //alert(JSON.stringify(cluster));
   clusterObject.setCluster(name, visibility, replies, hostgroup, cnames);
   DisplayReceivedNodes(cluster.AllowedNodes, cluster.ForbiddenNodes);
-
+  DisplayAlarms(cluster.alarms);
   return;
 }
 
@@ -318,7 +319,7 @@ function writeFields(clusterObject) {
   //Write on the hidden forms the node names, prepare for submission
   $("#AllowedNodes").val(clusterObject.getAllowedNodes());
   $("#ForbiddenNodes").val(clusterObject.getForbiddenNodes());
-
+  $("#alarms").val(clusterObject.getAlarms());
 
 }
 function nameChanged(name, clusterObject) {
@@ -433,7 +434,7 @@ function clearForm(clusterObject) {
   writeFields(clusterObject);
   initialize_nodes("", mode)
   //fix up what was left behind
-
+  initialize_alarms("", mode)
 }
 
 
@@ -462,6 +463,9 @@ function submitForm(action, newCluster) {
   }
   if (newCluster.getForbiddenNodes() != "") {
     textHTML += "Forbidden Hosts:" + newCluster.getForbiddenNodes() + "<br/>";
+  }
+  if (newCluster.getAlarms() != "") {
+    textHTML += "Alarms: " + newCluster.getAlarms() + "<br/>";
   }
 
 

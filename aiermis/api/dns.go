@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/labstack/gommon/log"
+	"gitlab.cern.ch/lb-experts/goermis/aiermis/common"
 	landbsoap "gitlab.cern.ch/lb-experts/goermis/landb"
 )
 
@@ -95,7 +96,7 @@ func (r Resource) UpdateDNS(oldObject Resource) (err error) {
 
 	}
 	//2.If there is a change in cnames, update DNS
-	if !Equal(r.Cname, oldObject.Cname) {
+	if !common.Equal(r.Cname, oldObject.Cname) {
 		if err := r.updateCnamesInDNS(oldObject.Cname); err != nil {
 			return err
 		}
@@ -107,7 +108,7 @@ func (r Resource) UpdateDNS(oldObject Resource) (err error) {
 
 //createCnamesDNS adds a list of cnames in the defined alias/view.
 func (r Resource) createCnamesDNS(view string) bool {
-	cnames := deleteEmpty(strings.Split(r.Cname, ","))
+	cnames := common.DeleteEmpty(strings.Split(r.Cname, ","))
 	for _, cname := range cnames {
 		log.Info("[" + r.User + "]" + "Adding in DNS the cname " + cname)
 		if !landbsoap.Conn().DNSDelegatedAliasAdd(r.AliasName, view, cname) {
@@ -156,8 +157,8 @@ func (r Resource) updateView(oldObject Resource) error {
 //updateCnamesInDNS updates DNS with any possible Cnames changes.
 func (r Resource) updateCnamesInDNS(oldCnames string) error {
 	//Let's convert cnames from string to []string, because we need to iterate over them
-	newCnames := deleteEmpty(strings.Split(r.Cname, ","))
-	existingCnames := deleteEmpty(strings.Split(oldCnames, ","))
+	newCnames := common.DeleteEmpty(strings.Split(r.Cname, ","))
+	existingCnames := common.DeleteEmpty(strings.Split(oldCnames, ","))
 
 	//If we reached this point, it means that theres been a change in cnames,
 	// but not in visibility. Thats why we can use the old or new visibility value.
@@ -174,7 +175,7 @@ func (r Resource) updateCnamesInDNS(oldCnames string) error {
 		if len(newCnames) != 0 {
 			for _, existingCname := range existingCnames {
 				//...and one of the existing cnames doesn't exist in the new list
-				if !StringInSlice(existingCname, newCnames) {
+				if !common.StringInSlice(existingCname, newCnames) {
 					//we delete that cname
 					if !landbsoap.Conn().DNSDelegatedAliasRemove(r.AliasName, view, existingCname) {
 						return errors.New("Failed to delete existing cname " +
@@ -189,7 +190,7 @@ func (r Resource) updateCnamesInDNS(oldCnames string) error {
 					continue
 				}
 				//...if a cname from the new list doesn't exist
-				if !StringInSlice(newCname, existingCnames) {
+				if !common.StringInSlice(newCname, existingCnames) {
 					//...we add that one
 					if !landbsoap.Conn().DNSDelegatedAliasAdd(r.AliasName, view, newCname) {
 						return errors.New("Failed to add new cname in DNS " +

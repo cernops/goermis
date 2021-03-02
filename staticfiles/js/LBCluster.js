@@ -51,7 +51,9 @@ function LBCluster() {
 	this.setCluster = setCluster;
 	this.clearCluster = clearCluster;
 
-
+	var alarms = "";
+	this.getAlarms = getAlarms;
+	this.setAlarms = setAlarms;
 
 	function getName() {
 		return name;
@@ -90,7 +92,7 @@ function LBCluster() {
 		setHostgroup(hostgroup);
 		setCNames(cnames);
 		setTmpCNames(cnames);
-		
+
 	}
 
 	function showCluster() {
@@ -145,6 +147,13 @@ function LBCluster() {
 	}
 	function setForbiddenNodes(string) {
 		ForbiddenNodes = string.split(",").sort().filter(Boolean).join(",");
+	}
+
+	function getAlarms() {
+		return alarms;
+	}
+	function setAlarms(string) {
+		alarms = string;
 	}
 
 }
