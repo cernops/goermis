@@ -10,6 +10,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/gommon/log"
 	"gitlab.cern.ch/lb-experts/goermis/aiermis/orm"
+	"gitlab.cern.ch/lb-experts/goermis/alarms"
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 	"gitlab.cern.ch/lb-experts/goermis/db"
 	"gitlab.cern.ch/lb-experts/goermis/router"
@@ -32,11 +33,28 @@ func main() {
 
 	//Initiate template views
 	views.InitViews(echo)
-
 	//Create and keep up to date DB tables
-	autoCreateTables(&orm.Alias{}, &orm.Node{}, &orm.Cname{}, &orm.Relation{})
+	autoCreateTables(&orm.Alias{}, &orm.Node{}, &orm.Cname{}, &orm.Alarm{}, &orm.Relation{})
 	autoMigrateTables()
 
+	//Alarms periodic check/update
+	log.Info("5 minutes passed, let's check the alarms")
+	ticker := time.NewTicker(5 * time.Minute)
+	/*done channel can be used to stop the ticker if needed,
+	by issuing the command "done<-true". For now, it runs constantly */
+	done := make(chan bool)
+	go func() {
+		for {
+			select {
+			case <-done:
+				ticker.Stop()
+				return
+			case <-ticker.C:
+				alarms.PeriodicAlarmCheck()
+			}
+		}
+	}()
+	log.Info("Alarms updated")
 	/* Start server
 	       Error handling is done a bit differently in this situation. The reason is that
 		   when server is restarted we force it to reuse the same socket. Despite being successfully
@@ -92,6 +110,6 @@ func autoCreateTables(values ...interface{}) error {
 
 // autoMigrateTables: migrate table columns using GORM. Will not delete/change types for security reasons
 func autoMigrateTables() {
-	db.ManagerDB().AutoMigrate(&orm.Alias{}, &orm.Node{}, &orm.Cname{}, &orm.Relation{})
+	db.ManagerDB().AutoMigrate(&orm.Alias{}, &orm.Node{}, &orm.Cname{}, &orm.Alarm{}, &orm.Relation{})
 
 }

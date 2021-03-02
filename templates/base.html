@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.11.3/themes/smoothness/jquery-ui.css" />
     <link rel="stylesheet" href="/staticfiles/dist/fastselect.min.css">
 
-
+    <script src="/staticfiles/js/LBAlarms.js"></script>
     <script src="/staticfiles/js/LBNodes.js"></script>
     <script src="/staticfiles/js/LBCommon.js"></script>
     <script src="/staticfiles/js/LBCluster.js"></script>
@@ -31,7 +31,7 @@
         <p>Logged in as {{.User}}</p>
         {{- $url := printf "%s%s/%s%s" "https://" .Host "redirect_uri?logout=https://" .Host  -}}
         <p><a id="logout" href={{$url}}>CERN SSO Logout</a>
-        {{ else }}
+            {{ else }}
         <p>Not authorized. To use the service, please log in</p>
         {{ end }}
     </div>

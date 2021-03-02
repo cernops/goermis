@@ -2,11 +2,13 @@ package api
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/jinzhu/copier"
+	"gitlab.cern.ch/lb-experts/goermis/aiermis/common"
 	"gitlab.cern.ch/lb-experts/goermis/aiermis/orm"
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 	"gitlab.cern.ch/lb-experts/goermis/db"
@@ -42,7 +44,8 @@ type (
 		User             string    `form:"user"              json:"user"              valid:"optional,alphanum"`
 		Statistics       string    `form:"statistics"        json:"statistics"        valid:"alpha"`
 		ResourceURI      string    `                         json:"resource_uri"      valid:"-"`
-		Pwned            bool      `                          json:"pwned"            valid:"-"`
+		Pwned            bool      `                         json:"pwned"             valid:"-"`
+		Alarms           string    `form:"alarms"              json:"alarms"             valid:"-"`
 	}
 	//Objects holds multiple result structs
 	Objects struct {
@@ -60,16 +63,22 @@ func GetObjects(param string) (temp []Resource, err error) {
 		query []orm.Alias
 	)
 	//Preload bottom-to-top, starting with the Relations & Nodes first
-	nodes := con.Preload("Nodes")
-	nodes = nodes.Preload("Nodes.Node")
+	nodes := con.Preload("Nodes")       //Relations
+	nodes = nodes.Preload("Nodes.Node") //From the relations, we find the node names then
 	if param == "all" {
-		err = nodes.Preload("Cnames").Order("alias_name").Find(&query).Error
+		err = nodes.
+			Preload("Cnames").
+			Preload("Alarms").
+			Order("alias_name").
+			Find(&query).Error
 
 	} else {
 		err = nodes.
 			Preload("Cnames").
+			Preload("Alarms").
 			Where("id=?", param).Or("alias_name=?", param).
-			Order("alias_name").First(&query).Error
+			Order("alias_name").
+			First(&query).Error
 
 	}
 	if err != nil {
@@ -109,6 +118,22 @@ func parse(queryResults []orm.Alias) (parsed []Resource) {
 			temp.Cname = strings.Join(tmpslice, ",")
 		}
 
+		//The alarms
+		if len(element.Alarms) != 0 {
+			var tmpslice []string
+			for _, v := range element.Alarms {
+				alarm := v.Name + ":" +
+					v.Recipient + ":" +
+					strconv.Itoa(v.Parameter) + ":" +
+					strconv.FormatBool(v.Active)
+				if v.LastActive.Valid {
+					alarm += ":" + v.LastActive.Time.String()
+				}
+				tmpslice = append(tmpslice, alarm)
+			}
+			temp.Alarms = strings.Join(tmpslice, ",")
+		}
+
 		//The nodes
 		if len(element.Nodes) != 0 {
 			var tmpallowed []string
@@ -132,7 +157,7 @@ func parse(queryResults []orm.Alias) (parsed []Resource) {
 		if IsSuperuser() {
 			temp.Pwned = true
 		} else {
-			temp.Pwned = StringInSlice(temp.Hostgroup, GetUsersHostgroups())
+			temp.Pwned = common.StringInSlice(temp.Hostgroup, GetUsersHostgroups())
 		}
 
 		parsed = append(parsed, temp)
@@ -148,17 +173,20 @@ func (r Resource) CreateObject() (err error) {
 
 	//We use ORM struct here, so that we are able to create the relations
 	var a orm.Alias
-	//Copier fills Alias struct with the values from Resource struct
+	/*Copier fills Alias struct with the values from Resource struct
+	This is possible because during creation there are no complex relations present
+	(alarms/nodes are in the modification handler) */
 	copier.Copy(&a, &r)
-	//Cnames are treated seperately, because they will be created using their struct
 
-	cnames := deleteEmpty(strings.Split(r.Cname, ","))
+	//Cnames are treated seperately, because they will be created using their struct
+	cnames := common.DeleteEmpty(strings.Split(r.Cname, ","))
 
 	//Create object in the DB with transactions, if smth goes wrong its rolledback
 	if err := orm.CreateTransactions(a, cnames); err != nil {
 		return err
 	}
 
+	//DNS
 	//createInDNS will create the alias and cnames in DNS.//
 	if err := r.createInDNS(); err != nil {
 
@@ -175,7 +203,7 @@ func (r Resource) CreateObject() (err error) {
 }
 
 //DefaultAndHydrate prepares the object with default values and domain before CREATE
-func (r *Resource) DefaultAndHydrate() {
+func (r *Resource) defaultAndHydrate() {
 	//Populate the struct with the default values
 	r.Behaviour = "mindless"
 	r.Metric = "cmsfrontier"
@@ -189,10 +217,10 @@ func (r *Resource) DefaultAndHydrate() {
 	if !strings.HasSuffix(r.AliasName, ".cern.ch") {
 		r.AliasName = r.AliasName + ".cern.ch"
 	}
-	if StringInSlice(strings.ToLower(r.External), []string{"yes", "external"}) {
+	if common.StringInSlice(strings.ToLower(r.External), []string{"yes", "external"}) {
 		r.External = "yes"
 	}
-	if StringInSlice(strings.ToLower(r.External), []string{"no", "internal"}) {
+	if common.StringInSlice(strings.ToLower(r.External), []string{"no", "internal"}) {
 		r.External = "no"
 	}
 }
@@ -243,16 +271,16 @@ func (r Resource) ModifyObject() (err error) {
 	}
 
 	//1.Update cnames in DB
-	if err = r.UpdateCnames(oldObject[0]); err != nil {
+	if err = r.updateCnames(oldObject[0]); err != nil {
 		return err
 	}
-	/*2.Update nodes for r object with new nodes(nodesToMap converts string to map,
+	/*2.Update nodes for r object with new nodes(nodesInMap converts string to map,
 	  where value indicates privilege allowed/forbidden)*/
 
 	newNodesMap := nodesInMap(r.AllowedNodes, r.ForbiddenNodes)
 	oldNodesMap := nodesInMap(oldObject[0].AllowedNodes, oldObject[0].ForbiddenNodes)
 
-	if err = r.UpdateNodes(newNodesMap, oldNodesMap); err != nil {
+	if err = r.updateNodes(newNodesMap, oldNodesMap); err != nil {
 		return err
 	}
 
@@ -265,13 +293,18 @@ func (r Resource) ModifyObject() (err error) {
 		return err
 	}
 
+	//4.Update alarms
+	if err = r.updateAlarms(oldObject[0]); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 /////////// Logical sub-functions of UPDATE///////////
 
 //UpdateNodes updates alias with new nodes in DB
-func (r Resource) UpdateNodes(new map[string]bool, old map[string]bool) (err error) {
+func (r Resource) updateNodes(new map[string]bool, old map[string]bool) (err error) {
 	for name := range old {
 		if _, ok := new[name]; !ok {
 			if err = orm.DeleteNodeTransactions(r.ID, name); err != nil {
@@ -302,15 +335,15 @@ func (r Resource) UpdateNodes(new map[string]bool, old map[string]bool) (err err
 }
 
 //UpdateCnames updates cnames in DB
-func (r Resource) UpdateCnames(oldObject Resource) (err error) {
+func (r Resource) updateCnames(oldObject Resource) (err error) {
 
 	//Split string and delete any possible empty values
 
-	newCnames := deleteEmpty(strings.Split(r.Cname, ","))
-	exCnames := deleteEmpty(strings.Split(oldObject.Cname, ","))
+	newCnames := common.DeleteEmpty(strings.Split(r.Cname, ","))
+	exCnames := common.DeleteEmpty(strings.Split(oldObject.Cname, ","))
 	if len(newCnames) > 0 {
 		for _, value := range exCnames {
-			if !StringInSlice(value, newCnames) {
+			if !common.StringInSlice(value, newCnames) {
 				if err = orm.DeleteCnameTransactions(r.ID, value); err != nil {
 					return errors.New("Failed to delete existing cname " +
 						value + " while updating, with error: " + err.Error())
@@ -322,7 +355,7 @@ func (r Resource) UpdateCnames(oldObject Resource) (err error) {
 			if value == "" {
 				continue
 			}
-			if !StringInSlice(value, exCnames) {
+			if !common.StringInSlice(value, exCnames) {
 				if err = orm.AddCnameTransactions(r.ID, value); err != nil {
 					return errors.New("Failed to add new cname " +
 						value + " while updating, with error: " + err.Error())
@@ -340,4 +373,69 @@ func (r Resource) UpdateCnames(oldObject Resource) (err error) {
 		}
 	}
 	return nil
+}
+
+func (r Resource) updateAlarms(oldObject Resource) (err error) {
+	//Split string and delete any possible empty values
+
+	newAlarms := common.DeleteEmpty(strings.Split(r.Alarms, ","))
+	exAlarms := common.DeleteEmpty(strings.Split(oldObject.Alarms, ","))
+	if len(newAlarms) > 0 {
+		for _, value := range exAlarms {
+			if !common.StringInSlice(value, newAlarms) {
+				if err = orm.DeleteAlarmTransactions(r.ID, value); err != nil {
+					return errors.New("Failed to delete existing alarm " +
+						value + " while updating, with error: " + err.Error())
+				}
+			}
+		}
+
+		for _, value := range newAlarms {
+			if value == "" {
+				continue
+			}
+			if !common.StringInSlice(value, exAlarms) {
+				if err = orm.AddAlarmTransactions(r.ID, r.AliasName, value); err != nil {
+					return errors.New("Failed to add new alarm " +
+						value + " while updating, with error: " + err.Error())
+				}
+			}
+
+		}
+
+	} else {
+		for _, value := range exAlarms {
+			if err = orm.DeleteAlarmTransactions(r.ID, value); err != nil {
+				return errors.New("Failed to delete alarm " +
+					value + " while purging all, with error: " + err.Error())
+			}
+		}
+	}
+	return nil
+}
+
+//nodesInMap puts the nodes in a map. The value is their privilege
+func nodesInMap(AllowedNodes interface{}, ForbiddenNodes interface{}) map[string]bool {
+	if AllowedNodes == nil {
+		AllowedNodes = ""
+	}
+	if ForbiddenNodes == nil {
+		ForbiddenNodes = ""
+	}
+
+	temp := make(map[string]bool)
+
+	modes := map[interface{}]bool{
+		AllowedNodes:   false,
+		ForbiddenNodes: true,
+	}
+	for k, v := range modes {
+		if k != "" {
+			for _, val := range common.DeleteEmpty(strings.Split(fmt.Sprintf("%v", k), ",")) {
+				temp[val] = v
+			}
+		}
+	}
+
+	return temp
 }

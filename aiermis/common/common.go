@@ -1,7 +1,6 @@
-package api
+package common
 
 import (
-	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -9,10 +8,10 @@ import (
 	"github.com/asaskevich/govalidator"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
-	"gitlab.cern.ch/lb-experts/goermis/aiermis/orm"
 )
 
-func deleteEmpty(s []string) []string {
+//DeleteEmpty makes sure we do not have empty values in our slices
+func DeleteEmpty(s []string) []string {
 	var r []string
 	for _, str := range s {
 		if str != "" {
@@ -32,17 +31,8 @@ func StringInSlice(a string, list []string) bool {
 	return false
 }
 
-//getExistingCnames extracts the names of cnames for a certain alias
-func getExistingCnames(a orm.Alias) (s []string) {
-
-	for _, value := range a.Cnames {
-		s = append(s, value.Cname)
-	}
-	return s
-}
-
-//stringToInt converts a string to a int. It is used to hide error checks
-func stringToInt(s string) (i int) {
+//StringToInt converts a string to a int. It is used to hide error checks
+func StringToInt(s string) (i int) {
 	i, err := strconv.Atoi(s)
 	if err != nil {
 		log.Error("Error while converting string to int")
@@ -50,34 +40,8 @@ func stringToInt(s string) (i int) {
 	return i
 }
 
-//nodesInMap puts the nodes in a map. The value is their privilege
-func nodesInMap(AllowedNodes interface{}, ForbiddenNodes interface{}) map[string]bool {
-	if AllowedNodes == nil {
-		AllowedNodes = ""
-	}
-	if ForbiddenNodes == nil {
-		ForbiddenNodes = ""
-	}
-
-	temp := make(map[string]bool)
-
-	modes := map[interface{}]bool{
-		AllowedNodes:   false,
-		ForbiddenNodes: true,
-	}
-	for k, v := range modes {
-		if k != "" {
-			for _, val := range deleteEmpty(strings.Split(fmt.Sprintf("%v", k), ",")) {
-				temp[val] = v
-			}
-		}
-	}
-
-	return temp
-}
-
-//ustomValidators adds our new tags in the govalidator
-func customValidators() {
+//CustomValidators adds our new tags in the govalidator
+func CustomValidators() {
 	govalidator.TagMap["nodes"] = govalidator.Validator(func(str string) bool {
 		if len(str) > 0 {
 			split := strings.Split(str, ",")
@@ -114,7 +78,7 @@ func customValidators() {
 	})
 
 	govalidator.TagMap["best_hosts"] = govalidator.Validator(func(str string) bool {
-		return stringToInt(str) >= -1
+		return StringToInt(str) >= -1
 
 	})
 
@@ -150,15 +114,15 @@ func MessageToUser(c echo.Context, status int, message string, page string) erro
 		"csrf":    c.Get("csrf"),
 		"User":    username,
 		"Message": message,
-		"Host": httphost,
+		"Host":    httphost,
 	})
 }
 
 //Equal compares two slices . If they contain the same
 //elements (w/o order included), it returns true
 func Equal(string1, string2 string) bool {
-	slice1 := deleteEmpty(strings.Split(string1, ","))
-	slice2 := deleteEmpty(strings.Split(string2, ","))
+	slice1 := DeleteEmpty(strings.Split(string1, ","))
+	slice2 := DeleteEmpty(strings.Split(string2, ","))
 	if len(slice1) != len(slice2) {
 		return false
 	}
@@ -168,12 +132,4 @@ func Equal(string1, string2 string) bool {
 		}
 	}
 	return true
-}
-func prepare(p *string) []string {
-	var s []string
-	if &p == nil {
-		return s
-	}
-	s = deleteEmpty(strings.Split(*p, ","))
-	return s
 }
