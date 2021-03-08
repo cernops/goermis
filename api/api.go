@@ -40,12 +40,12 @@ type (
 		Alarms           []Alarm    `  gorm:"foreignkey:AlarmAliasID"               valid:"optional" `
 	}
 
-	/*For future reference: 
+	/*For future reference:
 	1.The many-to-many relation is not implemented
 	  in the default way,as in the gorm docs. The reason for that is the need for an
 	  extra column in the relations table
-	2.ID fields are validated as OPTIONAL int, because 
-	marking them as required fields will cause validation failures for ID=0. 
+	2.ID fields are validated as OPTIONAL int, because
+	marking them as required fields will cause validation failures for ID=0.
 	New entries have initially ID=0 and after created in DB they are assigned a proper value*/
 
 	//Relation describes the many-to-many relation between nodes/aliases

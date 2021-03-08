@@ -14,7 +14,7 @@ const (
 	excludeDisabled       = true
 )
 
-var(
+var (
 	log = bootstrap.GetLog()
 )
 

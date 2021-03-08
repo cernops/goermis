@@ -29,7 +29,7 @@ func PeriodicAlarmCheck() {
 		Error; err != nil {
 		log.Error("Could not retrieve alarms", err.Error())
 	}
-	
+
 	for _, alarm := range alarms {
 		if err := processThis(alarm); err != nil {
 			log.Error(fmt.Sprintf("Error updating the alert: %v and %v", err, alarm))

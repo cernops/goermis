@@ -29,8 +29,7 @@ include:
   echo "$CACERT" > /etc/httpd/conf/ca.pem
   ls -al /etc/httpd/conf/
   chmod 600 /etc/httpd/conf/ermiscert.pem /etc/httpd/conf/ermiskey.pem
-  yum install -y sendmail
-  systemctl start sendmail
+  
 
 variables:
   KOJI_TAG: 'lb'
@@ -64,7 +63,7 @@ build_rpm7:
     - yum-builddep -y --disableplugin=protectbase,priorities *.spec
 
 build-go14:
-  stage: prebuild
+  stage: test
   script:
     - *installGo14
     - go14 build -race ./...

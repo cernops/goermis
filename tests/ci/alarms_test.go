@@ -49,14 +49,3 @@ func TestCheckMinimumAlarm(t *testing.T) {
 
 }
 
-func TestSendNotification(t *testing.T) {
-	alias := "test.cern.ch"
-	recipient := "randomemail.cern.ch"
-	name := "minimum"
-	parameter := 1
-	err := alarms.SendNotification(alias, recipient, name, parameter)
-	if err != nil {
-		t.Errorf("Failed in TestSendNotification with Alias:%v\nRecipient:%v\nName:%v\nParameter:%v\nError:%v\n", alias, recipient, name, parameter, err)
-	}
-}
-

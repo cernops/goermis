@@ -32,7 +32,7 @@ type LandbSoap struct {
 
 var (
 	soap LandbSoap
-	log = bootstrap.GetLog()
+	log  = bootstrap.GetLog()
 )
 
 //Conn is nothing
