@@ -70,7 +70,7 @@ func InitDB() {
 	////ENABLE WHEN GO v.1.15 is supported by C8//////////////
 	/*This can be used only with go version > 1.15. As of now, Feb 2021 , it cannot be
 	//used because that version is not yet supported in CC8*/
-	//sqlDB.SetConnMaxIdleTime(time.Duration(cfg.Database.MaxIdleTime) * time.Minute)
+	//---------->//sqlDB.SetConnMaxIdleTime(time.Duration(cfg.Database.MaxIdleTime) * time.Minute)
 	/////////////////////////////////////////////////////
 
 	// SetMaxIdleConns sets the maximum number of connections in the idle connection pool.

@@ -1,0 +1,34 @@
+#Dummy file, used for testing service bootstraping
+app:
+   app_name: Goermis
+   app_version: 1.2.3
+   app_env: dev
+ 
+database:
+   adapter: mysql
+   database: dummydatabase
+   username: dummyusername
+   password: dummypwd
+   host: host.cern.ch
+   port: 9999  
+   idle_conns: 10
+   open_conns: 100
+   #in minutes
+   max_idle_time: 2
+   conn_max_lifetime: 10
+   sslmode: disable
+soap:   
+   soap_user: dummyuser
+   soap_password: FfdksDSSO!1
+   soap_keyname_e: ITPES-EXTERNAL
+   soap_keyname_i: ITPES-INTERNAL
+   soap_url: https://network.cern.ch/sc/soap/soap.fcgi?v=6
+certs:
+   goermis_cert: /etc/httpd/conf/ermiscert.pem
+   goermis_key: /etc/httpd/conf/ermiskey.pem
+   ca_cert: /etc/httpd/conf/ca.pem
+log:  
+  logging_file: /var/log/ermis/ermis.log
+  stdout: true
+dns:
+  manager: 168.92.45.2  

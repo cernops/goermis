@@ -1,4 +1,5 @@
 ---
+#Used in the pipeline, in landb prebuild and testing
 soap:
    soap_user: ##REPLACE_BY_USER##
    soap_password: ##REPLACE_BY_PASSWORD##

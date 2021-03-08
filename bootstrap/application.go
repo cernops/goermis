@@ -1,8 +1,8 @@
 package bootstrap
 
 import (
+	"errors"
 	"flag"
-	"fmt"
 	"io"
 
 	"os"
@@ -11,13 +11,22 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-//Config describes the yaml file
-type Config struct {
+type (
+	//Config describes the yaml file
+	Config struct {
+		App      App
+		Database Database
+		Soap     Soap
+		Certs    Certs
+		Log      Logging
+	}
+	//App struct describes application config parameters
 	App struct {
 		AppName    string `yaml:"app_name"`
 		AppVersion string `yaml:"app_version"`
 		AppEnv     string `yaml:"app_env"`
 	}
+	//Database struct describes database connection params
 	Database struct {
 		Adapter         string
 		Database        string
@@ -31,6 +40,7 @@ type Config struct {
 		ConnMaxLifetime int `yaml:"conn_max_lifetime"`
 		Sslmode         string
 	}
+	//Soap describes the params for LanDB connection
 	Soap struct {
 		SoapUser     string `yaml:"soap_user"`
 		SoapPassword string `yaml:"soap_password"`
@@ -38,16 +48,18 @@ type Config struct {
 		SoapKeynameE string `yaml:"soap_keyname_e"`
 		SoapURL      string `yaml:"soap_url"`
 	}
+	//Certs describes the service certificates
 	Certs struct {
 		GoermisCert string `yaml:"goermis_cert"`
 		GoermisKey  string `yaml:"goermis_key"`
 		CACert      string `yaml:"ca_cert"`
 	}
-	Log struct {
+	//Logging describes logging params
+	Logging struct {
 		LoggingFile string `yaml:"logging_file"`
 		Stdout      bool
 	}
-}
+)
 
 var (
 	configFileFlag = flag.String("config", "/usr/local/etc/goermis.yaml", "specify configuration file path")
@@ -58,7 +70,8 @@ var (
 	//Log tesst
 	Log = log.New("\r\n")
 )
-func init(){
+
+func init() {
 	//Init log in the bootstrap package, since its the first that its executed
 	if *DebugLevel {
 		Log.SetLevel(1) //DEBUG
@@ -137,11 +150,12 @@ func ValidateConfigFile(path string) error {
 		return err
 	}
 	if s.IsDir() {
-		return fmt.Errorf("'%s' is a directory, not a normal file", path)
+		e := errors.New("Provided filepath for the config file is a directory")
+		log.Error(e)
+		return e
 	}
 	return nil
 }
-
 
 //GetLog returns the log instance
 func GetLog() *log.Logger {
