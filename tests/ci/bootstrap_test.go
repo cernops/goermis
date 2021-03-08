@@ -70,6 +70,9 @@ func TestNewConfig(t *testing.T) {
 			LoggingFile: "/var/log/ermis/ermis.log",
 			Stdout:      true,
 		},
+		DNS: bootstrap.DNS{
+			Manager: "168.92.45.2",
+		},
 	}
 	fmt.Println("Now we will check that config file is readable")
 	output, err := bootstrap.NewConfig("test_config.yaml")
