@@ -26,6 +26,7 @@ include:
   sed -i -e "s/##REPLACE_BY_PORT##/${DB_PORT}/g" /usr/local/etc/goermis.yaml
   echo "$ERMISCERT" > /etc/httpd/conf/ermiscert.pem
   echo "$ERMISKEY" > /etc/httpd/conf/ermiskey.pem
+  echo "$CACERT" > /etc/httpd/conf/ca.pem
   ls -al /etc/httpd/conf/
   chmod 600 /etc/httpd/conf/ermiscert.pem /etc/httpd/conf/ermiskey.pem
 
@@ -112,7 +113,7 @@ build_docker_qa:
     TO: ${CI_REGISTRY_IMAGE}/qa:${CI_COMMIT_BRANCH}
 
 
-test-go15:
+test-go14:
   stage: test
   allow_failure: false
   script:
