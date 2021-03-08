@@ -17,14 +17,15 @@ include:
 .config: &config |
   mkdir -p /usr/local/etc /etc/httpd/conf/
   cp tests/landb/goermis.yaml /usr/local/etc/goermis.yaml
-  sed -i -e "s/##REPLACE_BY_USER##/${SOAPUSER}/g" 
-  -e "s/##REPLACE_BY_PASSWORD##/${SOAPPASSWORD}/g" 
-  -e "s/##REPLACE_BY_DB##/${DATABASE}/g" 
-  -e "s/##REPLACE_BY_USERNAME##/${DB_USERNAME}/g" 
-  -e "s/##REPLACE_BY_DB_PASSWORD##/${DB_PASSWORD}/g" 
-  -e "s/##REPLACE_BY_HOST##/${DB_HOST}/g" 
-  -e "s/##REPLACE_BY_PORT##/${DB_PORT}/g" 
-  -e "s/##REPLACE_BY_IP##/${DNS_MANAGER}/g" /usr/local/etc/goermis.yaml
+  sed -i 
+    -e "s/##REPLACE_BY_USER##/${SOAPUSER}/g" 
+    -e "s/##REPLACE_BY_PASSWORD##/${SOAPPASSWORD}/g" 
+    -e "s/##REPLACE_BY_DB##/${DATABASE}/g" 
+    -e "s/##REPLACE_BY_USERNAME##/${DB_USERNAME}/g" 
+    -e "s/##REPLACE_BY_DB_PASSWORD##/${DB_PASSWORD}/g" 
+    -e "s/##REPLACE_BY_HOST##/${DB_HOST}/g" 
+    -e "s/##REPLACE_BY_PORT##/${DB_PORT}/g" 
+    -e "s/##REPLACE_BY_IP##/${DNS_MANAGER}/g" /usr/local/etc/goermis.yaml
   echo "$ERMISCERT" > /etc/httpd/conf/ermiscert.pem
   echo "$ERMISKEY" > /etc/httpd/conf/ermiskey.pem
   echo "$CACERT" > /etc/httpd/conf/ca.pem
