@@ -29,6 +29,7 @@ include:
   echo "$CACERT" > /etc/httpd/conf/ca.pem
   ls -al /etc/httpd/conf/
   chmod 600 /etc/httpd/conf/ermiscert.pem /etc/httpd/conf/ermiskey.pem
+  sudo yum install -y sendmail
 
 variables:
   KOJI_TAG: 'lb'
