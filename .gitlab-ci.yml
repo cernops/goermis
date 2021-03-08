@@ -30,6 +30,7 @@ include:
   ls -al /etc/httpd/conf/
   chmod 600 /etc/httpd/conf/ermiscert.pem /etc/httpd/conf/ermiskey.pem
   yum install -y sendmail
+  systemctl start sendmail
 
 variables:
   KOJI_TAG: 'lb'
