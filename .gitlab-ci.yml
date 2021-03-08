@@ -115,12 +115,14 @@ build_docker_qa:
 
 
 test-go14:
+  image: gitlab-registry.cern.ch/ai-config-team/ai-tools
   stage: prebuild
   allow_failure: false
   script:
     - *patch_version
     - *installGo14
     - *config
+    - yum -y install sendmail
     - echo "READY TO DO START THE CI TESTS"
     - go14 test -v -cover ./tests/ci/...
     - go14 test -race ./tests/ci/...
