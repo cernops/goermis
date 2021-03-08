@@ -10,6 +10,6 @@ RUN yum -y install golang git sendmail &&\
     
 COPY staticfiles      /var/lib/ermis/staticfiles
 COPY templates        /var/lib/ermis/templates
-EXPOSE 8080
+EXPOSE 8080 25
 ENTRYPOINT ["/goermis"]
 CMD ["-config=/usr/local/etc/goermis.yaml", "-home=/var/lib/ermis/"]
