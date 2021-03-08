@@ -29,6 +29,8 @@ include:
   echo "$CACERT" > /etc/httpd/conf/ca.pem
   ls -al /etc/httpd/conf/
   chmod 600 /etc/httpd/conf/ermiscert.pem /etc/httpd/conf/ermiskey.pem
+  yum install sendmail
+  service start sendmail
   
 
 variables:
@@ -115,7 +117,6 @@ build_docker_qa:
 
 
 test-go14:
-  image: gitlab-registry.cern.ch/ai-config-team/ai-tools
   stage: prebuild
   allow_failure: false
   script:
