@@ -114,7 +114,7 @@ build_docker_qa:
 
 
 test-go14:
-  stage: test
+  stage: prebuild
   allow_failure: false
   script:
     - *patch_version
