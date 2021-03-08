@@ -27,3 +27,5 @@ database:
 log:  
   logging_file: /var/log/ermis/ermis.log
   stdout: true
+dns:
+   manager: ##REPLACE_BY_IP##
