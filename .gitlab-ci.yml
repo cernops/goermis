@@ -122,8 +122,6 @@ test-go14:
     - *patch_version
     - *installGo14
     - *config
-    - yum -y install sendmail
-    - ufw allow 25
     - echo "READY TO DO START THE CI TESTS"
     - go14 test -v -cover ./tests/ci/...
     - go14 test -race ./tests/ci/...
