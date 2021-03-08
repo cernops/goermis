@@ -1,4 +1,4 @@
-FROM golang:1.14.2
+FROM cern/c8-base
 LABEL maintainer="LB-Experts <lb-experts@cern.ch>"
 WORKDIR /
 COPY .  .
