@@ -2,7 +2,7 @@ FROM cern/c8-base
 LABEL maintainer="LB-Experts <lb-experts@cern.ch>"
 WORKDIR /
 COPY .  .
-RUN yum -y install golang git sendmail &&\
+RUN yum -y install golang git &&\
     go version &&\
     go mod download &&\
     go build -o goermis .   &&\
@@ -10,6 +10,6 @@ RUN yum -y install golang git sendmail &&\
     
 COPY staticfiles      /var/lib/ermis/staticfiles
 COPY templates        /var/lib/ermis/templates
-EXPOSE 8080 25
+EXPOSE 8080
 ENTRYPOINT ["/goermis"]
 CMD ["-config=/usr/local/etc/goermis.yaml", "-home=/var/lib/ermis/"]
