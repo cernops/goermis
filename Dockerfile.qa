@@ -2,7 +2,7 @@ FROM cern/c8-base
 LABEL maintainer="LB-Experts <lb-experts@cern.ch>"
 WORKDIR /
 COPY .  .
-RUN yum -y install golang git &&\
+RUN yum -y install golang git sendmail &&\
     go version &&\
     go mod download &&\
     go build -o goermis .   &&\
