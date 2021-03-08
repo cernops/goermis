@@ -63,7 +63,7 @@ build_rpm7:
     - yum-builddep -y --disableplugin=protectbase,priorities *.spec
 
 build-go14:
-  stage: test
+  stage: prebuild
   script:
     - *installGo14
     - go14 build -race ./...
