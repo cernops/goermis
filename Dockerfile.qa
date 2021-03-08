@@ -2,7 +2,8 @@ FROM cern/c8-base
 LABEL maintainer="LB-Experts <lb-experts@cern.ch>"
 WORKDIR /
 COPY .  .
-RUN go version &&\
+RUN yum -y install golang git &&\
+    go version &&\
     go mod download &&\
     go build -o goermis .   &&\
     mkdir -p  /var/lib/ermis/ /var/log/ermis/  
