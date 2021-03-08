@@ -28,7 +28,6 @@ var (
 
 func main() {
 	bootstrap.ParseFlags()
-
 	log.Info("============Service Started=============")
 
 	// Echo instance
@@ -37,7 +36,6 @@ func main() {
 	defer db.Close()
 	//Initiate template views
 	views.InitViews(echo)
-
 	autoMigrateTables()
 
 	//Alarms periodic check/update

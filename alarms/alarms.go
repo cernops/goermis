@@ -15,10 +15,9 @@ import (
 	"gitlab.cern.ch/lb-experts/goermis/db"
 )
 
-const dnsManager = "137.138.28.176"
-
 var (
-	log = bootstrap.GetLog()
+	log        = bootstrap.GetLog()
+	dnsManager = bootstrap.GetConf().DNS.Manager
 )
 
 //PeriodicAlarmCheck periodically makes sure that the thresholds are respected.

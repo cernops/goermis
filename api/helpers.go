@@ -132,7 +132,6 @@ func EqualCnames(cname1, cname2 []Cname) bool {
 
 //customValidators adds our new tags in the govalidator
 func customValidators() {
-
 	govalidator.TagMap["nodes"] = govalidator.Validator(func(str string) bool {
 		if len(str) > 0 {
 			var allowed = regexp.MustCompile(`^[a-z][a-z0-9\-]*[a-z0-9]$`)

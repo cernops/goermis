@@ -19,6 +19,7 @@ type (
 		Soap     Soap
 		Certs    Certs
 		Log      Logging
+		DNS      DNS
 	}
 	//App struct describes application config parameters
 	App struct {
@@ -58,6 +59,10 @@ type (
 	Logging struct {
 		LoggingFile string `yaml:"logging_file"`
 		Stdout      bool
+	}
+	//DNS describes the config params for the DNS Manager
+	DNS struct {
+		Manager string
 	}
 )
 
