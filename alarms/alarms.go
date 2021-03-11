@@ -38,6 +38,7 @@ func PeriodicAlarmCheck() {
 
 func processThis(alarm api.Alarm) (err error) {
 	alarm.LastCheck.Time = time.Now()
+	alarm.LastCheck.Valid = true
 	newActive := false
 	if checkAlarm(alarm.Alias, alarm.Name, alarm.Parameter) {
 		log.Warn("The alert should be active")
