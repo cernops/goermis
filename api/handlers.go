@@ -43,8 +43,9 @@ func GetAliasRaw(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, queryResults)
 
-}
-
+}             
+/*Used from GetAlias & GetRaw to actually get the data,
+before deciding their representation format*/ 
 func get(c echo.Context) ([]Alias, error) {
 
 	var (

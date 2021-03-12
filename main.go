@@ -67,6 +67,7 @@ func main() {
 		err := echo.StartTLS(":8080",
 			cfg.Certs.GoermisCert,
 			cfg.Certs.GoermisKey)
+		//Avoiding uneccesary logs and failures when restarting 
 		if !strings.HasSuffix(err.Error(), "bind: address already in use") {
 			log.Fatal("Failed to start server: " + err.Error())
 
