@@ -1,4 +1,4 @@
-package api
+package ermis
 
 /* This file contains helper functions and custom validator tags*/
 import (

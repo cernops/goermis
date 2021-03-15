@@ -1,4 +1,4 @@
-package api
+package ermis
 
 /*This file contains the functions that transform the binded
 data from the Resource struct to the ORM one(and vice versa)

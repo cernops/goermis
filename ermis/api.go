@@ -1,4 +1,4 @@
-package api
+package ermis
 
 /* This file includes the ORM models and its methods*/
 

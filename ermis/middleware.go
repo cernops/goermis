@@ -1,4 +1,4 @@
-package api
+package ermis
 
 /*This file contains the middleware that scans every
 request before it reaches its handler. The checks include

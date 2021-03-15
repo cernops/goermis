@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/asaskevich/govalidator"
-	"gitlab.cern.ch/lb-experts/goermis/api"
+	"gitlab.cern.ch/lb-experts/goermis/ermis"
 )
 
 func TestContainsCname(t *testing.T) {

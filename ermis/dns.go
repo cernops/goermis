@@ -1,4 +1,4 @@
-package api
+package ermis
 
 import (
 	"errors"

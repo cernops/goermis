@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"gitlab.cern.ch/lb-experts/goermis/alarms"
-	"gitlab.cern.ch/lb-experts/goermis/api"
+	"gitlab.cern.ch/lb-experts/goermis/ermis"
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 	"gitlab.cern.ch/lb-experts/goermis/db"
 	"gitlab.cern.ch/lb-experts/goermis/router"
