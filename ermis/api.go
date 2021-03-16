@@ -5,7 +5,7 @@ package ermis
 import (
 	"database/sql"
 	"errors"
-	"time"
+	"fmt"
 
 	"gorm.io/gorm"
 
@@ -21,23 +21,25 @@ var (
 type (
 	//Alias structure is a model for describing the alias
 	Alias struct { //DB definitions    --Validation-->               //Validation
-		ID               int        `  gorm:"auto_increment;primaryKey"             valid:"optional, int"`
-		AliasName        string     `  gorm:"not null;type:varchar(40);unique"      valid:"required,dns" `
-		Behaviour        string     `  gorm:"type:varchar(15);not null"             valid:"optional,alphanum"`
-		BestHosts        int        `  gorm:"type:smallint(6);not null"             valid:"required,best_hosts"`
-		External         string     `  gorm:"type:varchar(15);not null"             valid:"required,in(yes|no|external|internal)"`
-		Metric           string     `  gorm:"type:varchar(15);not null"             valid:"in(cmsfrontier),optional"`
-		PollingInterval  int        `  gorm:"type:smallint(6);not null"             valid:"optional,int"`
-		Statistics       string     `  gorm:"type:varchar(15);not null"             valid:"optional,alpha"`
-		Clusters         string     `  gorm:"type:longtext;not null"                valid:"optional,alphanum"`
-		Tenant           string     `  gorm:"type:longtext;not null"                valid:"optional,alphanum" `
-		Hostgroup        string     `  gorm:"type:longtext;not null"                valid:"required,hostgroup"`
-		User             string     `  gorm:"type:varchar(40);not null"             valid:"optional,alphanum" `
-		TTL              int        `  gorm:"type:smallint(6);default:60;not null"  valid:"optional,int"`
-		LastModification time.Time  `  gorm:"type:date"                             valid:"-"`
-		Cnames           []Cname    `  gorm:"foreignkey:CnameAliasID"               valid:"optional"`
-		Relations        []Relation `                                               valid:"optional"`
-		Alarms           []Alarm    `  gorm:"foreignkey:AlarmAliasID"               valid:"optional" `
+		ID               int          `  gorm:"auto_increment;primaryKey"             valid:"optional, int"`
+		AliasName        string       `  gorm:"not null;type:varchar(40);unique"      valid:"required,dns" `
+		Behaviour        string       `  gorm:"type:varchar(15);not null"             valid:"optional,alphanum"`
+		BestHosts        int          `  gorm:"type:smallint(6);not null"             valid:"required,best_hosts"`
+		External         string       `  gorm:"type:varchar(15);not null"             valid:"required,in(yes|no|external|internal)"`
+		Metric           string       `  gorm:"type:varchar(15);not null"             valid:"in(cmsfrontier),optional"`
+		PollingInterval  int          `  gorm:"type:smallint(6);not null"             valid:"optional,int"`
+		Statistics       string       `  gorm:"type:varchar(15);not null"             valid:"optional,alpha"`
+		Clusters         string       `  gorm:"type:longtext;not null"                valid:"optional,alphanum"`
+		Tenant           string       `  gorm:"type:longtext;not null"                valid:"optional,alphanum" `
+		Hostgroup        string       `  gorm:"type:longtext;not null"                valid:"required,hostgroup"`
+		User             string       `  gorm:"type:varchar(40);not null"             valid:"optional,alphanum" `
+		TTL              int          `  gorm:"type:smallint(6);default:60;not null"  valid:"optional,int"`
+		LastModification sql.NullTime `  gorm:"type:date"                             valid:"-"`
+		AliasLoad        int          `  gorm:"type:int;not null"                     valid:"optional,int"`
+		LastLoadCheck    sql.NullTime `  gorm:"type:date"                             valid:"-"`
+		Cnames           []Cname      `  gorm:"foreignkey:CnameAliasID"               valid:"optional"`
+		Relations        []Relation   `                                               valid:"optional"`
+		Alarms           []Alarm      `  gorm:"foreignkey:AlarmAliasID"               valid:"optional" `
 	}
 
 	/*For future reference:
@@ -79,13 +81,14 @@ type (
 
 	//Node structure defines the model for the nodes params Node struct {
 	Node struct {
-		ID               int        `  gorm:"unique;not null;auto_increment;primaryKey"     valid:"optional,int" `
-		NodeName         string     `  gorm:"not null;type:varchar(40);unique"              valid:"required, nodes"`
-		LastModification time.Time  `                                                       valid:"-"`
-		Load             int        `                                                       valid:"optional,int"`
-		State            string     `  gorm:"type:varchar(15);not null"                     valid:"optional, alphanum"`
-		Hostgroup        string     `  gorm:"type:varchar(40);not null"                     valid:"required, hostgroup"`
-		Aliases          []Relation `                                                       valid:"optional"`
+		ID               int          `  gorm:"unique;not null;auto_increment;primaryKey"     valid:"optional,int" `
+		NodeName         string       `  gorm:"not null;type:varchar(40);unique"              valid:"required, nodes"`
+		LastModification sql.NullTime `                                                       valid:"-"`
+		Load             int          `                                                       valid:"optional,int"`
+		LastLoadCheck    sql.NullTime `                                                       valid:"-"`
+		State            string       `  gorm:"type:varchar(15);not null"                     valid:"optional, alphanum"`
+		Hostgroup        string       `  gorm:"type:varchar(40);not null"                     valid:"required, hostgroup"`
+		Aliases          []Relation   `                                                       valid:"optional"`
 	}
 
 	//dBFunc type which accept *gorm.DB and return error, used for transactions
@@ -263,7 +266,7 @@ func (alias Alias) updateAlarms() (err error) {
 					return errors.New("Failed to add alarm " +
 						a.Name + ":" +
 						a.Recipient + ":" +
-						string(a.Parameter) +
+						fmt.Sprint(a.Parameter) +
 						" while purging all, with error: " +
 						err.Error())
 				}
@@ -277,7 +280,7 @@ func (alias Alias) updateAlarms() (err error) {
 				return errors.New("Failed to delete alarm " +
 					a.Name + ":" +
 					a.Recipient + ":" +
-					string(a.Parameter) +
+					fmt.Sprint(a.Parameter) +
 					" while purging all, with error: " +
 					err.Error())
 			}

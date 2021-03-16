@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/miekg/dns"
-	"gitlab.cern.ch/lb-experts/goermis/api"
+	"gitlab.cern.ch/lb-experts/goermis/ermis"
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 	"gitlab.cern.ch/lb-experts/goermis/db"
 )
@@ -23,7 +23,7 @@ var (
 //PeriodicAlarmCheck periodically makes sure that the thresholds are respected.
 //Otherwise notifies by e-mail and updates the DB
 func PeriodicAlarmCheck() {
-	var alarms []api.Alarm
+	var alarms []ermis.Alarm
 	if err := db.GetConn().Find(&alarms).
 		Error; err != nil {
 		log.Error("Could not retrieve alarms", err.Error())
@@ -36,7 +36,7 @@ func PeriodicAlarmCheck() {
 	}
 }
 
-func processThis(alarm api.Alarm) (err error) {
+func processThis(alarm ermis.Alarm) (err error) {
 	alarm.LastCheck.Time = time.Now()
 	alarm.LastCheck.Valid = true
 	newActive := false
@@ -55,12 +55,12 @@ func processThis(alarm api.Alarm) (err error) {
 	}
 
 	if alarm.LastActive.Valid {
-		err = db.GetConn().Model(&alarm).Updates(api.Alarm{
+		err = db.GetConn().Model(&alarm).Updates(ermis.Alarm{
 			Active:     newActive,
 			LastActive: alarm.LastActive,
 			LastCheck:  alarm.LastCheck}).Error
 	} else {
-		err = db.GetConn().Model(&alarm).Updates(api.Alarm{
+		err = db.GetConn().Model(&alarm).Updates(ermis.Alarm{
 			Active:    newActive,
 			LastCheck: alarm.LastCheck}).Error
 	}

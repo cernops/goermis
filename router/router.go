@@ -5,8 +5,9 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"gitlab.cern.ch/lb-experts/goermis/ermis"
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
+	"gitlab.cern.ch/lb-experts/goermis/ermis"
+	"gitlab.cern.ch/lb-experts/goermis/lbclient"
 )
 
 var (
@@ -58,9 +59,9 @@ func New() *echo.Echo {
 	entrypoint.PATCH("/alias/:id/", ermis.ModifyAlias)
 
 	//lbclients
-	lbclient := e.Group("/lb/api/v1")
-	lbclient.POST("/lbclient/", lbclient.CreateHost)
-	lbclient.GET("/lbclient/", lbclient.GetHosts)
+	lbc := e.Group("/lb/api/v1")
+	lbc.POST("/lbclient/", lbclient.UpdateLBClient)
+	lbc.GET("/lbclient/", lbclient.GetAll)
 
 	return e
 }

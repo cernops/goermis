@@ -1,6 +1,7 @@
 package ci
 
 import (
+	"database/sql"
 	"fmt"
 	"reflect"
 	"testing"
@@ -13,18 +14,18 @@ import (
 func TestContainsCname(t *testing.T) {
 	ExistingCname := "cname1"
 	NonExistingCname := "cname2"
-	cnames := []api.Cname{
+	cnames := []ermis.Cname{
 		{Cname: "cname1"},
 		{Cname: "cname-dfs"},
 		{Cname: "cname-test"},
 	}
 	fmt.Println("Now we will test if the existing cname can be found")
-	if !api.ContainsCname(cnames, ExistingCname) {
+	if !ermis.ContainsCname(cnames, ExistingCname) {
 		t.Errorf("Could not find cname %v even though it exists", ExistingCname)
 
 	}
 	fmt.Println("Now we will test it with a non-existing cname")
-	if api.ContainsCname(cnames, NonExistingCname) {
+	if ermis.ContainsCname(cnames, NonExistingCname) {
 		t.Errorf("We found the cname %v even though it should not exist", NonExistingCname)
 
 	}
@@ -44,7 +45,7 @@ func TestExplode(t *testing.T) {
 		{4, "random", []string{"test1,test2,test3"}, []string{}},
 	}
 	for _, tc := range testCases {
-		output := api.Explode(tc.encode, tc.input)
+		output := ermis.Explode(tc.encode, tc.input)
 		if !reflect.DeepEqual(output, tc.expected) {
 			t.Errorf("Failed test in TestExplode.\nFAILED CASE ID:%v\nINPUT:\n%v\nEXPECTED: \n%v\nRECEIVED: \n%v\n", tc.caseID, tc.input, tc.expected, output)
 		}
@@ -55,14 +56,14 @@ func TestExplode(t *testing.T) {
 func TestContainsAlarm(t *testing.T) {
 	type test struct {
 		caseID   int
-		input    api.Alarm
+		input    ermis.Alarm
 		expected bool
 	}
 
 	testCases := []test{
 		{
 			caseID: 1,
-			input: api.Alarm{
+			input: ermis.Alarm{
 				Name:      "minimum",
 				Recipient: "lb-experts@cern.ch",
 				Parameter: 1,
@@ -71,7 +72,7 @@ func TestContainsAlarm(t *testing.T) {
 		},
 		{
 			caseID: 2,
-			input: api.Alarm{
+			input: ermis.Alarm{
 				Name:      "minimum",
 				Recipient: "it-dep@cern.ch",
 				Parameter: 10,
@@ -80,7 +81,7 @@ func TestContainsAlarm(t *testing.T) {
 		},
 	}
 
-	alarms := []api.Alarm{
+	alarms := []ermis.Alarm{
 		{
 			Name:      "minimum",
 			Recipient: "lb-experts@cern.ch",
@@ -94,7 +95,7 @@ func TestContainsAlarm(t *testing.T) {
 	}
 	fmt.Println("Now we will test if the alarm can be found")
 	for _, tc := range testCases {
-		output := api.ContainsAlarm(alarms, tc.input)
+		output := ermis.ContainsAlarm(alarms, tc.input)
 		if output != tc.expected {
 			t.Errorf("Failed in TestContainsAlarm\nFAILED CASE ID:%v\nI\n%v\nEXPECTED:\n%v\nBut RECEIVED:\n%v\n", tc.caseID, tc.input, tc.expected, output)
 		}
@@ -104,16 +105,16 @@ func TestContainsAlarm(t *testing.T) {
 func TestContainsNode(t *testing.T) {
 	type test struct {
 		caseID            int
-		input             api.Relation
+		input             ermis.Relation
 		expectedName      bool
 		expectedBlacklist bool
 	}
 
 	testCases := []test{
 		{caseID: 1,
-			input: api.Relation{
+			input: ermis.Relation{
 				Blacklist: false,
-				Node: &api.Node{
+				Node: &ermis.Node{
 					NodeName: "test1.cern.ch",
 				},
 			},
@@ -122,9 +123,9 @@ func TestContainsNode(t *testing.T) {
 		},
 
 		{caseID: 2,
-			input: api.Relation{
+			input: ermis.Relation{
 				Blacklist: true,
-				Node: &api.Node{
+				Node: &ermis.Node{
 					NodeName: "test1.cern.ch",
 				},
 			},
@@ -132,9 +133,9 @@ func TestContainsNode(t *testing.T) {
 			expectedBlacklist: false,
 		},
 		{caseID: 3,
-			input: api.Relation{
+			input: ermis.Relation{
 				Blacklist: true,
-				Node: &api.Node{
+				Node: &ermis.Node{
 					NodeName: "test12.cern.ch",
 				},
 			},
@@ -143,29 +144,29 @@ func TestContainsNode(t *testing.T) {
 		},
 	}
 
-	relations := []api.Relation{
+	relations := []ermis.Relation{
 		{
 			Blacklist: false,
-			Node: &api.Node{
+			Node: &ermis.Node{
 				NodeName: "test1.cern.ch",
 			},
 		},
 		{
 			Blacklist: true,
-			Node: &api.Node{
+			Node: &ermis.Node{
 				NodeName: "testme.cern.ch",
 			},
 		},
 		{
 			Blacklist: false,
-			Node: &api.Node{
+			Node: &ermis.Node{
 				NodeName: "test56.cern.ch",
 			},
 		},
 	}
 
 	for _, tc := range testCases {
-		if output1, output2 := api.ContainsNode(relations, tc.input); output1 != tc.expectedName || output2 != tc.expectedBlacklist {
+		if output1, output2 := ermis.ContainsNode(relations, tc.input); output1 != tc.expectedName || output2 != tc.expectedBlacklist {
 			t.Errorf("We did not receive what we expected for %v\nFAILED CASE ID:%v\nWE RECEIVED:\n %v, %v\nWE EXPECTED:\n %v,\n %v\n", tc.input.Node.NodeName, tc.caseID, output1, output2, tc.expectedName, tc.expectedBlacklist)
 		}
 	}
@@ -189,17 +190,17 @@ func TestFindNodeID(t *testing.T) {
 			expected: 0},
 	}
 	//Slice of relations that will be searched
-	relations := []api.Relation{
+	relations := []ermis.Relation{
 		{
 			NodeID: 118,
-			Node: &api.Node{
+			Node: &ermis.Node{
 				NodeName: "testnode.cern.ch",
 			},
 		},
 	}
 
 	for _, tc := range testCases {
-		output := api.FindNodeID(tc.input, relations)
+		output := ermis.FindNodeID(tc.input, relations)
 		if output != tc.expected {
 			t.Errorf("Failed to find the correct alias ID.\nFAILED CASE ID:%v\nINPUT:\n%v\nEXPECTED:\n%v\nRECEIVED:\n%v\n", tc.caseID, tc.input, tc.expected, output)
 		}
@@ -223,7 +224,7 @@ func TestDeleteEmpty(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
-		output := api.DeleteEmpty(tc.input)
+		output := ermis.DeleteEmpty(tc.input)
 		if !reflect.DeepEqual(output, tc.expected) {
 			t.Errorf("Failed test for DeleteEmpty\nFAILED CASE ID:%v\nINPUT:\n%v\nEXPECTED:\n%v\nRECEIVED:\n%v\n", tc.caseID, tc.input, tc.expected, output)
 
@@ -250,7 +251,7 @@ func TestStringInSlice(t *testing.T) {
 			expected: false},
 	}
 	for _, tc := range testCases {
-		output := api.StringInSlice(tc.input1, tc.input2)
+		output := ermis.StringInSlice(tc.input1, tc.input2)
 		if !output == tc.expected {
 			t.Errorf("Failed in StringInSlice\nFAILED CASE ID:%v\nINPUTS:\n%v\n%v\nEXPECTED:\n%v\nRECEIVED:\n%v\n", tc.caseID, tc.input1, tc.input2, tc.expected, output)
 		}
@@ -259,19 +260,19 @@ func TestStringInSlice(t *testing.T) {
 func TestEqualCnames(t *testing.T) {
 	type test struct {
 		caseID   int
-		input1   []api.Cname
-		input2   []api.Cname
+		input1   []ermis.Cname
+		input2   []ermis.Cname
 		expected bool
 	}
 	testCases := []test{
 		//Case 1: Same elements / Same order
 		{caseID: 1,
-			input1: []api.Cname{
+			input1: []ermis.Cname{
 				{Cname: "cname1"},
 				{Cname: "cname2"},
 				{Cname: "cname3"},
 			},
-			input2: []api.Cname{
+			input2: []ermis.Cname{
 				{Cname: "cname1"},
 				{Cname: "cname2"},
 				{Cname: "cname3"},
@@ -280,11 +281,11 @@ func TestEqualCnames(t *testing.T) {
 		},
 		//Case 2: Less elements on input1 / Same order
 		{caseID: 2,
-			input1: []api.Cname{
+			input1: []ermis.Cname{
 				{Cname: "cname1"},
 				{Cname: "cname2"},
 			},
-			input2: []api.Cname{
+			input2: []ermis.Cname{
 				{Cname: "cname1"},
 				{Cname: "cname2"},
 				{Cname: "cname3"},
@@ -293,12 +294,12 @@ func TestEqualCnames(t *testing.T) {
 		},
 		//Case 3: One different element
 		{caseID: 3,
-			input1: []api.Cname{
+			input1: []ermis.Cname{
 				{Cname: "cname1"},
 				{Cname: "cname2"},
 				{Cname: "cname4"},
 			},
-			input2: []api.Cname{
+			input2: []ermis.Cname{
 				{Cname: "cname1"},
 				{Cname: "cname2"},
 				{Cname: "cname3"},
@@ -307,12 +308,12 @@ func TestEqualCnames(t *testing.T) {
 		},
 		//Case 4: Same elements, different order
 		{caseID: 4,
-			input1: []api.Cname{
+			input1: []ermis.Cname{
 				{Cname: "cname2"},
 				{Cname: "cname1"},
 				{Cname: "cname3"},
 			},
-			input2: []api.Cname{
+			input2: []ermis.Cname{
 				{Cname: "cname1"},
 				{Cname: "cname2"},
 				{Cname: "cname3"},
@@ -321,12 +322,12 @@ func TestEqualCnames(t *testing.T) {
 		},
 		//Case 5: Missing element from input2
 		{caseID: 5,
-			input1: []api.Cname{
+			input1: []ermis.Cname{
 				{Cname: "cname1"},
 				{Cname: "cname2"},
 				{Cname: "cname4"},
 			},
-			input2: []api.Cname{
+			input2: []ermis.Cname{
 				{Cname: "cname1"},
 				{Cname: "cname2"},
 			},
@@ -334,14 +335,14 @@ func TestEqualCnames(t *testing.T) {
 		},
 		//Case 6: Empty inputs
 		{caseID: 6,
-			input1:   []api.Cname{},
-			input2:   []api.Cname{},
+			input1:   []ermis.Cname{},
+			input2:   []ermis.Cname{},
 			expected: true,
 		},
 	}
 
 	for _, tc := range testCases {
-		output := api.EqualCnames(tc.input1, tc.input2)
+		output := ermis.EqualCnames(tc.input1, tc.input2)
 		if output != tc.expected {
 			t.Errorf("Failed for TestEqual\nFAILED CASE ID:%v\nINPUTS:\n%v\n%v\nEXPECTED:\n%v\nRECEIVED:\n%v\n", tc.caseID, tc.input1, tc.input2, tc.expected, output)
 		}
@@ -351,53 +352,59 @@ func TestEqualCnames(t *testing.T) {
 func TestValidation(t *testing.T) {
 	type test struct {
 		caseID   int
-		input    api.Alias
+		input    ermis.Alias
 		expected bool
 	}
 
 	testCases := []test{
 		//Case1: Correct fields
 		{caseID: 1,
-			input: api.Alias{
-				ID:               1,
-				AliasName:        "seed.cern.ch",
-				Behaviour:        "mindless",
-				BestHosts:        1,
-				External:         "no",
-				Metric:           "cmsfrontier",
-				PollingInterval:  300,
-				Statistics:       "long",
-				Clusters:         "none",
-				Tenant:           "golang",
-				Hostgroup:        "aiermis",
-				User:             "kkouros",
-				TTL:              60,
-				LastModification: time.Now(),
-				Cnames: []api.Cname{
+			input: ermis.Alias{
+				ID:              1,
+				AliasName:       "seed.cern.ch",
+				Behaviour:       "mindless",
+				BestHosts:       1,
+				External:        "no",
+				Metric:          "cmsfrontier",
+				PollingInterval: 300,
+				Statistics:      "long",
+				Clusters:        "none",
+				Tenant:          "golang",
+				Hostgroup:       "aiermis",
+				User:            "kkouros",
+				TTL:             60,
+				LastModification: sql.NullTime{
+					Time:  time.Now(),
+					Valid: true,
+				},
+				Cnames: []ermis.Cname{
 					{
 						ID:           1,
 						CnameAliasID: 1,
 						Cname:        "cname1",
 					},
 				},
-				Relations: []api.Relation{
+				Relations: []ermis.Relation{
 					{
 						ID:        1,
 						NodeID:    2,
 						Blacklist: true,
 						AliasID:   1,
-						Node: &api.Node{
+						Node: &ermis.Node{
 							ID:               2,
 							NodeName:         "testnode.cern.ch",
 							Hostgroup:        "aiermis",
-							LastModification: time.Now(),
+							LastModification: sql.NullTime{
+								Time: time.Now(),
+								Valid: true,
+							},
 							Load:             0,
 							State:            "",
 						},
 						Alias: nil,
 					},
 				},
-				Alarms: []api.Alarm{
+				Alarms: []ermis.Alarm{
 					{
 						ID:           1,
 						AlarmAliasID: 1,
@@ -412,7 +419,7 @@ func TestValidation(t *testing.T) {
 		},
 		//Case 2: Wrong alias name
 		{caseID: 2,
-			input: api.Alias{
+			input: ermis.Alias{
 				AliasName: "$%#$", //wrong field
 				BestHosts: 1,
 				External:  "no",
@@ -422,7 +429,7 @@ func TestValidation(t *testing.T) {
 		},
 		//Case 3: Empty alias name
 		{caseID: 3,
-			input: api.Alias{
+			input: ermis.Alias{
 				AliasName: "", //empty field
 				BestHosts: 1,
 				External:  "no",
@@ -432,7 +439,7 @@ func TestValidation(t *testing.T) {
 		},
 		//Case 4: Wrong Behaviour field
 		{caseID: 4,
-			input: api.Alias{
+			input: ermis.Alias{
 				AliasName: "alias.cern.ch",
 				Behaviour: "*", //wrong field
 				BestHosts: 1,
@@ -443,7 +450,7 @@ func TestValidation(t *testing.T) {
 		},
 		//Case 5: Wrong Best Hosts field
 		{caseID: 5,
-			input: api.Alias{
+			input: ermis.Alias{
 				AliasName: "alias.cern.ch",
 				BestHosts: -300, //wrong field
 				External:  "no",
@@ -453,7 +460,7 @@ func TestValidation(t *testing.T) {
 		},
 		//Case 6: Wrong external  field
 		{caseID: 6,
-			input: api.Alias{
+			input: ermis.Alias{
 				AliasName: "alias.cern.ch",
 				BestHosts: 1,
 				External:  "random", //wrong field
@@ -463,7 +470,7 @@ func TestValidation(t *testing.T) {
 		},
 		//Case 7: Empty external
 		{caseID: 7,
-			input: api.Alias{
+			input: ermis.Alias{
 				AliasName: "alias.cern.ch",
 
 				BestHosts: 1,
@@ -474,7 +481,7 @@ func TestValidation(t *testing.T) {
 		},
 		//Case 8: Wrong metric
 		{caseID: 8,
-			input: api.Alias{
+			input: ermis.Alias{
 				AliasName: "alias.cern.ch",
 				BestHosts: 1,
 				External:  "no",
@@ -485,7 +492,7 @@ func TestValidation(t *testing.T) {
 		},
 		//Case 9: Empty Hostgroup
 		{caseID: 9,
-			input: api.Alias{
+			input: ermis.Alias{
 				AliasName: "alias.cern.ch",
 				BestHosts: 1,
 				External:  "no",
@@ -495,7 +502,7 @@ func TestValidation(t *testing.T) {
 		},
 		//Case 10: With sub-hostgroup
 		{caseID: 10,
-			input: api.Alias{
+			input: ermis.Alias{
 				AliasName: "alias.cern.ch",
 				BestHosts: 1,
 				External:  "no",
@@ -506,7 +513,7 @@ func TestValidation(t *testing.T) {
 
 		//Case 11: Malformed Hostgroup
 		{caseID: 11,
-			input: api.Alias{
+			input: ermis.Alias{
 				AliasName: "alias.cern.ch",
 				BestHosts: 1,
 				External:  "no",
@@ -517,12 +524,12 @@ func TestValidation(t *testing.T) {
 
 		//Case 12: Malformed Cname
 		{caseID: 12,
-			input: api.Alias{
+			input: ermis.Alias{
 				AliasName: "alias.cern.ch",
 				BestHosts: 1,
 				External:  "no",
 				Hostgroup: "aiermis",
-				Cnames: []api.Cname{
+				Cnames: []ermis.Cname{
 					{
 						ID:           1,
 						CnameAliasID: 1,
@@ -534,12 +541,12 @@ func TestValidation(t *testing.T) {
 		},
 		//Case 13: malformed alias in alarms
 		{caseID: 13,
-			input: api.Alias{
+			input: ermis.Alias{
 				AliasName: "alias.cern.ch",
 				BestHosts: 1,
 				External:  "no",
 				Hostgroup: "aiermis",
-				Alarms: []api.Alarm{
+				Alarms: []ermis.Alarm{
 					{
 						ID:           1,
 						AlarmAliasID: 1,
@@ -554,12 +561,12 @@ func TestValidation(t *testing.T) {
 		},
 		//Case 14: Random alarm name
 		{caseID: 14,
-			input: api.Alias{
+			input: ermis.Alias{
 				AliasName: "alias.cern.ch",
 				BestHosts: 1,
 				External:  "no",
 				Hostgroup: "aiermis",
-				Alarms: []api.Alarm{
+				Alarms: []ermis.Alarm{
 					{
 						ID:           1,
 						AlarmAliasID: 1,
@@ -574,12 +581,12 @@ func TestValidation(t *testing.T) {
 		},
 		//Case 15: malformed email in alarms
 		{caseID: 15,
-			input: api.Alias{
+			input: ermis.Alias{
 				AliasName: "alias.cern.ch",
 				BestHosts: 1,
 				External:  "no",
 				Hostgroup: "aiermis",
-				Alarms: []api.Alarm{
+				Alarms: []ermis.Alarm{
 					{
 						ID:           1,
 						AlarmAliasID: 1,
@@ -595,12 +602,12 @@ func TestValidation(t *testing.T) {
 
 		//Case 16: Negative parameter in alarms
 		{caseID: 16,
-			input: api.Alias{
+			input: ermis.Alias{
 				AliasName: "alias.cern.ch",
 				BestHosts: 1,
 				External:  "no",
 				Hostgroup: "aiermis",
-				Alarms: []api.Alarm{
+				Alarms: []ermis.Alarm{
 					{
 						ID:           1,
 						AlarmAliasID: 1,
@@ -615,15 +622,15 @@ func TestValidation(t *testing.T) {
 		},
 		//Case 17: Malformed node name
 		{caseID: 17,
-			input: api.Alias{
+			input: ermis.Alias{
 				AliasName: "seed.cern.ch",
 				BestHosts: 1,
 				External:  "no",
 				Hostgroup: "aiermis",
-				Relations: []api.Relation{
+				Relations: []ermis.Relation{
 					{
 						Blacklist: true,
-						Node: &api.Node{
+						Node: &ermis.Node{
 							NodeName: "*&%$", //malformed
 						},
 					},
@@ -633,15 +640,15 @@ func TestValidation(t *testing.T) {
 		},
 		//Case 18: Malformed hostgroup in Node type
 		{caseID: 18,
-			input: api.Alias{
+			input: ermis.Alias{
 				AliasName: "seed.cern.ch",
 				BestHosts: 1,
 				External:  "no",
 				Hostgroup: "aiermis",
-				Relations: []api.Relation{
+				Relations: []ermis.Relation{
 					{
 						Blacklist: true,
-						Node: &api.Node{
+						Node: &ermis.Node{
 							NodeName:  "testnode.cern.ch",
 							Hostgroup: "@#!?", //malformed
 						},

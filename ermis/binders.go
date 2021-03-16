@@ -4,6 +4,7 @@ package ermis
 data from the Resource struct to the ORM one(and vice versa)
 This is done to allow a more Object oriented experience later on */
 import (
+	"database/sql"
 	"strconv"
 	"strings"
 	"time"
@@ -87,7 +88,9 @@ func sanitazeInCreation(c echo.Context, resource Resource) (object Alias) {
 	//Default values while creating
 	object.Statistics = "long"
 	object.Tenant = "golang"
-	object.LastModification = time.Now()
+	//Time
+	object.LastModification.Time = time.Now()
+	object.LastModification.Valid = true
 	object.Metric = "cmsfrontier"
 	object.PollingInterval = 300
 	object.TTL = 60
@@ -124,7 +127,8 @@ func parse(queryResults []Alias) Objects {
 		temp.Clusters = element.Clusters
 		temp.Hostgroup = element.Hostgroup
 		temp.External = element.External
-		temp.LastModification = element.LastModification
+		//Time
+		temp.LastModification = element.LastModification.Time
 		temp.Metric = element.Metric
 		temp.PollingInterval = element.PollingInterval
 		temp.TTL = element.TTL
@@ -240,10 +244,13 @@ func sanitazeInUpdate(c echo.Context, current Alias, new Resource) (Alias, error
 					NodeID:    FindNodeID(node, copyOfRelations),
 					Blacklist: k,
 					Node: &Node{
-						ID:               FindNodeID(node, copyOfRelations),
-						NodeName:         node,
-						LastModification: time.Now(),
-						Hostgroup:        current.Hostgroup}})
+						ID:       FindNodeID(node, copyOfRelations),
+						NodeName: node,
+						LastModification: sql.NullTime{
+							Time:  time.Now(),
+							Valid: true,
+						},
+						Hostgroup: current.Hostgroup}})
 			}
 		}
 	}

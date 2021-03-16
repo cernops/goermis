@@ -90,6 +90,6 @@ func main() {
 
 // autoMigrateTables: migrate table columns using GORM. Will not delete/change types for security reasons
 func autoMigrateTables() {
-	db.GetConn().AutoMigrate(&api.Alias{}, &api.Node{}, &api.Cname{}, &api.Alarm{}, &api.Relation{})
+	db.GetConn().AutoMigrate(&ermis.Alias{}, &ermis.Node{}, &ermis.Cname{}, &ermis.Alarm{}, &ermis.Relation{})
 
 }
