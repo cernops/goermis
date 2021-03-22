@@ -36,7 +36,7 @@ type (
 		TTL              int          `  gorm:"type:smallint(6);default:60;not null"  valid:"optional,int"`
 		LastModification sql.NullTime `  gorm:"type:date"                             valid:"-"`
 		Cnames           []Cname      `  gorm:"foreignkey:CnameAliasID"               valid:"optional"`
-		Relations        []Relation  `                                               valid:"optional"`
+		Relations        []Relation   `                                               valid:"optional"`
 		Alarms           []Alarm      `  gorm:"foreignkey:AlarmAliasID"               valid:"optional" `
 	}
 
@@ -181,7 +181,7 @@ func (alias Alias) updateNodes() (err error) {
 	}
 	for _, r := range alias.Relations {
 		if ok, _ := ContainsNode(relationsInDB, r); !ok {
-			if err = addNodeTransactions(r); err != nil {
+			if err = AddNodeTransactions(r); err != nil {
 				return errors.New("Failed to add new node " +
 					r.Node.NodeName + " while updating, with error: " + err.Error())
 			}

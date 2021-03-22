@@ -41,7 +41,7 @@ func main() {
 
 	//Alarms periodic check/update
 	log.Info("24 hours passed, preparing to execution check alarms")
-	ticker := time.NewTicker(time.Duration(cfg.Timers.Alarms) * time.Minute) 
+	ticker := time.NewTicker(time.Duration(cfg.Timers.Alarms) * time.Minute)
 
 	/*done channel can be used to stop the ticker if needed,
 	by issuing the command "done<-true". For now, it runs constantly */

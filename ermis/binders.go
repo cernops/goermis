@@ -251,7 +251,7 @@ func sanitazeInUpdate(c echo.Context, current Alias, new Resource) (Alias, error
 							Time:  time.Now(),
 							Valid: true,
 						},
-						}})
+					}})
 			}
 		}
 	}
