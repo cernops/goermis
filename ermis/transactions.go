@@ -102,7 +102,7 @@ func deleteNodeTransactions(v Relation) (err error) {
 }
 
 //addNodeTransactions adds a node in the DB
-func addNodeTransactions(v Relation) (err error) {
+func AddNodeTransactions(v Relation) (err error) {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
 		//Either create a new node or find an existing one
 		//Remember that its a many-2-many relationship, so nodes

@@ -231,7 +231,8 @@ func sanitazeInUpdate(c echo.Context, current Alias, new Resource) (Alias, error
 	}
 
 	//Nodes
-	//Keep a copy of relations, that we need to determine the ID of existing nodes
+	//Keep a copy of relations, that we need to determine the ID of existing relations, with assigned ID
+	//If we didnt do this, what would happen is that a new ID=0 would be assigned.
 	copyOfRelations := current.Relations
 	current.Relations = []Relation{}
 	fields := map[bool][]string{false: new.AllowedNodes, true: new.ForbiddenNodes}
@@ -250,7 +251,7 @@ func sanitazeInUpdate(c echo.Context, current Alias, new Resource) (Alias, error
 							Time:  time.Now(),
 							Valid: true,
 						},
-						Hostgroup: current.Hostgroup}})
+						}})
 			}
 		}
 	}

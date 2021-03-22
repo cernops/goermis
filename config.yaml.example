@@ -32,5 +32,10 @@ log:
   stdout:          --change-- 
 dns:
   manager:         --change--  
+timers:
+  #in minutes
+  alarms:         --change--  #frequency of alarms checking
+
+
 
   

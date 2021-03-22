@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"gitlab.cern.ch/lb-experts/goermis/alarms"
-	"gitlab.cern.ch/lb-experts/goermis/ermis"
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 	"gitlab.cern.ch/lb-experts/goermis/db"
+	"gitlab.cern.ch/lb-experts/goermis/ermis"
 	"gitlab.cern.ch/lb-experts/goermis/router"
 	"gitlab.cern.ch/lb-experts/goermis/views"
 )
@@ -24,6 +24,7 @@ const (
 
 var (
 	log = bootstrap.GetLog()
+	cfg = bootstrap.GetConf()
 )
 
 func main() {
@@ -40,7 +41,8 @@ func main() {
 
 	//Alarms periodic check/update
 	log.Info("24 hours passed, preparing to execution check alarms")
-	ticker := time.NewTicker(24 * time.Hour)
+	ticker := time.NewTicker(time.Duration(cfg.Timers.Alarms) * time.Minute) 
+
 	/*done channel can be used to stop the ticker if needed,
 	by issuing the command "done<-true". For now, it runs constantly */
 	done := make(chan bool)
@@ -63,11 +65,11 @@ func main() {
 		   to shut down the service */
 
 	go func() {
-		cfg := bootstrap.GetConf()
+
 		err := echo.StartTLS(":8080",
 			cfg.Certs.GoermisCert,
 			cfg.Certs.GoermisKey)
-		//Avoiding uneccesary logs and failures when restarting 
+		//Avoiding uneccesary logs and failures when restarting
 		if !strings.HasSuffix(err.Error(), "bind: address already in use") {
 			log.Fatal("Failed to start server: " + err.Error())
 

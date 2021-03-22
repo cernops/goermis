@@ -20,6 +20,7 @@ type (
 		Certs    Certs
 		Log      Logging
 		DNS      DNS
+		Timers   Timers
 	}
 	//App struct describes application config parameters
 	App struct {
@@ -63,6 +64,10 @@ type (
 	//DNS describes the config params for the DNS Manager
 	DNS struct {
 		Manager string
+	}
+	//Timers describes the parameters for configuring the different timers
+	Timers struct {
+		Alarms int
 	}
 )
 

@@ -37,8 +37,7 @@ Since, the revamp of the UI has not been part of my project scope(where we could
 explode solves that issue, by splitting the element [0] when content type is form.
 */
 
-//Explode takes as input a slice if the first and only element is a comma-separated
-//string , it splits that string and returns a full slice
+//Turn this slice []string{"a,b,c"} to this one ==> []string{"a","b","c"}
 func Explode(contentType string, slice []string) []string {
 	if contentType == "application/json" {
 		return slice

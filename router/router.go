@@ -60,8 +60,8 @@ func New() *echo.Echo {
 
 	//lbclients
 	lbc := e.Group("/lb/api/v1")
-	lbc.POST("/lbclient/", lbclient.UpdateLBClient)
-	lbc.GET("/lbclient/", lbclient.GetAll)
+	lbc.POST("/lbclient/", lbclient.PostHandler)
+	//lbc.GET("/lbclient/", lbclient.GetAll)
 
 	return e
 }
