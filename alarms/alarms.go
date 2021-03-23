@@ -12,7 +12,7 @@ import (
 	"github.com/miekg/dns"
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 	"gitlab.cern.ch/lb-experts/goermis/db"
-	"gitlab.cern.ch/lb-experts/goermis/ermis"
+	"gitlab.cern.ch/lb-experts/goermis/api/ermis"
 )
 
 var (

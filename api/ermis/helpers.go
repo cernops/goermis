@@ -8,17 +8,12 @@ import (
 
 	"github.com/asaskevich/govalidator"
 	"github.com/labstack/echo/v4"
-	"gitlab.cern.ch/lb-experts/goermis/db"
-)
-
-var (
-	conn = db.GetConn()
 )
 
 /*////////////Helper Functions///////////////////*/
 
 //ContainsCname returns true if a cname can be found in a list of Cname objects
-func ContainsCname(s []Cname, e string) bool {
+func ContainsCname(e string, s []Cname) bool {
 	for _, a := range s {
 		if a.Cname == e {
 			return true
@@ -53,7 +48,7 @@ func Explode(contentType string, slice []string) []string {
 }
 
 //ContainsAlarm checks if an alarm object is in a slice of objects
-func ContainsAlarm(s []Alarm, a Alarm) bool {
+func ContainsAlarm(a Alarm, s []Alarm) bool {
 	for _, alarm := range s {
 		if alarm.Name == a.Name &&
 			alarm.Recipient == a.Recipient &&
@@ -67,7 +62,7 @@ func ContainsAlarm(s []Alarm, a Alarm) bool {
 
 //ContainsNode checks if a node has a relation with an alias
 // and the status of that relation(allowed or forbidden)
-func ContainsNode(a []Relation, b Relation) (bool, bool) {
+func ContainsNode(b Relation, a []Relation) (bool, bool) {
 	for _, v := range a {
 		if v.Node.NodeName == b.Node.NodeName {
 			if v.Blacklist == b.Blacklist {
@@ -120,7 +115,7 @@ func EqualCnames(cname1, cname2 []Cname) bool {
 		return false
 	}
 	for _, v := range cname1 {
-		if !ContainsCname(cname2, v.Cname) {
+		if !ContainsCname(v.Cname, cname2) {
 			return false
 		}
 	}

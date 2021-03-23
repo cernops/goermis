@@ -114,7 +114,7 @@ func CreateAlias(c echo.Context) error {
 	log.Info("[" + username + "] " + "Sanitazed succesfully " + temp.AliasName)
 
 	//Validate structure
-	if ok, err := govalidator.ValidateStruct(alias); err != nil || ok == false {
+	if ok, err := govalidator.ValidateStruct(alias); err != nil || !ok  {
 		return MessageToUser(c, http.StatusBadRequest,
 			"Validation error for "+temp.AliasName+" : "+err.Error(), "home.html")
 	}
@@ -264,7 +264,7 @@ func ModifyAlias(c echo.Context) error {
 	log.Info("[" + username + "] " + "Sanitized successfully" + temp.AliasName)
 
 	//Validate the object alias , with the now-updated fields
-	if ok, err := govalidator.ValidateStruct(alias); err != nil || ok == false {
+	if ok, err := govalidator.ValidateStruct(alias); err != nil || !ok  {
 		return MessageToUser(c, http.StatusBadRequest,
 			"Validation error for alias "+temp.AliasName+" : "+err.Error(), "home.html")
 	}

@@ -39,7 +39,7 @@ func (alias Alias) createInDNS() error {
 					if alias.createCnamesDNS(view) {
 						log.Info("[" + alias.User + "]" + "Cnames added in DNS for alias " + alias.AliasName + "/" + view)
 					} else {
-						return errors.New("Failed to create cnames")
+						return errors.New("failed to create cnames")
 					}
 
 				}
@@ -126,7 +126,7 @@ func (alias Alias) updateView(oldObject Alias) error {
 			//Make a copy the cnames from the existing internal DNS entry to the external one
 			if len(oldObject.Cnames) != 0 {
 				if !oldObject.createCnamesDNS("external") {
-					return errors.New("Failed to create cnames for the external DNS entry")
+					return errors.New("failed to create cnames for the external DNS entry")
 				}
 			}
 
@@ -139,11 +139,11 @@ func (alias Alias) updateView(oldObject Alias) error {
 			landbsoap.Conn().DNSDelegatedAdd(alias.AliasName, "external", cfg.Soap.SoapKeynameE, "Created by:"+alias.User, "goermis")
 			if len(oldObject.Cnames) != 0 {
 				if !oldObject.createCnamesDNS("external") {
-					return errors.New("Failed to create cnames for the external DNS entry")
+					return errors.New("failed to create cnames for the external DNS entry")
 				}
 			}
 
-			return errors.New("Failed to update visibility from external to internal")
+			return errors.New("failed to update visibility from external to internal")
 		}
 	}
 	return nil
@@ -166,7 +166,7 @@ func (alias Alias) updateCnamesInDNS(oldCnames []Cname) error {
 		if len(alias.Cnames) != 0 {
 			for _, cname := range oldCnames {
 				//...and one of the existing cnames doesn't exist in the new list
-				if !ContainsCname(alias.Cnames, cname.Cname) {
+				if !ContainsCname(cname.Cname, alias.Cnames) {
 					//we delete that cname
 					if !landbsoap.Conn().DNSDelegatedAliasRemove(alias.AliasName, view, cname.Cname) {
 						return errors.New("Failed to delete existing cname " +
@@ -177,7 +177,7 @@ func (alias Alias) updateCnamesInDNS(oldCnames []Cname) error {
 
 			for _, cname := range alias.Cnames {
 				//...if a cname from the new list doesn't exist
-				if !ContainsCname(oldCnames, cname.Cname) {
+				if !ContainsCname(cname.Cname, oldCnames) {
 					//...we add that one
 					if !landbsoap.Conn().DNSDelegatedAliasAdd(alias.AliasName, view, cname.Cname) {
 						return errors.New("Failed to add new cname in DNS " +

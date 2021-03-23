@@ -168,7 +168,7 @@ func parse(queryResults []Alias) Objects {
 		if len(element.Relations) != 0 {
 
 			for _, v := range element.Relations {
-				if v.Blacklist == true {
+				if v.Blacklist  {
 					temp.ForbiddenNodes = append(temp.ForbiddenNodes, v.Node.NodeName)
 				} else {
 					temp.AllowedNodes = append(temp.AllowedNodes, v.Node.NodeName)

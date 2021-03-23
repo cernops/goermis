@@ -119,7 +119,10 @@ func AddNodeTransactions(v Relation) (err error) {
 			&Relation{
 				AliasID:   v.AliasID,
 				NodeID:    v.Node.ID,
-				Blacklist: v.Blacklist},
+				Blacklist: v.Blacklist,
+				Load:      v.Load,
+				LastCheck: v.LastCheck,
+				Secret:    v.Secret},
 		).Error; err != nil {
 			tx.Rollback()
 			return err
