@@ -16,7 +16,7 @@ Summary: CERN LB DNS Web interface
 License: ASL 2.0
 URL: https://%{import_path}
 Source: %{name}-%{version}.tgz
-BuildRequires: golang >= 1.5
+BuildRequires: golang >= 1.14
 ExclusiveArch: x86_64
 
 %description

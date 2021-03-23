@@ -1,4 +1,5 @@
 ---
+#Used in the pipeline, in landb prebuild and testing
 soap:
    soap_user: ##REPLACE_BY_USER##
    soap_password: ##REPLACE_BY_PASSWORD##
@@ -9,3 +10,22 @@ certs:
    goermis_cert: /etc/httpd/conf/ermiscert.pem
    goermis_key: /etc/httpd/conf/ermiskey.pem
    ca_cert: /etc/httpd/conf/ca.pem
+
+database:
+   adapter: mysql
+   database: ##REPLACE_BY_DB##
+   username: ##REPLACE_BY_USERNAME##
+   password: ##REPLACE_BY_DB_PASSWORD##
+   host: ##REPLACE_BY_HOST##
+   port: ##REPLACE_BY_PORT##  
+   idle_conns: 10
+   open_conns: 100
+    #in minutes
+   max_idle_time:  2
+   conn_max_lifetime: 10
+   sslmode: disable
+log:  
+  logging_file: /var/log/ermis/ermis.log
+  stdout: true
+dns:
+   manager: ##REPLACE_BY_IP##

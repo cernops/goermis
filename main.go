@@ -22,14 +22,18 @@ const (
 	Release = "3"
 )
 
+var (
+	log = bootstrap.GetLog()
+)
+
 func main() {
 	bootstrap.ParseFlags()
-	log := bootstrap.GetLog()
 	log.Info("============Service Started=============")
 
 	// Echo instance
 	echo := router.New()
-
+	db.InitDB()
+	defer db.Close()
 	//Initiate template views
 	views.InitViews(echo)
 	autoMigrateTables()
@@ -63,6 +67,7 @@ func main() {
 		err := echo.StartTLS(":8080",
 			cfg.Certs.GoermisCert,
 			cfg.Certs.GoermisKey)
+		//Avoiding uneccesary logs and failures when restarting 
 		if !strings.HasSuffix(err.Error(), "bind: address already in use") {
 			log.Fatal("Failed to start server: " + err.Error())
 
@@ -85,6 +90,6 @@ func main() {
 
 // autoMigrateTables: migrate table columns using GORM. Will not delete/change types for security reasons
 func autoMigrateTables() {
-	db.ManagerDB().AutoMigrate(&api.Alias{}, &api.Node{}, &api.Cname{}, &api.Alarm{}, &api.Relation{})
+	db.GetConn().AutoMigrate(&api.Alias{}, &api.Node{}, &api.Cname{}, &api.Alarm{}, &api.Relation{})
 
 }

@@ -24,12 +24,10 @@ var (
 //Otherwise notifies by e-mail and updates the DB
 func PeriodicAlarmCheck() {
 	var alarms []api.Alarm
-	if err := db.ManagerDB().Find(&alarms).
+	if err := db.GetConn().Find(&alarms).
 		Error; err != nil {
 		log.Error("Could not retrieve alarms", err.Error())
 	}
-	//updateAlert := db.ManagerDB().Raw("UPDATE ermis_api_alert set active = ?, last_active=?, last_check =?  where id =?")
-	//updateNullAlert, err := db.ManagerDB().Raw("UPDATE ermis_api_alert set active = ?, last_check =?  where id =?")
 
 	for _, alarm := range alarms {
 		if err := processThis(alarm); err != nil {
@@ -40,6 +38,7 @@ func PeriodicAlarmCheck() {
 
 func processThis(alarm api.Alarm) (err error) {
 	alarm.LastCheck.Time = time.Now()
+	alarm.LastCheck.Valid = true
 	newActive := false
 	if checkAlarm(alarm.Alias, alarm.Name, alarm.Parameter) {
 		log.Warn("The alert should be active")
@@ -48,37 +47,44 @@ func processThis(alarm api.Alarm) (err error) {
 			log.Info("The alert was not active before. Let's send the notification")
 			alarm.LastActive = alarm.LastCheck
 			alarm.LastActive.Valid = true
-			sendNotification(alarm.Alias, alarm.Recipient, alarm.Name, alarm.Parameter)
+			err := SendNotification(alarm.Alias, alarm.Recipient, alarm.Name, alarm.Parameter)
+			if err != nil {
+				log.Error(err)
+			}
 		}
 	}
 
 	if alarm.LastActive.Valid {
-		err = db.ManagerDB().Model(&alarm).Updates(api.Alarm{
+		err = db.GetConn().Model(&alarm).Updates(api.Alarm{
 			Active:     newActive,
 			LastActive: alarm.LastActive,
 			LastCheck:  alarm.LastCheck}).Error
 	} else {
-		err = db.ManagerDB().Model(&alarm).Updates(api.Alarm{
+		err = db.GetConn().Model(&alarm).Updates(api.Alarm{
 			Active:    newActive,
 			LastCheck: alarm.LastCheck}).Error
 	}
 	return err
 }
-func sendNotification(alias, recipient, name string, parameter int) {
+
+//SendNotification sends an e-mail to the recipient when alarm is triggered
+func SendNotification(alias, recipient, name string, parameter int) error {
 	log.Info(fmt.Sprintf("Sending a notification to %v that the alert %s on %s has been triggered (less than %d nodes)", recipient, alias, name, parameter))
 	msg := []byte("To: " + alias + "\r\n" +
 		fmt.Sprintf("Subject: Alert on the alias %s: only %d hosts\r\n\r\nThe alert %s (%d) on %s has been triggered", alias, parameter, name, parameter, alias))
-	err := smtp.SendMail("localhost:25", nil, "lbd@cern.ch", []string{recipient}, msg)
-	if err != nil {
-		log.Error(err)
-	}
+	err := smtp.SendMail("localhost:25",
+		nil,
+		"lbd@cern.ch",
+		[]string{recipient},
+		msg)
+	return err
 
 }
 
 func checkAlarm(alias, alert string, parameter int) bool {
 	log.Info(fmt.Sprintf("Checking if the alarm %s %v on %s is active", alert, parameter, alias))
 	if alert == "minimum" {
-		return checkMinimumAlarm(alias, parameter)
+		return CheckMinimumAlarm(alias, parameter)
 	}
 	log.Error(fmt.Sprintf("The alert %v (on %v) is not understood!", alert, alias))
 	return true
@@ -102,7 +108,9 @@ func getIpsFromDNS(m *dns.Msg, alias, dnsManager string, dnsType uint16, ips *[]
 	}
 	return nil
 }
-func checkMinimumAlarm(alias string, parameter int) bool {
+
+//CheckMinimumAlarm compares the threshold parameter with the number of nodes behind and alias
+func CheckMinimumAlarm(alias string, parameter int) bool {
 	m := new(dns.Msg)
 	var ips []net.IP
 	m.SetEdns0(4096, false)

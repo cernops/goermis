@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	cgorm "gitlab.cern.ch/lb-experts/goermis/db"
+	"gitlab.cern.ch/lb-experts/goermis/db"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -50,14 +50,11 @@ func aliasUpdateTransactions(a Alias) (err error) {
 //deleteTransactions deletes an entry and its relations from DB, with transactions
 func deleteTransactions(alias Alias) (err error) {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
-		//Delete alias and its cnames/alarms
 		if tx.Select(clause.Associations).
 			Delete(&alias); err != nil {
 			return errors.New("Failed to delete alias from DB with error: " + err.Error())
 
 		}
-		//Nodes are not deleted on the previous step, because
-		//of the custom many-2-many relation
 		//Delete node with no other relations
 		for _, relation := range alias.Relations {
 			if tx.Model(&relation.Node).Association("Aliases").Count() == 0 {
@@ -78,7 +75,7 @@ func deleteTransactions(alias Alias) (err error) {
 }
 
 //deleteNodeTransactions deletes  a Node from the database
-func deleteNodeTransactions(v *Relation) (err error) {
+func deleteNodeTransactions(v Relation) (err error) {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
 		//Delete relation
 		if err = tx.Set("gorm:association_autoupdate", false).
@@ -105,7 +102,7 @@ func deleteNodeTransactions(v *Relation) (err error) {
 }
 
 //addNodeTransactions adds a node in the DB
-func addNodeTransactions(v *Relation) (err error) {
+func addNodeTransactions(v Relation) (err error) {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
 		//Either create a new node or find an existing one
 		//Remember that its a many-2-many relationship, so nodes
@@ -133,7 +130,7 @@ func addNodeTransactions(v *Relation) (err error) {
 }
 
 //updatePrivilegeTransactions updates the privilege of a node from allowed to forbidden and vice versa
-func updatePrivilegeTransactions(v *Relation) (err error) {
+func updatePrivilegeTransactions(v Relation) (err error) {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
 		//Update single column blacklist in Relations table
 		if err = tx.Model(&v).
@@ -206,12 +203,13 @@ func deleteAlarmTransactions(alarm Alarm) error {
 
 // WithinTransaction  accept dBFunc as parameter call dBFunc function within transaction begin, and commit and return error from dBFunc
 func WithinTransaction(fn dBFunc) (err error) {
-	tx := cgorm.ManagerDB().Begin() // start db transaction
+	tx := db.GetConn().Begin() // start db transaction
 	defer tx.Commit()
 	err = fn(tx)
-
 	if err != nil {
+		tx.Rollback()
+		return err
 	}
-	return err
+	return nil
 
 }

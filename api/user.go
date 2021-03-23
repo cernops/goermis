@@ -23,8 +23,7 @@ func SetUser(username string) {
 	currentUser.Username = username
 
 	if currentUser.Username != "" {
-		var d auth.Group
-		currentUser.Superuser = d.CheckCud(currentUser.Username)
+		currentUser.Superuser = auth.CheckCud(currentUser.Username)
 		currentUser.Pwn = auth.GetPwn(currentUser.Username)
 	} else {
 		currentUser.Superuser = false
