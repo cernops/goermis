@@ -93,7 +93,7 @@ func (alias Alias) updateDNS(oldObject Alias) (err error) {
 
 	}
 	//2.If there is a change in cnames, update DNS
-	if !equal(alias.Cnames, oldObject.Cnames) {
+	if !EqualCnames(alias.Cnames, oldObject.Cnames) {
 		if err := alias.updateCnamesInDNS(oldObject.Cnames); err != nil {
 			return err
 		}
@@ -166,7 +166,7 @@ func (alias Alias) updateCnamesInDNS(oldCnames []Cname) error {
 		if len(alias.Cnames) != 0 {
 			for _, cname := range oldCnames {
 				//...and one of the existing cnames doesn't exist in the new list
-				if !containsCname(alias.Cnames, cname.Cname) {
+				if !ContainsCname(alias.Cnames, cname.Cname) {
 					//we delete that cname
 					if !landbsoap.Conn().DNSDelegatedAliasRemove(alias.AliasName, view, cname.Cname) {
 						return errors.New("Failed to delete existing cname " +
@@ -177,7 +177,7 @@ func (alias Alias) updateCnamesInDNS(oldCnames []Cname) error {
 
 			for _, cname := range alias.Cnames {
 				//...if a cname from the new list doesn't exist
-				if !containsCname(oldCnames, cname.Cname) {
+				if !ContainsCname(oldCnames, cname.Cname) {
 					//...we add that one
 					if !landbsoap.Conn().DNSDelegatedAliasAdd(alias.AliasName, view, cname.Cname) {
 						return errors.New("Failed to add new cname in DNS " +

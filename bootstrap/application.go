@@ -1,8 +1,8 @@
 package bootstrap
 
 import (
+	"errors"
 	"flag"
-	"fmt"
 	"io"
 
 	"os"
@@ -11,24 +11,37 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-//Config describes the yaml file
-type Config struct {
+type (
+	//Config describes the yaml file
+	Config struct {
+		App      App
+		Database Database
+		Soap     Soap
+		Certs    Certs
+		Log      Logging
+		DNS      DNS
+	}
+	//App struct describes application config parameters
 	App struct {
 		AppName    string `yaml:"app_name"`
 		AppVersion string `yaml:"app_version"`
 		AppEnv     string `yaml:"app_env"`
 	}
+	//Database struct describes database connection params
 	Database struct {
-		Adapter   string
-		Database  string
-		Username  string
-		Password  string
-		Host      string
-		Port      int
-		IdleConns int `yaml:"idle_conns"`
-		OpenConns int `yaml:"open_conns"`
-		Sslmode   string
+		Adapter         string
+		Database        string
+		Username        string
+		Password        string
+		Host            string
+		Port            int
+		IdleConns       int `yaml:"idle_conns"`
+		OpenConns       int `yaml:"open_conns"`
+		MaxIdleTime     int `yaml:"max_idle_time"`
+		ConnMaxLifetime int `yaml:"conn_max_lifetime"`
+		Sslmode         string
 	}
+	//Soap describes the params for LanDB connection
 	Soap struct {
 		SoapUser     string `yaml:"soap_user"`
 		SoapPassword string `yaml:"soap_password"`
@@ -36,19 +49,22 @@ type Config struct {
 		SoapKeynameE string `yaml:"soap_keyname_e"`
 		SoapURL      string `yaml:"soap_url"`
 	}
+	//Certs describes the service certificates
 	Certs struct {
 		GoermisCert string `yaml:"goermis_cert"`
 		GoermisKey  string `yaml:"goermis_key"`
 		CACert      string `yaml:"ca_cert"`
 	}
-	Log struct {
+	//Logging describes logging params
+	Logging struct {
 		LoggingFile string `yaml:"logging_file"`
 		Stdout      bool
 	}
+	//DNS describes the config params for the DNS Manager
 	DNS struct {
 		Manager string
 	}
-}
+)
 
 var (
 	configFileFlag = flag.String("config", "/usr/local/etc/goermis.yaml", "specify configuration file path")
@@ -56,7 +72,37 @@ var (
 	HomeFlag = flag.String("home", "/var/lib/ermis/", "specify statics path")
 	//DebugLevel enable flag
 	DebugLevel = flag.Bool("debug", false, "display debug messages")
+	//Log tesst
+	Log = log.New("\r\n")
 )
+
+func init() {
+	//Init log in the bootstrap package, since its the first that its executed
+	if *DebugLevel {
+		Log.SetLevel(1) //DEBUG
+	} else {
+		Log.SetLevel(2) //INFO
+	}
+
+	//Init log in the bootstrap package, since its the first that its executed
+
+	Log.SetHeader("${time_rfc3339} ${level} ${short_file} ${line} ")
+	file, err := os.OpenFile(GetConf().Log.LoggingFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		Log.Error("Failed to log to file, using default stderr" + err.Error())
+	}
+	if GetConf().Log.Stdout {
+		mw := io.MultiWriter(os.Stdout, file)
+		Log.SetOutput(mw)
+		Log.Info("File and console set as output")
+
+	} else {
+		Log.Info("File set as logger output")
+		Log.SetOutput(file)
+
+	}
+
+}
 
 //ParseFlags checks the command line arguments
 func ParseFlags() {
@@ -69,7 +115,7 @@ func ParseFlags() {
 func GetConf() *Config {
 	cfg, err := NewConfig(*configFileFlag)
 	if err != nil {
-		log.Fatal(err)
+		Log.Fatal(err)
 
 	}
 	return cfg
@@ -109,38 +155,14 @@ func ValidateConfigFile(path string) error {
 		return err
 	}
 	if s.IsDir() {
-		return fmt.Errorf("'%s' is a directory, not a normal file", path)
+		e := errors.New("Provided filepath for the config file is a directory")
+		log.Error(e)
+		return e
 	}
 	return nil
 }
 
-//GetLog returns a configured log instance
+//GetLog returns the log instance
 func GetLog() *log.Logger {
-	log := log.New("\r\n")
-	//Init log in the bootstrap package, since its the first that its executed
-	if *DebugLevel {
-		log.SetLevel(1) //DEBUG
-	} else {
-		log.SetLevel(2) //INFO
-	}
-
-	//Init log in the bootstrap package, since its the first that its executed
-
-	log.SetHeader("${time_rfc3339} ${level} ${short_file} ${line} ")
-	file, err := os.OpenFile(GetConf().Log.LoggingFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		log.Error("Failed to log to file, using default stderr" + err.Error())
-	}
-	if GetConf().Log.Stdout {
-		log.Info("File and console set as output")
-		mw := io.MultiWriter(os.Stdout, file)
-		log.SetOutput(mw)
-
-	} else {
-		log.Info("File set as logger output")
-		log.SetOutput(file)
-
-	}
-
-	return log
+	return Log
 }

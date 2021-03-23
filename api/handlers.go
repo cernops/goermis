@@ -2,6 +2,7 @@ package api
 
 /*This file contains the route handlers */
 import (
+	"errors"
 	"net"
 	"net/http"
 	"strconv"
@@ -10,6 +11,7 @@ import (
 	"github.com/asaskevich/govalidator"
 	"github.com/labstack/echo/v4"
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
+	"gitlab.cern.ch/lb-experts/goermis/db"
 )
 
 func init() {
@@ -22,11 +24,32 @@ var (
 	log = bootstrap.GetLog()
 )
 
-//GetAlias returns a list of ALL aliases
+//GetAlias returns aliases objects, where cnames/alarms/nodes are condensed to a list of names
 func GetAlias(c echo.Context) error {
+	queryResults, e := get(c)
+	if e != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, e.Error())
+	}
+
+	return c.JSON(http.StatusOK, parse(queryResults))
+}
+
+//GetAliasRaw returns aliases objects, where alarms/cnames/nodes objects are fully represented
+func GetAliasRaw(c echo.Context) error {
+	queryResults, e := get(c)
+	if e != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, e.Error())
+	}
+
+	return c.JSON(http.StatusOK, queryResults)
+
+}             
+/*Used from GetAlias & GetRaw to actually get the data,
+before deciding their representation format*/ 
+func get(c echo.Context) ([]Alias, error) {
 
 	var (
-		queryResults []Alias
+		queryResults = []Alias{}
 		e            error
 	)
 	username := GetUsername()
@@ -36,14 +59,15 @@ func GetAlias(c echo.Context) error {
 		//If empty values provided,the MySQL query returns all aliases
 		if queryResults, e = GetObjects("all"); e != nil {
 			log.Error("[" + username + "] " + e.Error())
-			return echo.NewHTTPError(http.StatusBadRequest, e.Error())
+			return queryResults, e
 		}
 	} else {
 		log.Info("[" + username + "] " + " is querying for alias with name/ID = " + param)
 		//Validate that the parameter is DNS-compatible
 		if !govalidator.IsDNSName(param) {
-			log.Error("[" + username + "] " + "Wrong type of query parameter.Expected alphanum, received " + param)
-			return echo.NewHTTPError(http.StatusBadRequest)
+			e := errors.New("[" + username + "] " + "Wrong type of query parameter.Expected alphanum, received " + param)
+			log.Error(e)
+			return queryResults, e
 		}
 
 		if _, err := strconv.Atoi(param); err != nil {
@@ -54,13 +78,14 @@ func GetAlias(c echo.Context) error {
 
 		if queryResults, e = GetObjects(string(param)); e != nil {
 			log.Error("[" + username + "]" + "Unable to get alias" + param + " : " + e.Error())
-			return echo.NewHTTPError(http.StatusBadRequest, e.Error())
+			return queryResults, e
 		}
 
 	}
 
 	defer c.Request().Body.Close()
-	return c.JSON(http.StatusOK, parse(queryResults))
+	return queryResults, nil
+
 }
 
 //CreateAlias creates a new alias entry
@@ -110,10 +135,15 @@ func CreateAlias(c echo.Context) error {
 
 		//We dont know the newly assigned ID for our alias
 		//We need the ID for clearing its associations
-		alias.ID = findAliasID(alias.AliasName)
+		newlycreated, err := GetObjects(alias.AliasName)
+		if err != nil {
+			//Failed to rollback the newly created alias
+			return MessageToUser(c, http.StatusBadRequest,
+				"Failed to find the stray alias "+alias.AliasName+"in DB after failing to create it, with error"+": "+err.Error(), "home.html")
+		}
 
 		//If it fails to create alias in DNS, we delete from DB what we created in the previous step.
-		if err := alias.deleteObjectInDB(); err != nil {
+		if err := newlycreated[0].deleteObjectInDB(); err != nil {
 
 			//Failed to rollback the newly created alias
 			return MessageToUser(c, http.StatusBadRequest,
@@ -121,7 +151,7 @@ func CreateAlias(c echo.Context) error {
 		}
 		//Failed to create in DNS, but managed to delete the newly created alias in DB
 		return MessageToUser(c, http.StatusBadRequest,
-			"Failed to create "+alias.AliasName+" in DNS with error"+": "+err.Error(), "home.html")
+			"Failed to create "+alias.AliasName+" in DNS", "home.html")
 	}
 	//Success message
 	return MessageToUser(c, http.StatusCreated,
@@ -221,7 +251,12 @@ func ModifyAlias(c echo.Context) error {
 	}
 	log.Info("[" + username + "] " + "Retrieved existing data for " + temp.AliasName)
 
-	alias := sanitazeInUpdate(c, retrieved[0], temp)
+	alias, err := sanitazeInUpdate(c, retrieved[0], temp)
+	if err != nil {
+		return MessageToUser(c, http.StatusBadRequest,
+			"Failed to sanitize "+temp.AliasName+" : "+err.Error(), "home.html")
+
+	}
 
 	defer c.Request().Body.Close()
 
@@ -298,10 +333,10 @@ func CheckNameDNS(c echo.Context) error {
 
 	aliasToResolve := c.QueryParam("hostname")
 	//Search cnames with the same name
-	con.Model(&Cname{}).Where("cname=?", aliasToResolve).Count(&result)
+	db.GetConn().Model(&Cname{}).Where("cname=?", aliasToResolve).Count(&result)
 	if result == 0 {
 		//Search aliases
-		con.Model(&Alias{}).Where("alias_name=?", aliasToResolve+".cern.ch").Count(&result)
+		db.GetConn().Model(&Alias{}).Where("alias_name=?", aliasToResolve+".cern.ch").Count(&result)
 	}
 	if result == 0 {
 		r, _ := net.LookupHost(aliasToResolve)

@@ -3,9 +3,37 @@ image: gitlab-registry.cern.ch/linuxsupport/cc7-base:latest
 
 include:
   - 'https://gitlab.cern.ch/linuxsupport/rpmci/raw/master/rpm-ci.yml'
-  - project: lb-experts/golbclient
-    file: .gitlab-ci_go.yml
-    ref: psaiz_devel
+
+
+.installGo14: &installGo14 |
+  mkdir /go14
+  yum install -y gcc
+  curl https://dl.google.com/go/go1.14.2.linux-amd64.tar.gz  | tar -zxC /go14
+  ln -s /go14/go/bin/go /usr/bin/go14
+  export GOPATH=/go
+  go14 get ./...
+
+
+.config: &config |
+  mkdir -p /usr/local/etc /etc/httpd/conf/
+  cp tests/landb/goermis.yaml /usr/local/etc/goermis.yaml
+  sed -i \
+    -e "s/##REPLACE_BY_USER##/${SOAPUSER}/g" \
+    -e "s/##REPLACE_BY_PASSWORD##/${SOAPPASSWORD}/g" \
+    -e "s/##REPLACE_BY_DB##/${DATABASE}/g" \
+    -e "s/##REPLACE_BY_USERNAME##/${DB_USERNAME}/g" \
+    -e "s/##REPLACE_BY_DB_PASSWORD##/${DB_PASSWORD}/g" \
+    -e "s/##REPLACE_BY_HOST##/${DB_HOST}/g" \
+    -e "s/##REPLACE_BY_PORT##/${DB_PORT}/g" \
+    -e "s/##REPLACE_BY_IP##/${DNS_MANAGER}/g" /usr/local/etc/goermis.yaml
+  echo "$ERMISCERT" > /etc/httpd/conf/ermiscert.pem
+  echo "$ERMISKEY" > /etc/httpd/conf/ermiskey.pem
+  echo "$CACERT" > /etc/httpd/conf/ca.pem
+  ls -al /etc/httpd/conf/
+  chmod 600 /etc/httpd/conf/ermiscert.pem /etc/httpd/conf/ermiskey.pem
+
+
+  
 
 variables:
   KOJI_TAG: 'lb'
@@ -37,13 +65,19 @@ build_rpm7:
   before_script:
     - *patch_version
     - yum-builddep -y --disableplugin=protectbase,priorities *.spec
-    
+
+build-go14:
+  stage: prebuild
+  script:
+    - *installGo14
+    - go14 build -race ./...
+
 behave:
   image: gitlab-registry.cern.ch/ai-config-team/ai-tools
   stage: prebuild
   allow_failure: false
   script:
-    - yum -y install krb5-workstation gcc python3-devel krb5-devel python3-requests python3-requests-kerberos
+    - yum -y install krb5-workstation gcc python3-devel krb5-devel python3-requests    python3-requests-kerberos
     - pip3 install behave 
     - cd  tests/behave
     - echo $ERMISTST_DECODED | kinit ermistst@CERN.CH
@@ -51,25 +85,15 @@ behave:
     - behave . -D ermistst=$ERMISTST -D ermists=$ERMISTS
 
 landb:
-  image: gitlab-registry.cern.ch/ai-config-team/ai-tools
+  #image: gitlab-registry.cern.ch/ai-config-team/ai-tools
   stage: prebuild
   allow_failure: false
   script:
     - *patch_version
+    - *installGo14
+    - *config
     - echo "READY TO DO THE SOAP CALL"
-    - mkdir -p /usr/local/etc /etc/httpd/conf/
-    - cp tests/landb/goermis.yaml /usr/local/etc/goermis.yaml
-    - sed -i -e "s/##REPLACE_BY_USER##/${SOAPUSER}/g" /usr/local/etc/goermis.yaml
-    - sed -i -e "s/##REPLACE_BY_PASSWORD##/${SOAPPASSWORD}/g" /usr/local/etc/goermis.yaml
-    #- cd tests/landb
-    - dnf builddep -y  *.spec
-    - yum install -y golang gcc
-    - go version
-    - echo "$ERMISCERT" > /etc/httpd/conf/ermiscert.pem
-    - echo "$ERMISKEY" > /etc/httpd/conf/ermiskey.pem
-    - ls -al /etc/httpd/conf/
-    - chmod 600 /etc/httpd/conf/ermiscert.pem /etc/httpd/conf/ermiskey.pem
-    - go test .
+    - go14 test .
 
 
 
@@ -92,5 +116,24 @@ build_docker_qa:
   variables:
     DOCKER_FILE: Dockerfile.qa
     TO: ${CI_REGISTRY_IMAGE}/qa:${CI_COMMIT_BRANCH}
+
+
+test-go14:
+  stage: test
+  allow_failure: false
+  script:
+    - *patch_version
+    - *installGo14
+    - *config
+    - echo "READY TO DO START THE CI TESTS"
+    - go14 test -v -cover ./tests/ci/...
+    - go14 test -race ./tests/ci/...
+
+bench-go14:
+  stage: test
+  script:
+    - *installGo14
+    - go14 test ./tests/benchmarking/... -bench=. -benchmem
+    - go14 test ./tests/benchmarking/... -bench=. -benchmem -race
 
 

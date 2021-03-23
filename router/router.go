@@ -51,6 +51,7 @@ func New() *echo.Echo {
 	//CLI routes
 	lbterm := e.Group("/p/api/v1")
 	lbterm.Use(api.CheckAuthorization)
+	lbterm.GET("/raw/", api.GetAliasRaw)
 	lbterm.GET("/alias/", api.GetAlias)
 	lbterm.DELETE("/alias/", api.DeleteAlias)
 	lbterm.POST("/alias/", api.CreateAlias)
