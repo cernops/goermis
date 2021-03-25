@@ -12,17 +12,6 @@ import (
 
 /*////////////Helper Functions///////////////////*/
 
-//ContainsCname returns true if a cname can be found in a list of Cname objects
-func ContainsCname(e string, s []Cname) bool {
-	for _, a := range s {
-		if a.Cname == e {
-			return true
-		}
-	}
-	return false
-
-}
-
 /*When it comes to nodes/cnames/alarms, i strived for standardization
 So instead of having some as string type and some as array, i decided to
 keep all of them as []string type. The problem arises that the current UI
@@ -31,7 +20,6 @@ echo binder we are using binds the whole string of elements in the [0] of our []
 Since, the revamp of the UI has not been part of my project scope(where we could change how data is sent),
 explode solves that issue, by splitting the element [0] when content type is form.
 */
-
 //Turn this slice []string{"a,b,c"} to this one ==> []string{"a","b","c"}
 func Explode(contentType string, slice []string) []string {
 	if contentType == "application/json" {
@@ -44,36 +32,6 @@ func Explode(contentType string, slice []string) []string {
 		log.Error("Received an unpredictable content type, not sure how to bind array fields")
 		return []string{}
 	}
-
-}
-
-//ContainsAlarm checks if an alarm object is in a slice of objects
-func ContainsAlarm(a Alarm, s []Alarm) bool {
-	for _, alarm := range s {
-		if alarm.Name == a.Name &&
-			alarm.Recipient == a.Recipient &&
-			alarm.Parameter == a.Parameter {
-			return true
-		}
-	}
-	return false
-
-}
-
-//ContainsNode checks if a node has a relation with an alias
-// and the status of that relation(allowed or forbidden)
-func ContainsNode(b Relation, a []Relation) (bool, bool) {
-	for _, v := range a {
-		if v.Node.NodeName == b.Node.NodeName {
-			if v.Blacklist == b.Blacklist {
-				//name, blacklist
-				return true, true
-			}
-			return true, false
-		}
-
-	}
-	return false, false
 
 }
 
@@ -111,11 +69,15 @@ func StringInSlice(a string, list []string) bool {
 
 //EqualCnames compares two arrays of Cname type
 func EqualCnames(cname1, cname2 []Cname) bool {
+	var (
+		intf ContainsIntf
+	)
 	if len(cname1) != len(cname2) {
 		return false
 	}
 	for _, v := range cname1 {
-		if !ContainsCname(v.Cname, cname2) {
+		intf = v
+		if !IsContained(intf, cname2) {
 			return false
 		}
 	}

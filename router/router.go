@@ -6,8 +6,8 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
-	"gitlab.cern.ch/lb-experts/goermis/ermis"
-	"gitlab.cern.ch/lb-experts/goermis/lbclient"
+	"gitlab.cern.ch/lb-experts/goermis/api/ermis"
+	"gitlab.cern.ch/lb-experts/goermis/api/lbclient"
 )
 
 var (

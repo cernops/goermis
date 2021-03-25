@@ -3,7 +3,7 @@ package lbclient
 import (
 	"fmt"
 
-	"github.com/davecgh/go-spew/spew"
+	
 	"github.com/labstack/echo/v4"
 	"gitlab.cern.ch/lb-experts/goermis/api/ermis"
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
@@ -38,12 +38,6 @@ func PostHandler(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	log.Info("UNR")
-	spew.Dump(unreg)
-
-	log.Info("LBCLIENT")
-	spew.Dump(lbclient)
-
 	if len(unreg) != 0 {
 		log.Info("Entered Registration")
 		lbclient.registerNode(unreg)

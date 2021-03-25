@@ -92,10 +92,6 @@ type (
 	dBFunc func(tx *gorm.DB) error
 )
 
-////////////////////////METHODS////////////////////////////////
-
-// A) GET object(s)
-
 //GetObjects return list of aliases if no parameters are passed or a single alias if parameters are given
 func GetObjects(param string) (query []Alias, err error) {
 
@@ -125,7 +121,7 @@ func GetObjects(param string) (query []Alias, err error) {
 
 }
 
-// B) Create single object
+////////////////////////ALIAS METHODS////////////////////////////////
 
 //CreateObjectInDB creates an alias
 func (alias Alias) createObjectInDB() (err error) {
@@ -139,8 +135,6 @@ func (alias Alias) createObjectInDB() (err error) {
 
 }
 
-// C) DELETE single object
-
 //deleteObject deletes an alias and its Relations
 func (alias Alias) deleteObjectInDB() (err error) {
 	//Delete from DB
@@ -150,8 +144,6 @@ func (alias Alias) deleteObjectInDB() (err error) {
 	return nil
 
 }
-
-// D) MODIFY single object
 
 //UpdateAlias modifies aliases and its associations
 func (alias Alias) updateAlias() (err error) {
@@ -166,12 +158,14 @@ func (alias Alias) updateAlias() (err error) {
 func (alias Alias) updateNodes() (err error) {
 	var (
 		relationsInDB []Relation
+		intf      PrivilegeIntf
 	)
 	//Let's find the registered nodes for this alias
 	db.GetConn().Preload("Node").Where("alias_id=?", alias.ID).Find(&relationsInDB)
 
 	for _, r := range relationsInDB {
-		if ok, _ := ContainsNode(r, alias.Relations); !ok {
+		intf = r
+		if ok, _ := CompareRelations(intf, alias.Relations); !ok {
 			if err = deleteNodeTransactions(r); err != nil {
 				return errors.New("Failed to delete existing node " +
 					r.Node.NodeName + " while updating, with error: " + err.Error())
@@ -179,13 +173,14 @@ func (alias Alias) updateNodes() (err error) {
 		}
 	}
 	for _, r := range alias.Relations {
-		if ok, _ := ContainsNode(r, relationsInDB); !ok {
+		intf = r
+		if ok, _ := CompareRelations(intf, relationsInDB); !ok {
 			if err = AddNodeTransactions(r); err != nil {
 				return errors.New("Failed to add new node " +
 					r.Node.NodeName + " while updating, with error: " + err.Error())
 			}
 			//If relation exists we also check if user modified its privileges
-		} else if ok, privilege := ContainsNode(r, relationsInDB); ok && !privilege {
+		} else if ok, privilege := CompareRelations(intf, relationsInDB); ok && !privilege {
 			if err = updatePrivilegeTransactions(r); err != nil {
 				return errors.New("Failed to update privilege for node " +
 					r.Node.NodeName + " while updating, with error: " + err.Error())
@@ -197,19 +192,20 @@ func (alias Alias) updateNodes() (err error) {
 
 }
 
-// E) Update the cnames
-
+//Update the cnames
 //updateCnames updates cnames in DB
 func (alias Alias) updateCnames() (err error) {
 	var (
 		cnamesInDB []Cname
+		intf       ContainsIntf
 	)
 	//Let's see what cnames are already registered for this alias
 	db.GetConn().Model(&alias).Association("Cnames").Find(&cnamesInDB)
 
 	if len(alias.Cnames) > 0 { //there are cnames, delete and add accordingly
 		for _, v := range cnamesInDB {
-			if !ContainsCname(v.Cname, alias.Cnames) {
+			intf = v
+			if !IsContained(intf, alias.Cnames) {
 				if err = deleteCnameTransactions(v); err != nil {
 					return errors.New("Failed to delete existing cname " +
 						v.Cname + " while updating, with error: " + err.Error())
@@ -218,7 +214,8 @@ func (alias Alias) updateCnames() (err error) {
 		}
 
 		for _, v := range alias.Cnames {
-			if !ContainsCname(v.Cname, cnamesInDB) {
+			intf = v
+			if !IsContained(intf, cnamesInDB) {
 				if err = addCnameTransactions(v); err != nil {
 					return errors.New("Failed to add new cname " +
 						v.Cname + " while updating, with error: " + err.Error())
@@ -238,17 +235,18 @@ func (alias Alias) updateCnames() (err error) {
 	return nil
 }
 
-// F) Update the alarms
-
+//Update the alarms
 func (alias Alias) updateAlarms() (err error) {
 	var (
 		alarmsInDB []Alarm
+		intf       ContainsIntf
 	)
 	//Let's see what alarms are already registered for this alias
 	db.GetConn().Model(&alias).Association("Alarms").Find(&alarmsInDB)
 	if len(alias.Alarms) > 0 {
 		for _, a := range alarmsInDB {
-			if !ContainsAlarm(a, alias.Alarms) {
+			intf = a
+			if !IsContained(intf, alias.Alarms) {
 				if err = deleteAlarmTransactions(a); err != nil {
 					return errors.New("Failed to delete existing alarm " +
 						a.Name + " while updating, with error: " + err.Error())
@@ -257,7 +255,8 @@ func (alias Alias) updateAlarms() (err error) {
 		}
 
 		for _, a := range alias.Alarms {
-			if !ContainsAlarm(a, alarmsInDB) {
+			intf = a
+			if !IsContained(intf, alarmsInDB) {
 				if err = addAlarmTransactions(a); err != nil {
 					return errors.New("Failed to add alarm " +
 						a.Name + ":" +

@@ -10,7 +10,7 @@ import (
 	"gitlab.cern.ch/lb-experts/goermis/alarms"
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 	"gitlab.cern.ch/lb-experts/goermis/db"
-	"gitlab.cern.ch/lb-experts/goermis/ermis"
+	"gitlab.cern.ch/lb-experts/goermis/api/ermis"
 	"gitlab.cern.ch/lb-experts/goermis/router"
 	"gitlab.cern.ch/lb-experts/goermis/views"
 )

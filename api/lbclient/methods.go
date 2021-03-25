@@ -16,25 +16,24 @@ import (
 func (lbclient *LBClient) findUnregistered() (unregistered []string, err error) {
 	var (
 		aliases []string
+		intf    ermis.PrivilegeIntf
 	)
 	for _, v := range lbclient.Status {
 		aliases = append(aliases, v.AliasName)
 	}
-	log.Info("ALIASES")
-	spew.Dump(aliases)
 	result := db.GetConn().Preload("Relations.Node").
 		Where("alias_name IN ?", aliases).
 		Find(&lbclient.Aliases)
-
-	log.Info("ALIASESII")
-	spew.Dump(lbclient.Aliases)
-
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, fmt.Errorf("there are no aliases for node %v.\nError: %v", lbclient.NodeName, result.Error)
 	}
 
 	for _, x := range lbclient.Aliases {
-		if !containsNo(lbclient.NodeName, x.Relations) {
+		intf = ermis.Relation{
+			Node: &ermis.Node{
+				NodeName: lbclient.NodeName}}
+				
+		if ok, _ := ermis.CompareRelations(intf, x.Relations); !ok {
 			unregistered = append(unregistered, x.AliasName)
 		}
 	}
@@ -43,7 +42,7 @@ func (lbclient *LBClient) findUnregistered() (unregistered []string, err error) 
 
 }
 
-func containsNo(s string, alias []ermis.Relation) bool {
+func containsNode(s string, alias []ermis.Relation) bool {
 	for _, v := range alias {
 		if v.Node.NodeName == s {
 			return true

@@ -148,13 +148,18 @@ func (alias Alias) updateView(oldObject Alias) error {
 	}
 	return nil
 }
+func ContainsCname(Cname, []Cname) {}
 
 //updateCnamesInDNS updates DNS with any possible Cnames changes.
 func (alias Alias) updateCnamesInDNS(oldCnames []Cname) error {
 	//If we reached this point, it means that theres been a change in cnames,
 	// but not in visibility. Thats why we can use either the old or new visibility value.
 	//We use the new one to minimize the number of variables.
-	var views []string
+	var (
+		views []string
+		intf ContainsIntf
+	)
+
 	views = append(views, "internal")
 	if alias.External == "yes" {
 		views = append(views, "external")
@@ -165,8 +170,9 @@ func (alias Alias) updateCnamesInDNS(oldCnames []Cname) error {
 		//If there are new cnames...
 		if len(alias.Cnames) != 0 {
 			for _, cname := range oldCnames {
+				intf = cname
 				//...and one of the existing cnames doesn't exist in the new list
-				if !ContainsCname(cname.Cname, alias.Cnames) {
+				if !IsContained(intf, alias.Cnames) {
 					//we delete that cname
 					if !landbsoap.Conn().DNSDelegatedAliasRemove(alias.AliasName, view, cname.Cname) {
 						return errors.New("Failed to delete existing cname " +
@@ -176,8 +182,9 @@ func (alias Alias) updateCnamesInDNS(oldCnames []Cname) error {
 			}
 
 			for _, cname := range alias.Cnames {
+				intf = cname
 				//...if a cname from the new list doesn't exist
-				if !ContainsCname(cname.Cname, oldCnames) {
+				if !IsContained(intf, oldCnames) {
 					//...we add that one
 					if !landbsoap.Conn().DNSDelegatedAliasAdd(alias.AliasName, view, cname.Cname) {
 						return errors.New("Failed to add new cname in DNS " +
