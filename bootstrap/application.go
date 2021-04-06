@@ -1,8 +1,8 @@
 package bootstrap
 
 import (
-	"errors"
 	"flag"
+	"fmt"
 	"io"
 
 	"os"
@@ -99,10 +99,10 @@ func init() {
 	if GetConf().Log.Stdout {
 		mw := io.MultiWriter(os.Stdout, file)
 		Log.SetOutput(mw)
-		Log.Info("File and console set as output")
+		Log.Info("file and console set as output")
 
 	} else {
-		Log.Info("File set as logger output")
+		Log.Info("file set as logger output")
 		Log.SetOutput(file)
 
 	}
@@ -160,7 +160,7 @@ func ValidateConfigFile(path string) error {
 		return err
 	}
 	if s.IsDir() {
-		e := errors.New("Provided filepath for the config file is a directory")
+		e := fmt.Errorf("provided filepath for the config file is a directory")
 		log.Error(e)
 		return e
 	}

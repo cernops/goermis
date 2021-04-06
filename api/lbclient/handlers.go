@@ -2,8 +2,8 @@ package lbclient
 
 import (
 	"fmt"
+	"net/http"
 
-	
 	"github.com/labstack/echo/v4"
 	"gitlab.cern.ch/lb-experts/goermis/api/ermis"
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
@@ -27,6 +27,7 @@ type Status struct {
 func PostHandler(c echo.Context) error {
 	var (
 		lbclient LBClient
+		status   int
 	)
 
 	if err := c.Bind(&lbclient.Status); err != nil {
@@ -36,18 +37,25 @@ func PostHandler(c echo.Context) error {
 
 	unreg, err := lbclient.findUnregistered()
 	if err != nil {
-		return err
+		log.Errorf("error while looking for the aliases where node %v is unregistered: %v", lbclient.NodeName, err)
+		status = http.StatusBadRequest
 	}
 	if len(unreg) != 0 {
 		log.Info("Entered Registration")
-		lbclient.registerNode(unreg)
+		st, err := lbclient.registerNode(unreg)
+		if err != nil {
+			log.Errorf("error while registering node %v with the aliases %v\n%v", lbclient.NodeName, unreg, err)
+			status = st
+		}
 	} else {
 		log.Info("Entered Update")
-		lbclient.updateNode()
+		st, err := lbclient.updateNode()
+		if err != nil {
+			log.Errorf("error while updating load for node %v with error %v", lbclient.NodeName, err)
+			status = st
+		}
 	}
 
-	return nil
+	return c.JSON(status, err)
 
 }
-
-

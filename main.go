@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"gitlab.cern.ch/lb-experts/goermis/alarms"
+	"gitlab.cern.ch/lb-experts/goermis/api/ermis"
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 	"gitlab.cern.ch/lb-experts/goermis/db"
-	"gitlab.cern.ch/lb-experts/goermis/api/ermis"
 	"gitlab.cern.ch/lb-experts/goermis/router"
 	"gitlab.cern.ch/lb-experts/goermis/views"
 )
@@ -40,7 +40,7 @@ func main() {
 	autoMigrateTables()
 
 	//Alarms periodic check/update
-	log.Info("24 hours passed, preparing to execution check alarms")
+
 	ticker := time.NewTicker(time.Duration(cfg.Timers.Alarms) * time.Minute)
 
 	/*done channel can be used to stop the ticker if needed,
@@ -53,11 +53,12 @@ func main() {
 				ticker.Stop()
 				return
 			case <-ticker.C:
+				log.Info("24 hours passed, preparing to execution check alarms")
 				alarms.PeriodicAlarmCheck()
 			}
 		}
 	}()
-	log.Info("Alarms updated")
+	log.Info("alarms updated")
 	/* Start server
 	       Error handling is done a bit differently in this situation. The reason is that
 		   when server is restarted we force it to reuse the same socket. Despite being successfully
@@ -78,9 +79,11 @@ func main() {
 
 	// Wait for interrupt signal to gracefully shutdown the server with
 	// a timeout of 10 seconds. It is needed to accomplish socket recycling
-	quit := make(chan os.Signal)
+	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
-	<-quit
+	s := <-quit
+	log.Infof("received quit signal %v", s)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := echo.Shutdown(ctx); err != nil {

@@ -6,23 +6,23 @@ by three struct types*/
 /*ContainsIntf is an interface for checking if a specific object
 is part of a slice with the same element types*/
 type ContainsIntf interface {
-	Contains(interface{}) bool
+	contains(interface{}) bool
 }
 
 /*PrivilegeIntf is an interface for comparing the privileges of two Relations objects*/
 type PrivilegeIntf interface {
-	Compare(interface{}) (bool, bool)
+	compare(interface{}) (bool, bool)
 }
 
-func IsContained(ifc ContainsIntf, r interface{}) bool {
-	return ifc.Contains(r)
+func Contains(ifc ContainsIntf, r interface{}) bool {
+	return ifc.contains(r)
 }
-func CompareRelations(ifc PrivilegeIntf, r interface{}) (bool, bool) {
-	return ifc.Compare(r)
+func Compare(ifc PrivilegeIntf, r interface{}) (bool, bool) {
+	return ifc.compare(r)
 }
 
 //Contains returns true if a cname can be found in a list of Cname objects
-func (e Cname) Contains(s interface{}) bool {
+func (e Cname) contains(s interface{}) bool {
 	var slice []Cname
 	switch s := s.(type) {
 	case []Cname:
@@ -38,7 +38,7 @@ func (e Cname) Contains(s interface{}) bool {
 }
 
 //ContainsAlarm checks if an alarm object is in a slice of objects
-func (a Alarm) Contains(s interface{}) bool {
+func (a Alarm) contains(s interface{}) bool {
 	var slice []Alarm
 	switch s := s.(type) {
 	case []Alarm:
@@ -55,7 +55,7 @@ func (a Alarm) Contains(s interface{}) bool {
 
 }
 
-func (r Relation) Compare(a interface{}) (bool, bool) {
+func (r Relation) compare(a interface{}) (bool, bool) {
 	var (
 		slice []Relation
 	)
@@ -77,3 +77,4 @@ func (r Relation) Compare(a interface{}) (bool, bool) {
 	return false, false
 
 }
+

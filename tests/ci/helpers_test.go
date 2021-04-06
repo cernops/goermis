@@ -24,13 +24,13 @@ func TestContainsCname(t *testing.T) {
 	}
 	intf = ExistingCname
 	fmt.Println("Now we will test if the existing cname can be found")
-	if !ermis.IsContained(intf, cnames) {
+	if !ermis.Contains(intf, cnames) {
 		t.Errorf("Could not find cname %v even though it exists", ExistingCname)
 
 	}
 	fmt.Println("Now we will test it with a non-existing cname")
 	intf = NonExistingCname
-	if ermis.IsContained(intf, cnames) {
+	if ermis.Contains(intf, cnames) {
 		t.Errorf("We found the cname %v even though it should not exist", NonExistingCname)
 
 	}
@@ -104,7 +104,7 @@ func TestContainsAlarm(t *testing.T) {
 	fmt.Println("Now we will test if the alarm can be found")
 	for _, tc := range testCases {
 		intf = tc.input
-		output := ermis.IsContained(intf, alarms)
+		output := ermis.Contains(intf, alarms)
 		if output != tc.expected {
 			t.Errorf("Failed in TestContainsAlarm\nFAILED CASE ID:%v\nI\n%v\nEXPECTED:\n%v\nBut RECEIVED:\n%v\n", tc.caseID, tc.input, tc.expected, output)
 		}
@@ -176,7 +176,7 @@ func TestContainsNode(t *testing.T) {
 
 	for _, tc := range testCases {
 		var intf ermis.PrivilegeIntf = tc.input
-		if output1, output2 := ermis.CompareRelations(intf, relations); output1 != tc.expectedName || output2 != tc.expectedBlacklist {
+		if output1, output2 := ermis.Compare(intf, relations); output1 != tc.expectedName || output2 != tc.expectedBlacklist {
 			t.Errorf("We did not receive what we expected for %v\nFAILED CASE ID:%v\nWE RECEIVED:\n %v\n%v\nWE EXPECTED:\n %v\n%v\n", tc.input.Node.NodeName, tc.caseID, output1,output2, tc.expectedName, tc.expectedBlacklist)
 		}
 

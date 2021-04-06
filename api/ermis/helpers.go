@@ -77,7 +77,7 @@ func EqualCnames(cname1, cname2 []Cname) bool {
 	}
 	for _, v := range cname1 {
 		intf = v
-		if !IsContained(intf, cname2) {
+		if !Contains(intf, cname2) {
 			return false
 		}
 	}
@@ -88,6 +88,12 @@ func EqualCnames(cname1, cname2 []Cname) bool {
 
 //customValidators adds our new tags in the govalidator
 func customValidators() {
+	govalidator.TagMap["hash"] = govalidator.Validator(func(str string) bool {
+		len := "60"
+		match, _ := regexp.MatchString("^[a-f0-9]{"+len+"}$", str)
+		return match
+	})
+
 	govalidator.TagMap["nodes"] = govalidator.Validator(func(str string) bool {
 		if len(str) > 0 {
 			var allowed = regexp.MustCompile(`^[a-z][a-z0-9\-]*[a-z0-9]$`)
@@ -189,3 +195,4 @@ func MessageToUser(c echo.Context, status int, message string, page string) erro
 		"Host":    httphost,
 	})
 }
+
