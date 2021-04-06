@@ -177,7 +177,7 @@ func TestContainsNode(t *testing.T) {
 	for _, tc := range testCases {
 		var intf ermis.PrivilegeIntf = tc.input
 		if output1, output2 := ermis.Compare(intf, relations); output1 != tc.expectedName || output2 != tc.expectedBlacklist {
-			t.Errorf("We did not receive what we expected for %v\nFAILED CASE ID:%v\nWE RECEIVED:\n %v\n%v\nWE EXPECTED:\n %v\n%v\n", tc.input.Node.NodeName, tc.caseID, output1,output2, tc.expectedName, tc.expectedBlacklist)
+			t.Errorf("We did not receive what we expected for %v\nFAILED CASE ID:%v\nWE RECEIVED:\n %v\n%v\nWE EXPECTED:\n %v\n%v\n", tc.input.Node.NodeName, tc.caseID, output1, output2, tc.expectedName, tc.expectedBlacklist)
 		}
 
 	}
@@ -481,7 +481,6 @@ func TestValidation(t *testing.T) {
 		{caseID: 7,
 			input: ermis.Alias{
 				AliasName: "alias.cern.ch",
-
 				BestHosts: 1,
 				External:  "", //empty field
 				Hostgroup: "aiermis",
@@ -670,7 +669,7 @@ func TestValidation(t *testing.T) {
 	for _, tc := range testCases {
 		output, e := govalidator.ValidateStruct(tc.input)
 		if output != tc.expected {
-			t.Errorf("Failed in TestValidation\nFAILED CASE ID:%v\nINPUT:\n%v\nEXPECTED:\n%v\nRECEIVED:\n%v\n", tc.caseID, tc.input, tc.expected, output)
+			t.Errorf("Failed in TestValidation\nFAILED CASE ID:%v\nINPUT:\n%+v\nEXPECTED:\n%v\nRECEIVED:\n%v\n", tc.caseID, tc.input, tc.expected, output)
 			t.Error(e)
 		}
 	}

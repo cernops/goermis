@@ -195,4 +195,3 @@ func MessageToUser(c echo.Context, status int, message string, page string) erro
 		"Host":    httphost,
 	})
 }
-

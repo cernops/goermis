@@ -84,7 +84,7 @@ type (
 		ID               int          `  gorm:"unique;not null;auto_increment;primaryKey"     valid:"optional,int" `
 		NodeName         string       `  gorm:"not null;type:varchar(40);unique"              valid:"required, nodes"`
 		LastModification sql.NullTime `                                                       valid:"-"`
-		Hostgroup        string       `  gorm:"type:varchar(40);not null"                     valid:"optional"`
+		Hostgroup        string       `  gorm:"type:varchar(40);not null"                     valid:"optional, hostgroup"`
 		Aliases          []Relation   `                                                       valid:"optional"`
 	}
 
