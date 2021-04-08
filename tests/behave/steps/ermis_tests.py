@@ -312,7 +312,8 @@ def step_impl(context, req):  # pylint:disable=too-many-branches,too-many-statem
         except Exception as e:
             print(str(e))
             assert False
-        assert data[u'objects'][0][u'AllowedNodes'][0] == 'test1.cern.ch'
+        nodename = data[u'objects'][0][u'AllowedNodes'][0].split(":")[0]
+        assert nodename == 'test1.cern.ch'
     elif req == "have updated nodes":
         try:
             context.response = requests.get(url, params={
@@ -321,7 +322,8 @@ def step_impl(context, req):  # pylint:disable=too-many-branches,too-many-statem
         except Exception as e:
             print(str(e))
             assert False
-        assert data[u'objects'][0][u'ForbiddenNodes'][0] == 'test1.cern.ch'
+        nodename = data[u'objects'][0][u'AllowedNodes'][0].split(":")[0]
+        assert nodename == 'test1.cern.ch'
     elif req == "not have node":
         try:
             context.response = requests.get(url, params={
