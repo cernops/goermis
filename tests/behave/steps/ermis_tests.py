@@ -110,9 +110,9 @@ def step_impl(context, existence):
     print(allowed)
     print(forbidden)
     if existence == "exists":
-        assert node in allowed or node in forbidden
+        assert allowed != [] or forbidden != []
     elif existence == "does not exist":
-        assert node not in allowed and node not in forbidden
+        assert allowed != [] and forbidden != []
 
 
 @given('the Alarm "{existence}"')  # pylint: disable=undefined-variable
