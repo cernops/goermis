@@ -35,6 +35,7 @@ func Explode(contentType string, slice []string) []string {
 
 }
 
+
 //FindNodeID returns the ID of a node. If it doesnt exists, returns 0
 func FindNodeID(name string, relations []Relation) int {
 	for _, n := range relations {

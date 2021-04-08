@@ -240,13 +240,20 @@ func sanitazeInUpdate(c echo.Context, current Alias, new Resource) (Alias, error
 		if len(field) != 0 {
 			split := Explode(contentType, field)
 			for _, node := range split {
+				nameload := strings.Split(node, ":")
+				loadtoInt,err := strconv.Atoi(nameload[1])
+				if err != nil{
+					return Alias{}, err
+				}
+		
 				current.Relations = append(current.Relations, Relation{
 					AliasID:   current.ID,
-					NodeID:    FindNodeID(node, copyOfRelations),
+					NodeID:    FindNodeID(nameload[0], copyOfRelations),
 					Blacklist: k,
+					Load: loadtoInt,
 					Node: &Node{
-						ID:       FindNodeID(node, copyOfRelations),
-						NodeName: node,
+						ID:       FindNodeID(nameload[0], copyOfRelations),
+						NodeName: nameload[0],
 						LastModification: sql.NullTime{
 							Time:  time.Now(),
 							Valid: true,
