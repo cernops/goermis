@@ -134,9 +134,9 @@ func CreateAlias(c echo.Context) error {
 		username, alias.AliasName)
 
 	//Create in DNS
-	if err := alias.createInDNS(); err != nil {
-		log.Errorf("[%v] failed to create entry in DNS, initiating rollback for alias %v",
-			username, alias.AliasName)
+	if errd := alias.createInDNS(); errd != nil {
+		log.Errorf("[%v] failed to create entry in DNS, initiating rollback for alias %v\nError:%v",
+			username, alias.AliasName, errd)
 
 		//We dont know the newly assigned ID for our alias
 		//We need the ID for clearing its associations
@@ -144,7 +144,7 @@ func CreateAlias(c echo.Context) error {
 		if err != nil {
 			//Failed to rollback the newly created alias
 			return MessageToUser(c, http.StatusBadRequest,
-				"failed to find the stray alias "+alias.AliasName+"in DB after failing to create it, with error"+": "+err.Error(), "home.html")
+				"could not find the stray alias "+alias.AliasName+"in DB after failing to create it, with error"+": "+err.Error(), "home.html")
 		}
 
 		//If it fails to create alias in DNS, we delete from DB what we created in the previous step.
@@ -152,11 +152,11 @@ func CreateAlias(c echo.Context) error {
 
 			//Failed to rollback the newly created alias
 			return MessageToUser(c, http.StatusBadRequest,
-				"failed to delete stray alias "+alias.AliasName+"from DB after failing to create in DNS, with error"+": "+err.Error(), "home.html")
+				"found stray alias "+alias.AliasName+" but failed to delete it from DB after failing to create in DNS, with error: "+err.Error(), "home.html")
 		}
 		//Failed to create in DNS, but managed to delete the newly created alias in DB
 		return MessageToUser(c, http.StatusBadRequest,
-			"failed to create "+alias.AliasName+" in DNS", "home.html")
+			"failed to create "+alias.AliasName+" in DNS, but managed to delete the new entry from database.Error: "+errd.Error(), "home.html")
 	}
 	//Success message
 	return MessageToUser(c, http.StatusCreated,

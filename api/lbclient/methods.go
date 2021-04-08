@@ -2,7 +2,6 @@ package lbclient
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -10,24 +9,23 @@ import (
 	"gitlab.cern.ch/lb-experts/goermis/api/ermis"
 	"gitlab.cern.ch/lb-experts/goermis/db"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
 
-func (lbclient LBClient) findUnregistered() (unregistered []string, err error) {
+func (lbclient *LBClient) findUnregistered() (unregistered []string, err error) {
 	var (
 		aliases []string
 		intf    ermis.PrivilegeIntf
 	)
+	log.Infof("checking if node %v is registered on the aliases it reported %v ", lbclient.NodeName, lbclient.Status)
 	for _, v := range lbclient.Status {
 		aliases = append(aliases, v.AliasName)
 	}
-	result := db.GetConn().Preload("Relations.Node").
+	db.GetConn().Preload("Relations.Node").
 		Where("alias_name IN ?", aliases).
 		Find(&lbclient.Aliases)
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, fmt.Errorf("there are no aliases for node %v.\nError: %v", lbclient.NodeName, result.Error)
+	if len(lbclient.Aliases) == 0 {
+		return nil, fmt.Errorf("there are no aliases for node %v", lbclient.NodeName)
 	}
-
 	for _, x := range lbclient.Aliases {
 		intf = ermis.Relation{
 			Node: &ermis.Node{
@@ -37,12 +35,12 @@ func (lbclient LBClient) findUnregistered() (unregistered []string, err error) {
 			unregistered = append(unregistered, x.AliasName)
 		}
 	}
-
+	log.Infof("found these aliases for which node %v is unregistered:%v", lbclient.NodeName, unregistered)
 	return unregistered, nil
 
 }
 
-func (lbclient LBClient) findStatus(s string) (status Status) {
+func (lbclient *LBClient) findStatus(s string) (status Status) {
 	for _, v := range lbclient.Status {
 		if v.AliasName == s {
 			return v
@@ -51,15 +49,19 @@ func (lbclient LBClient) findStatus(s string) (status Status) {
 	return Status{}
 }
 
-func (lbclient LBClient) registerNode(unreg []string) (int, error) {
+func (lbclient *LBClient) registerNode(unreg []string) (int, error) {
+	log.Infof("started registration procedure for node %v in aliases %v", lbclient.NodeName, unreg)
 	for _, alias := range lbclient.Aliases {
 		if ermis.StringInSlice(alias.AliasName, unreg) {
-
 			status := lbclient.findStatus(alias.AliasName)
-			if compareSecret(status, alias.Secret, lbclient.NodeName) != nil {
-				_, err := fmt.Printf("unauthorized to update the load for node %v and alias %v, secret missmatch", lbclient.NodeName, status.AliasName)
+
+			log.Infof("checking if node %v is authorized to register on alias %v", lbclient.NodeName, alias.AliasName)
+			if bcrypt.CompareHashAndPassword([]byte(alias.Secret), []byte(status.Secret)) != nil {
+				err := fmt.Errorf("unauthorized to register the load for node %v and alias %v, secret missmatch", lbclient.NodeName, status.AliasName)
 				return http.StatusUnauthorized, err
 			}
+
+			log.Infof("preparing the relation between node %v and alias %v", lbclient.NodeName, alias.AliasName)
 			relation := ermis.Relation{
 				AliasID:   alias.ID,
 				NodeID:    0,
@@ -78,25 +80,33 @@ func (lbclient LBClient) registerNode(unreg []string) (int, error) {
 					Valid: true,
 				},
 			}
+
+			log.Infof("ready to create the relation for node %v and alias %v", lbclient.NodeName, alias.AliasName)
 			err := ermis.AddNodeTransactions(relation)
 			if err != nil {
 				return http.StatusBadRequest, err
+			} else {
+				log.Infof("successful registration for node %v on alias %v", lbclient.NodeName, alias.AliasName)
 			}
 
 		}
 
 	}
-
+	log.Infof("done with the registration for node %v. exiting...", lbclient.NodeName)
 	return http.StatusCreated, nil
 }
 
 func (lbclient LBClient) updateNode() (int, error) {
+	log.Infof("started registration procedure for node %v in every alias", lbclient.NodeName)
 	for _, alias := range lbclient.Aliases {
 		status := lbclient.findStatus(alias.AliasName)
-		if compareSecret(status, alias.Secret, lbclient.NodeName) != nil {
-			_, err := fmt.Printf("unauthorized to update the load for node %v and alias %v, secret missmatch", lbclient.NodeName, status.AliasName)
+
+		log.Infof("checking if node %v is authorized to update alias %v", lbclient.NodeName, alias.AliasName)
+		if bcrypt.CompareHashAndPassword([]byte(alias.Secret), []byte(status.Secret)) != nil {
+			err := fmt.Errorf("unauthorized to update the load for node %v and alias %v, secret missmatch", lbclient.NodeName, status.AliasName)
 			return http.StatusUnauthorized, err
 		}
+		log.Infof("preparing to update the load for node %v and alias %v", lbclient.NodeName, alias.AliasName)
 		for _, rel := range alias.Relations {
 			if rel.Node.NodeName == lbclient.NodeName {
 				err := db.GetConn().Select("load", "last_check").
@@ -111,12 +121,13 @@ func (lbclient LBClient) updateNode() (int, error) {
 					return http.StatusBadRequest, err
 				}
 			} else {
-				log.Errorf("Could not find the relation between alias %v and node %v, while updating load", alias, lbclient.NodeName)
+				log.Errorf("could not find the relation between alias %v and node %v, while updating load", alias, lbclient.NodeName)
 			}
 
 		}
 
 	}
+	log.Infof("successful load update for node %v. exiting...", lbclient.NodeName)
 	return http.StatusOK, nil
 }
 
@@ -128,8 +139,3 @@ func (lbclient LBClient) saltAndHash(status Status) []byte {
 	}
 	return hashedPassword
 }*/
-
-func compareSecret(status Status, regSecret, node string) error {
-	return bcrypt.CompareHashAndPassword([]byte(regSecret), []byte(status.Secret))
-
-}

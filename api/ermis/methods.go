@@ -33,11 +33,11 @@ type (
 		Hostgroup        string       `  gorm:"type:longtext;not null"                valid:"required,hostgroup"`
 		User             string       `  gorm:"type:varchar(40);not null"             valid:"optional,alphanum" `
 		TTL              int          `  gorm:"type:smallint(6);default:60;not null"  valid:"optional,int"`
-		LastModification sql.NullTime `  gorm:"type:date"                             valid:"-"`
+		LastModification sql.NullTime `  gorm:"type:date;not null"                             valid:"-"`
 		Cnames           []Cname      `  gorm:"foreignkey:CnameAliasID"               valid:"optional"`
 		Relations        []Relation   `                                               valid:"optional"`
 		Alarms           []Alarm      `  gorm:"foreignkey:AlarmAliasID"               valid:"optional" `
-		Secret           string       `valid:"optional,hash"`
+		Secret           string       `  gorm:"type:longtext;not null"                valid:"optional,hash"`
 	}
 
 	/*For future reference:

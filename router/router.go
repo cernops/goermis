@@ -5,13 +5,8 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 	"gitlab.cern.ch/lb-experts/goermis/api/ermis"
 	"gitlab.cern.ch/lb-experts/goermis/api/lbclient"
-)
-
-var (
-	log = bootstrap.GetLog()
 )
 
 //New Echo Context
@@ -61,7 +56,6 @@ func New() *echo.Echo {
 	//lbclients
 	lbc := e.Group("/lb/api/v1")
 	lbc.POST("/lbclient/", lbclient.PostHandler)
-	//lbc.GET("/lbclient/", lbclient.GetAll)
 
 	return e
 }

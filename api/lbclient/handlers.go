@@ -1,7 +1,6 @@
 package lbclient
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -27,35 +26,35 @@ type Status struct {
 func PostHandler(c echo.Context) error {
 	var (
 		lbclient LBClient
-		status   int
+		status   int = http.StatusOK
 	)
 
 	if err := c.Bind(&lbclient.Status); err != nil {
-		fmt.Println("Failed in Bind for handler Update LBClient")
+		log.Error("failed in Bind for handler Update LBClient")
 	}
 	lbclient.NodeName = "node1.cern.ch"
-
+	log.Infof("node %v sent its status, first lets check if its registered on every alias", lbclient.NodeName)
 	unreg, err := lbclient.findUnregistered()
 	if err != nil {
 		log.Errorf("error while looking for the aliases where node %v is unregistered: %v", lbclient.NodeName, err)
 		status = http.StatusBadRequest
 	}
 	if len(unreg) != 0 {
-		log.Info("Entered Registration")
-		st, err := lbclient.registerNode(unreg)
+		log.Infof("preparing to register node %v in the following aliases:%v", lbclient.NodeName, unreg)
+		regstatus, err := lbclient.registerNode(unreg)
 		if err != nil {
-			log.Errorf("error while registering node %v with the aliases %v\n%v", lbclient.NodeName, unreg, err)
-			status = st
+			log.Errorf("error while registering node %v error: %v", lbclient.NodeName, err)
+			status = regstatus
 		}
 	} else {
-		log.Info("Entered Update")
-		st, err := lbclient.updateNode()
+		log.Infof("node %v is registered on every alias it reported, lets proceed with the load update", lbclient.NodeName)
+		updstatus, err := lbclient.updateNode()
 		if err != nil {
 			log.Errorf("error while updating load for node %v with error %v", lbclient.NodeName, err)
-			status = st
+			status = updstatus
 		}
 	}
 
-	return c.JSON(status, err)
+	return c.NoContent(status)
 
 }
