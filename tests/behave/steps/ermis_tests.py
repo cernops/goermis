@@ -112,7 +112,7 @@ def step_impl(context, existence):
     if existence == "exists":
         assert allowed != [] or forbidden != []
     elif existence == "does not exist":
-        assert allowed != [] and forbidden != []
+        assert allowed == [] and forbidden == []
 
 
 @given('the Alarm "{existence}"')  # pylint: disable=undefined-variable
