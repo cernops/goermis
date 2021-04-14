@@ -110,9 +110,9 @@ def step_impl(context, existence):
     print(allowed)
     print(forbidden)
     if existence == "exists":
-        assert node in allowed or node in forbidden
+        assert allowed != [] or forbidden != []
     elif existence == "does not exist":
-        assert node not in allowed and node not in forbidden
+        assert allowed == [] and forbidden == []
 
 
 @given('the Alarm "{existence}"')  # pylint: disable=undefined-variable
@@ -322,7 +322,7 @@ def step_impl(context, req):  # pylint:disable=too-many-branches,too-many-statem
         except Exception as e:
             print(str(e))
             assert False
-        nodename = data[u'objects'][0][u'AllowedNodes'][0].split(":")[0]
+        nodename = data[u'objects'][0][u'ForbiddenNodes'][0].split(":")[0]
         assert nodename == 'test1.cern.ch'
     elif req == "not have node":
         try:
