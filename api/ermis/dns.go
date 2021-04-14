@@ -157,7 +157,7 @@ func (alias Alias) updateCnamesInDNS(oldCnames []Cname) error {
 	//We use the new one to minimize the number of variables.
 	var (
 		views []string
-		intf ContainsIntf
+		intf  ContainsIntf
 	)
 
 	views = append(views, "internal")

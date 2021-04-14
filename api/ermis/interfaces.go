@@ -77,4 +77,3 @@ func (r Relation) compare(a interface{}) (bool, bool) {
 	return false, false
 
 }
-

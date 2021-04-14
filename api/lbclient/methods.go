@@ -35,7 +35,6 @@ func (lbclient *LBClient) findUnregistered() (unregistered []string, err error) 
 			unregistered = append(unregistered, x.AliasName)
 		}
 	}
-	log.Infof("found these aliases for which node %v is unregistered:%v", lbclient.NodeName, unregistered)
 	return unregistered, nil
 
 }

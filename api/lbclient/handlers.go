@@ -32,7 +32,7 @@ func PostHandler(c echo.Context) error {
 	if err := c.Bind(&lbclient.Status); err != nil {
 		log.Error("failed in Bind for handler Update LBClient")
 	}
-	lbclient.NodeName = "node1.cern.ch"
+	lbclient.NodeName = c.Request().Header.Get("X-Forwarded-Host")
 	log.Infof("node %v sent its status, first lets check if its registered on every alias", lbclient.NodeName)
 	unreg, err := lbclient.findUnregistered()
 	if err != nil {
