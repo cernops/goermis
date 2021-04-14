@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-
 	"os"
 
 	"github.com/labstack/gommon/log"

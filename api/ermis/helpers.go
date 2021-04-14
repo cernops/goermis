@@ -8,6 +8,11 @@ import (
 
 	"github.com/asaskevich/govalidator"
 	"github.com/labstack/echo/v4"
+	"gitlab.cern.ch/lb-experts/goermis/db"
+)
+
+var (
+	conn = db.GetConn()
 )
 
 /*////////////Helper Functions///////////////////*/
