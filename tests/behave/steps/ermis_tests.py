@@ -146,7 +146,7 @@ def step_impl(context, req):  # pylint:disable=too-many-branches,too-many-statem
             alias_id = data['objects'][0]['alias_id']
             print(alias_id)
             alias_hostgroup = data['objects'][0]['hostgroup']
-            payload = {"alias_name": example_alias_name, "behaviour": "mindless", "best_hosts": 32,
+            payload = {"alias_name": example_alias_name, "best_hosts": 32,
                        "external": "external", "metric": "cmsfrontier",
                        "polling_interval": 300, "statistics": "none", "clusters": "none", "tenant": "", "hostgroup": alias_hostgroup}
             context.response = requests.patch(url + str(alias_id) + "/", data=json.dumps(
@@ -162,13 +162,13 @@ def step_impl(context, req):  # pylint:disable=too-many-branches,too-many-statem
                 new_hostgroup = 'bi'
             elif alias_hostgroup == 'bi':
                 new_hostgroup = 'aiermis'
-            payload = {"alias_name": example_alias_name, "behaviour": "mindless", "best_hosts": 2,
+            payload = {"alias_name": example_alias_name, "best_hosts": 2,
                        "external": "external", "metric": "cmsfrontier",
                        "polling_interval": 300, "statistics": "none", "clusters": "none", "tenant": "", "hostgroup": new_hostgroup}
             context.response = requests.patch(url + str(alias_id) + "/", data=json.dumps(
                 payload), headers=headers, auth=HTTPKerberosAuth(), verify=cafile)
         elif req == "post":
-            payload = {"alias_name": example_alias_name, "behaviour": "mindless", "best_hosts": 2,
+            payload = {"alias_name": example_alias_name, "best_hosts": 2,
                        "external": "external", "metric": "cmsfrontier",
                        "polling_interval": 300, "statistics": "none", "clusters": "none", "tenant": "", "hostgroup": context.hostgroup}
             context.response = requests.post(url, data=json.dumps(
@@ -183,7 +183,7 @@ def step_impl(context, req):  # pylint:disable=too-many-branches,too-many-statem
             context.response = requests.delete(
                 url, params=params, headers=headers, auth=HTTPKerberosAuth(), verify=cafile)
         elif req == "malformed post":
-            payload = {"alias_name": "test-alias-behavs_", "behaviour": "mindless", "best_hosts": "2sd",
+            payload = {"alias_name": "test-alias-behavs_", "best_hosts": "2sd",
                        "external": "external", "metric": "cmsfrontier",
                        "polling_interval": "ad3f00", "statistics": "none", "clusters": "none", "tenant": "", "hostgroup": ""}
             context.response = requests.post(url, data=json.dumps(
@@ -194,7 +194,7 @@ def step_impl(context, req):  # pylint:disable=too-many-branches,too-many-statem
             data = context.response.json()
             alias_id = data['objects'][0]['alias_id']
             alias_hostgroup = data['objects'][0]['hostgroup']
-            payload = {"AllowedNodes": [node], "ForbiddenNodes": [], "alias_name": example_alias_name, "behaviour": "mindless", "best_hosts": 2,
+            payload = {"AllowedNodes": [node], "ForbiddenNodes": [], "alias_name": example_alias_name, "best_hosts": 2,
                        "external": "external", "metric": "cmsfrontier",
                        "polling_interval": 300, "statistics": "none", "clusters": "none", "tenant": "", "hostgroup": alias_hostgroup}
             context.response = requests.patch(url + str(alias_id) + "/", data=json.dumps(
@@ -205,7 +205,7 @@ def step_impl(context, req):  # pylint:disable=too-many-branches,too-many-statem
             data = context.response.json()
             alias_id = data['objects'][0]['alias_id']
             alias_hostgroup = data['objects'][0]['hostgroup']
-            payload = {"AllowedNodes": [], "ForbiddenNodes": [node], "alias_name": example_alias_name, "behaviour": "mindless", "best_hosts": 2,
+            payload = {"AllowedNodes": [], "ForbiddenNodes": [node], "alias_name": example_alias_name, "best_hosts": 2,
                        "external": "external", "metric": "cmsfrontier",
                        "polling_interval": 300, "statistics": "none", "clusters": "none", "tenant": "", "hostgroup": alias_hostgroup}
             context.response = requests.patch(url + str(alias_id) + "/", data=json.dumps(
@@ -216,7 +216,7 @@ def step_impl(context, req):  # pylint:disable=too-many-branches,too-many-statem
             data = context.response.json()
             alias_id = data['objects'][0]['alias_id']
             alias_hostgroup = data['objects'][0]['hostgroup']
-            payload = {"AllowedNodes": [], "ForbiddenNodes": [], "alias_name": example_alias_name, "behaviour": "mindless", "best_hosts": 2,
+            payload = {"AllowedNodes": [], "ForbiddenNodes": [], "alias_name": example_alias_name, "best_hosts": 2,
                        "external": "external", "metric": "cmsfrontier",
                        "polling_interval": 300, "statistics": "none", "clusters": "none", "tenant": "", "hostgroup": alias_hostgroup}
             context.response = requests.patch(url + str(alias_id) + "/", data=json.dumps(
@@ -228,7 +228,7 @@ def step_impl(context, req):  # pylint:disable=too-many-branches,too-many-statem
             data = context.response.json()
             alias_id = data['objects'][0]['alias_id']
             alias_hostgroup = data['objects'][0]['hostgroup']
-            payload = {"alarms": [alarm], "alias_name": example_alias_name, "behaviour": "mindless", "best_hosts": 2,
+            payload = {"alarms": [alarm], "alias_name": example_alias_name, "best_hosts": 2,
                        "external": "external", "metric": "cmsfrontier",
                        "polling_interval": 300, "statistics": "none", "clusters": "none", "tenant": "", "hostgroup": alias_hostgroup}
             context.response = requests.patch(url + str(alias_id) + "/", data=json.dumps(
@@ -240,7 +240,7 @@ def step_impl(context, req):  # pylint:disable=too-many-branches,too-many-statem
             data = context.response.json()
             alias_id = data['objects'][0]['alias_id']
             alias_hostgroup = data['objects'][0]['hostgroup']
-            payload = {"alarms": ["minimum:lbd-experts@cern.ch:2"], "alias_name": example_alias_name, "behaviour": "mindless", "best_hosts": 2,
+            payload = {"alarms": ["minimum:lbd-experts@cern.ch:2"], "alias_name": example_alias_name, "best_hosts": 2,
                        "external": "external", "metric": "cmsfrontier",
                        "polling_interval": 300, "statistics": "none", "clusters": "none", "tenant": "", "hostgroup": alias_hostgroup}
             context.response = requests.patch(url + str(alias_id) + "/", data=json.dumps(
@@ -252,7 +252,7 @@ def step_impl(context, req):  # pylint:disable=too-many-branches,too-many-statem
             data = context.response.json()
             alias_id = data['objects'][0]['alias_id']
             alias_hostgroup = data['objects'][0]['hostgroup']
-            payload = {"alarms": [], "alias_name": example_alias_name, "behaviour": "mindless", "best_hosts": 2,
+            payload = {"alarms": [], "alias_name": example_alias_name, "best_hosts": 2,
                        "external": "external", "metric": "cmsfrontier",
                        "polling_interval": 300, "statistics": "none", "clusters": "none", "tenant": "", "hostgroup": alias_hostgroup}
             context.response = requests.patch(url + str(alias_id) + "/", data=json.dumps(
