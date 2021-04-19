@@ -373,7 +373,6 @@ func TestValidation(t *testing.T) {
 			input: ermis.Alias{
 				ID:              1,
 				AliasName:       "seed.cern.ch",
-				Behaviour:       "mindless",
 				BestHosts:       1,
 				External:        "no",
 				Metric:          "cmsfrontier",
@@ -446,19 +445,8 @@ func TestValidation(t *testing.T) {
 			},
 			expected: false,
 		},
-		//Case 4: Wrong Behaviour field
+		//Case 4: Wrong Best Hosts field
 		{caseID: 4,
-			input: ermis.Alias{
-				AliasName: "alias.cern.ch",
-				Behaviour: "*", //wrong field
-				BestHosts: 1,
-				External:  "no",
-				Hostgroup: "aiermis",
-			},
-			expected: false,
-		},
-		//Case 5: Wrong Best Hosts field
-		{caseID: 5,
 			input: ermis.Alias{
 				AliasName: "alias.cern.ch",
 				BestHosts: -300, //wrong field
@@ -467,8 +455,8 @@ func TestValidation(t *testing.T) {
 			},
 			expected: false,
 		},
-		//Case 6: Wrong external  field
-		{caseID: 6,
+		//Case 5: Wrong external  field
+		{caseID: 5,
 			input: ermis.Alias{
 				AliasName: "alias.cern.ch",
 				BestHosts: 1,
@@ -477,8 +465,8 @@ func TestValidation(t *testing.T) {
 			},
 			expected: false,
 		},
-		//Case 7: Empty external
-		{caseID: 7,
+		//Case 6: Empty external
+		{caseID: 6,
 			input: ermis.Alias{
 				AliasName: "alias.cern.ch",
 				BestHosts: 1,
@@ -487,8 +475,8 @@ func TestValidation(t *testing.T) {
 			},
 			expected: false,
 		},
-		//Case 8: Wrong metric
-		{caseID: 8,
+		//Case 7: Wrong metric
+		{caseID: 7,
 			input: ermis.Alias{
 				AliasName: "alias.cern.ch",
 				BestHosts: 1,
@@ -498,8 +486,8 @@ func TestValidation(t *testing.T) {
 			},
 			expected: false,
 		},
-		//Case 9: Empty Hostgroup
-		{caseID: 9,
+		//Case 8: Empty Hostgroup
+		{caseID: 8,
 			input: ermis.Alias{
 				AliasName: "alias.cern.ch",
 				BestHosts: 1,
@@ -508,8 +496,8 @@ func TestValidation(t *testing.T) {
 			},
 			expected: false,
 		},
-		//Case 10: With sub-hostgroup
-		{caseID: 10,
+		//Case 9: With sub-hostgroup
+		{caseID: 9,
 			input: ermis.Alias{
 				AliasName: "alias.cern.ch",
 				BestHosts: 1,
@@ -519,8 +507,8 @@ func TestValidation(t *testing.T) {
 			expected: true,
 		},
 
-		//Case 11: Malformed Hostgroup
-		{caseID: 11,
+		//Case 10: Malformed Hostgroup
+		{caseID: 10,
 			input: ermis.Alias{
 				AliasName: "alias.cern.ch",
 				BestHosts: 1,
@@ -530,8 +518,8 @@ func TestValidation(t *testing.T) {
 			expected: false,
 		},
 
-		//Case 12: Malformed Cname
-		{caseID: 12,
+		//Case 11: Malformed Cname
+		{caseID: 11,
 			input: ermis.Alias{
 				AliasName: "alias.cern.ch",
 				BestHosts: 1,
@@ -547,8 +535,8 @@ func TestValidation(t *testing.T) {
 			},
 			expected: false,
 		},
-		//Case 13: malformed alias in alarms
-		{caseID: 13,
+		//Case 12: malformed alias in alarms
+		{caseID: 12,
 			input: ermis.Alias{
 				AliasName: "alias.cern.ch",
 				BestHosts: 1,
@@ -567,8 +555,8 @@ func TestValidation(t *testing.T) {
 			},
 			expected: false,
 		},
-		//Case 14: Random alarm name
-		{caseID: 14,
+		//Case 13: Random alarm name
+		{caseID: 13,
 			input: ermis.Alias{
 				AliasName: "alias.cern.ch",
 				BestHosts: 1,
@@ -587,8 +575,8 @@ func TestValidation(t *testing.T) {
 			},
 			expected: false,
 		},
-		//Case 15: malformed email in alarms
-		{caseID: 15,
+		//Case 14: malformed email in alarms
+		{caseID: 14,
 			input: ermis.Alias{
 				AliasName: "alias.cern.ch",
 				BestHosts: 1,
@@ -608,8 +596,8 @@ func TestValidation(t *testing.T) {
 			expected: false,
 		},
 
-		//Case 16: Negative parameter in alarms
-		{caseID: 16,
+		//Case 15: Negative parameter in alarms
+		{caseID: 15,
 			input: ermis.Alias{
 				AliasName: "alias.cern.ch",
 				BestHosts: 1,
@@ -628,8 +616,8 @@ func TestValidation(t *testing.T) {
 			},
 			expected: false,
 		},
-		//Case 17: Malformed node name
-		{caseID: 17,
+		//Case 16: Malformed node name
+		{caseID: 16,
 			input: ermis.Alias{
 				AliasName: "seed.cern.ch",
 				BestHosts: 1,
@@ -646,8 +634,8 @@ func TestValidation(t *testing.T) {
 			},
 			expected: false,
 		},
-		//Case 18: Malformed hostgroup in Node type
-		{caseID: 18,
+		//Case 17: Malformed hostgroup in Node type
+		{caseID: 17,
 			input: ermis.Alias{
 				AliasName: "seed.cern.ch",
 				BestHosts: 1,

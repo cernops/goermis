@@ -8,11 +8,6 @@ import (
 
 	"github.com/asaskevich/govalidator"
 	"github.com/labstack/echo/v4"
-	"gitlab.cern.ch/lb-experts/goermis/db"
-)
-
-var (
-	conn = db.GetConn()
 )
 
 /*////////////Helper Functions///////////////////*/
@@ -95,7 +90,7 @@ func EqualCnames(cname1, cname2 []Cname) bool {
 func customValidators() {
 	govalidator.TagMap["hash"] = govalidator.Validator(func(str string) bool {
 		len := "60"
-		match, _ := regexp.MatchString("^[a-f0-9]{"+len+"}$", str)
+		match, _ := regexp.MatchString("^[a-zA-Z0-9^/.$]{"+len+"}$", str)
 		return match
 	})
 

@@ -95,7 +95,7 @@ func sanitazeInCreation(c echo.Context, resource Resource) (object Alias) {
 	object.PollingInterval = 300
 	object.TTL = 60
 	object.Clusters = "none"
-	object.Behaviour = "mindless"
+	
 
 	return
 }
@@ -122,7 +122,6 @@ func parse(queryResults []Alias) Objects {
 		//The ones that are the same
 		temp.ID = element.ID
 		temp.AliasName = element.AliasName
-		temp.Behaviour = element.Behaviour
 		temp.BestHosts = element.BestHosts
 		temp.Clusters = element.Clusters
 		temp.Hostgroup = element.Hostgroup
@@ -239,21 +238,15 @@ func sanitazeInUpdate(c echo.Context, current Alias, new Resource) (Alias, error
 	for k, field := range fields {
 		if len(field) != 0 {
 			split := Explode(contentType, field)
+			log.Info(split)
 			for _, node := range split {
-				nameload := strings.Split(node, ":")
-				loadtoInt, err := strconv.Atoi(nameload[1])
-				if err != nil {
-					return Alias{}, err
-				}
-
 				current.Relations = append(current.Relations, Relation{
 					AliasID:   current.ID,
-					NodeID:    FindNodeID(nameload[0], copyOfRelations),
+					NodeID:    FindNodeID(node, copyOfRelations),
 					Blacklist: k,
-					Load:      loadtoInt,
 					Node: &Node{
-						ID:       FindNodeID(nameload[0], copyOfRelations),
-						NodeName: nameload[0],
+						ID:       FindNodeID(node, copyOfRelations),
+						NodeName: node,
 						LastModification: sql.NullTime{
 							Time:  time.Now(),
 							Valid: true,

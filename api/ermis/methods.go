@@ -22,7 +22,6 @@ type (
 	Alias struct { //DB definitions    --Validation-->               //Validation
 		ID               int          `  gorm:"auto_increment;primaryKey"             valid:"optional, int"`
 		AliasName        string       `  gorm:"not null;type:varchar(40);unique"      valid:"required,dns" `
-		Behaviour        string       `  gorm:"type:varchar(15);not null"             valid:"optional,alphanum"`
 		BestHosts        int          `  gorm:"type:smallint(6);not null"             valid:"required,best_hosts"`
 		External         string       `  gorm:"type:varchar(15);not null"             valid:"required,in(yes|no|external|internal)"`
 		Metric           string       `  gorm:"type:varchar(15);not null"             valid:"in(cmsfrontier),optional"`
@@ -33,7 +32,7 @@ type (
 		Hostgroup        string       `  gorm:"type:longtext;not null"                valid:"required,hostgroup"`
 		User             string       `  gorm:"type:varchar(40);not null"             valid:"optional,alphanum" `
 		TTL              int          `  gorm:"type:smallint(6);default:60;not null"  valid:"optional,int"`
-		LastModification sql.NullTime `  gorm:"type:date;not null"                             valid:"-"`
+		LastModification sql.NullTime `  gorm:"type:date"                             valid:"-"`
 		Cnames           []Cname      `  gorm:"foreignkey:CnameAliasID"               valid:"optional"`
 		Relations        []Relation   `                                               valid:"optional"`
 		Alarms           []Alarm      `  gorm:"foreignkey:AlarmAliasID"               valid:"optional" `
