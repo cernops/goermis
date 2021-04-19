@@ -36,7 +36,6 @@ type (
 		Cnames           []Cname      `  gorm:"foreignkey:CnameAliasID"               valid:"optional"`
 		Relations        []Relation   `                                               valid:"optional"`
 		Alarms           []Alarm      `  gorm:"foreignkey:AlarmAliasID"               valid:"optional" `
-		Secret           string       `  gorm:"type:longtext;not null"                valid:"optional,hash"`
 	}
 
 	/*For future reference:

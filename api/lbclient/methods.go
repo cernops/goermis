@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"gitlab.cern.ch/lb-experts/goermis/api/ermis"
+	"gitlab.cern.ch/lb-experts/goermis/auth"
 	"gitlab.cern.ch/lb-experts/goermis/db"
-	"golang.org/x/crypto/bcrypt"
 )
 
 func (lbclient *LBClient) findUnregistered() (unregistered []string, err error) {
@@ -55,7 +55,7 @@ func (lbclient *LBClient) registerNode(unreg []string) (int, error) {
 			status := lbclient.findStatus(alias.AliasName)
 
 			log.Infof("checking if node %v is authorized to register on alias %v", lbclient.NodeName, alias.AliasName)
-			if bcrypt.CompareHashAndPassword([]byte(alias.Secret), []byte(status.Secret)) != nil {
+			if auth.CheckLbclientAuth(lbclient.NodeName, status.Secret){
 				err := fmt.Errorf("unauthorized to register the load for node %v and alias %v, secret missmatch", lbclient.NodeName, status.AliasName)
 				return http.StatusUnauthorized, err
 			}
@@ -101,7 +101,7 @@ func (lbclient LBClient) updateNode() (int, error) {
 		status := lbclient.findStatus(alias.AliasName)
 
 		log.Infof("checking if node %v is authorized to update alias %v", lbclient.NodeName, alias.AliasName)
-		if bcrypt.CompareHashAndPassword([]byte(alias.Secret), []byte(status.Secret)) != nil {
+		if auth.CheckLbclientAuth(lbclient.NodeName, status.Secret){
 			err := fmt.Errorf("unauthorized to update the load for node %v and alias %v, secret missmatch", lbclient.NodeName, status.AliasName)
 			return http.StatusUnauthorized, err
 		}

@@ -26,17 +26,30 @@ type UserAuth struct {
 	Client           *http.Client
 }
 
-type pwnMsg struct {
-	Hostgroup []string
+type Msg struct {
+	Content []string
+}
+
+type secretsCache map[string][]string
+
+var aipwnConn *UserAuth
+var tbagConn *UserAuth
+
+func init() {
+	aipwnConn = GetConn("https://woger.cern.ch:8202/pwn/v1/owner/")
+	if err := aipwnConn.InitConnection(); err != nil {
+		log.Error("Error while initiating the ai-pwn connection: https://woger.cern.ch:8202/pwn/v1/owner/" + err.Error())
+	}
+
+	tbagConn = GetConn("https://woger.cern.ch:8201/tbag/v2/host/")
+	if err := tbagConn.InitConnection(); err != nil {
+		log.Error("Error while initiating the tbag connection: https://woger.cern.ch:8201/tbag/v2/host/" + err.Error())
+	}
 }
 
 //CheckCud checks a user if he is member of egroup
 func CheckCud(username string) bool {
-	if isMemberOf(username, "ermis-lbaas-admins") {
-		return true
-	}
-	return false
-
+	return isMemberOf(username, "ermis-lbaas-admins")
 }
 
 //GetConn prepares the initial structure for starting a connection
@@ -84,8 +97,8 @@ func (l *UserAuth) InitConnection() error {
 }
 
 //PwnHg queries teigi for the hostgroups where user is owner/memeber/privileged
-func (l *UserAuth) PwnHg(username string) []string {
-	var m pwnMsg
+func (l *UserAuth) pwnHg(username string) []string {
+	var m Msg
 	URL := l.authRogerBaseURL + username + "/"
 	log.Info("[" + username + "] Querying teigi for user's hostgroups. url = " + URL)
 	req, err := http.NewRequest("GET", URL, nil)
@@ -114,19 +127,52 @@ func (l *UserAuth) PwnHg(username string) []string {
 		log.Error("["+username+"]Error on unmarshalling response from teigi ", err.Error())
 		return []string{}
 	}
+	return m.Content
+
+}
+
+func (l *UserAuth) queryTbag(nodename, secret string) bool {
+	var m Msg
+	URL := l.authRogerBaseURL + nodename + "/"
+	log.Info("Querying tbag for the secret of node" + nodename + ". URL = " + URL)
+	req, err := http.NewRequest("GET", URL, nil)
+	if err != nil {
+		log.Error("Error on creating request object. ", err.Error())
+		return false
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	resp, err := l.Client.Do(req)
+	if err != nil {
+		log.Error("Error on dispatching secret request to tbag for node "+nodename, err.Error())
+		return false
+	}
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Error("Error reading Body of Request while querying the secret of node "+nodename, err.Error())
+		return false
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusUnauthorized {
+		log.Error("User not authorized.Status Code: ", resp.StatusCode)
+		return false
+	}
+	if err = json.Unmarshal(data, &m); err != nil {
+		log.Error("Error on unmarshalling response from tbag ", err.Error())
+		return false
+	}
+
+	////////////////////TODO/////
 	return m.Hostgroup
 
 }
 
 //GetPwn returns a list of hostgroups where the user is owner or privileged
 func GetPwn(username string) (pwnedHg []string) {
-	conn := GetConn("https://woger.cern.ch:8202/pwn/v1/owner/")
-	if err := conn.InitConnection(); err != nil {
-		log.Error("Error while contacting: https://woger.cern.ch:8202/pwn/v1/owner/" + err.Error())
-		return []string{}
+	return aipwnConn.pwnHg(username)
+}
 
-	}
-	pwnedHg = conn.PwnHg(username)
-	return
-
+//CheckLbclientAuth compares the declared password in teigi with the one presented by the node
+func CheckLbclientAuth(nodename, secret string) bool {
+	return tbagConn.queryTbag(nodename, secret)
 }
