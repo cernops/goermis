@@ -30,7 +30,7 @@ type Msg struct {
 	Content []string
 }
 
-type secretsCache map[string][]string
+var secretsCache map[string][]string
 
 var aipwnConn *UserAuth
 var tbagConn *UserAuth
@@ -131,39 +131,39 @@ func (l *UserAuth) pwnHg(username string) []string {
 
 }
 
-func (l *UserAuth) queryTbag(nodename, secret string) bool {
+func (l *UserAuth) queryTbag(aliasname string) []string {
 	var m Msg
-	URL := l.authRogerBaseURL + nodename + "/"
-	log.Info("Querying tbag for the secret of node" + nodename + ". URL = " + URL)
+	URL := l.authRogerBaseURL + aliasname + "/secret/lbclient_secret/"
+	log.Info("Querying tbag for the secret of node" + aliasname + ". URL = " + URL)
 	req, err := http.NewRequest("GET", URL, nil)
 	if err != nil {
 		log.Error("Error on creating request object. ", err.Error())
-		return false
+		return []string{}
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 	resp, err := l.Client.Do(req)
 	if err != nil {
-		log.Error("Error on dispatching secret request to tbag for node "+nodename, err.Error())
-		return false
+		log.Error("Error on dispatching secret request to tbag for node "+aliasname, err.Error())
+		return []string{}
 	}
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Error("Error reading Body of Request while querying the secret of node "+nodename, err.Error())
-		return false
+		log.Error("Error reading Body of Request while querying the secret of node "+aliasname, err.Error())
+		return []string{}
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusUnauthorized {
 		log.Error("User not authorized.Status Code: ", resp.StatusCode)
-		return false
+		return []string{}
 	}
 	if err = json.Unmarshal(data, &m); err != nil {
 		log.Error("Error on unmarshalling response from tbag ", err.Error())
-		return false
+		return []string{}
 	}
-
-	////////////////////TODO/////
-	return m.Hostgroup
+	secretsCache[aliasname] = m.Content
+	log.Info(m.Content)
+	return m.Content
 
 }
 
@@ -173,6 +173,9 @@ func GetPwn(username string) (pwnedHg []string) {
 }
 
 //CheckLbclientAuth compares the declared password in teigi with the one presented by the node
-func CheckLbclientAuth(nodename, secret string) bool {
-	return tbagConn.queryTbag(nodename, secret)
+func GetSecret(aliasname string) []string {
+	if v, found := secretsCache[aliasname]; found && len(v) != 0 {
+		return secretsCache[aliasname]
+	}
+	return tbagConn.queryTbag(aliasname)
 }
