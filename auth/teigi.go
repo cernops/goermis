@@ -26,10 +26,6 @@ type UserAuth struct {
 	Client           *http.Client
 }
 
-type Msg struct {
-	Content []string
-}
-
 var secretsCache map[string][]string
 
 var aipwnConn *UserAuth
@@ -98,7 +94,10 @@ func (l *UserAuth) InitConnection() error {
 
 //PwnHg queries teigi for the hostgroups where user is owner/memeber/privileged
 func (l *UserAuth) pwnHg(username string) []string {
-	var m Msg
+	type msg struct {
+		Hostgroup []string
+	}
+	m := msg{}
 	URL := l.authRogerBaseURL + username + "/"
 	log.Info("[" + username + "] Querying teigi for user's hostgroups. url = " + URL)
 	req, err := http.NewRequest("GET", URL, nil)
@@ -127,12 +126,15 @@ func (l *UserAuth) pwnHg(username string) []string {
 		log.Error("["+username+"]Error on unmarshalling response from teigi ", err.Error())
 		return []string{}
 	}
-	return m.Content
+	return m.Hostgroup
 
 }
 
 func (l *UserAuth) queryTbag(aliasname string) []string {
-	var m Msg
+	type msg struct {
+		Content []string
+	}
+	m := msg{}
 	URL := l.authRogerBaseURL + aliasname + "/secret/lbclient_secret/"
 	log.Info("Querying tbag for the secret of node" + aliasname + ". URL = " + URL)
 	req, err := http.NewRequest("GET", URL, nil)
@@ -162,7 +164,6 @@ func (l *UserAuth) queryTbag(aliasname string) []string {
 		return []string{}
 	}
 	secretsCache[aliasname] = m.Content
-	log.Info(m.Content)
 	return m.Content
 
 }

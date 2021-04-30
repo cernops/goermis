@@ -12,29 +12,29 @@ import (
 
 func (lbclient *LBClient) findUnregistered() (unregistered []string, err error) {
 	var (
-		aliases []string
-		intf    ermis.PrivilegeIntf
+		reportedAliases []string
+		intf            ermis.PrivilegeIntf
 	)
 	log.Infof("checking if node %v is registered on the aliases it reported", lbclient.NodeName)
 	for _, v := range lbclient.Status {
-		aliases = append(aliases, v.AliasName)
+		reportedAliases = append(reportedAliases, v.AliasName)
 	}
 	err = db.GetConn().Preload("Relations.Node").
-		Where("alias_name IN ?", aliases).
+		Where("alias_name IN ?", reportedAliases).
 		Find(&lbclient.Aliases).Error
 	if err != nil {
-		return nil, fmt.Errorf("error while retrieving the claimed aliases %v from node %v, with error %v", aliases, lbclient.NodeName, err)
+		return nil, fmt.Errorf("error while retrieving the claimed aliases %v from node %v, with error %v", reportedAliases, lbclient.NodeName, err)
 	}
 	if len(lbclient.Aliases) == 0 {
 		return nil, fmt.Errorf("there are no aliases for node %v", lbclient.NodeName)
 	}
-	if len(lbclient.Aliases) < len(aliases) {
+	if len(lbclient.Aliases) < len(reportedAliases) {
 		var registered []string
 		for _, entry := range lbclient.Aliases {
 			registered = append(registered, entry.AliasName)
 		}
 
-		return nil, fmt.Errorf("one of the reported aliases from node %v does not exist\nreported: %v\nfound: %v", lbclient.NodeName, aliases, registered)
+		return nil, fmt.Errorf("one of the reported aliases from node %v does not exist\nreported: %v\nfound: %v", lbclient.NodeName, reportedAliases, registered)
 	}
 
 	for _, x := range lbclient.Aliases {
