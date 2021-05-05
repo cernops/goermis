@@ -173,7 +173,7 @@ func customValidators() {
 
 }
 
-/*/////////////Unified way to return responses to user/////////////////////////////*/
+/*/////////////Unified way to return responses to user /////////////////////////////*/
 
 //MessageToUser renders the reply for the user
 func MessageToUser(c echo.Context, status int, message string, page string) error {

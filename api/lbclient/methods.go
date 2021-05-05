@@ -10,33 +10,74 @@ import (
 	"gitlab.cern.ch/lb-experts/goermis/db"
 )
 
-func (lbclient *LBClient) findUnregistered() (unregistered []string, err error) {
+func (lbclient *LBClient) findAliases() (err error) {
 	var (
 		reportedAliases []string
-		intf            ermis.PrivilegeIntf
 	)
-	log.Infof("checking if node %v is registered on the aliases it reported", lbclient.NodeName)
 	for _, v := range lbclient.Status {
 		reportedAliases = append(reportedAliases, v.AliasName)
 	}
+	//store the found aliases in lbclient struct
 	err = db.GetConn().Preload("Relations.Node").
 		Where("alias_name IN ?", reportedAliases).
 		Find(&lbclient.Aliases).Error
 	if err != nil {
-		return nil, fmt.Errorf("error while retrieving the claimed aliases %v from node %v, with error %v", reportedAliases, lbclient.NodeName, err)
+		return fmt.Errorf("error while retrieving the claimed aliases %v from node %v, with error %v", reportedAliases, lbclient.NodeName, err)
 	}
-	if len(lbclient.Aliases) == 0 {
-		return nil, fmt.Errorf("there are no aliases for node %v", lbclient.NodeName)
-	}
-	if len(lbclient.Aliases) < len(reportedAliases) {
-		var registered []string
-		for _, entry := range lbclient.Aliases {
-			registered = append(registered, entry.AliasName)
-		}
+	return nil
+}
 
-		return nil, fmt.Errorf("one of the reported aliases from node %v does not exist\nreported: %v\nfound: %v", lbclient.NodeName, reportedAliases, registered)
-	}
+func (lbclient *LBClient) missingfromdb()  []string{
+	var (
+		 missingfromdb []string
+	)
 
+	for _, v1 := range lbclient.Status{
+			found := false
+			for _, v2 := range lbclient.Aliases {
+				if v1.AliasName == v2.AliasName{
+					found = true
+					break
+					}
+				}
+			// String not found. We add it to return slice
+			if !found {
+				missingfromdb = append(missingfromdb, v1.AliasName)
+				}
+			}
+	return  missingfromdb
+}
+
+
+func (lbclient *LBClient) missingfromstatus()  []string{
+	var (
+		 missingfromstatus []string
+	)
+
+	for _, v1 := range lbclient.Aliases{
+			found := false
+			for _, v2 := range lbclient.Status {
+				if v1.AliasName == v2.AliasName{
+					found = true
+					break
+					}
+				}
+			// String not found. We add it to return slice
+			if !found {
+				missingfromstatus = append(missingfromstatus, v1.AliasName)
+				}
+			}
+	return  missingfromstatus
+}
+
+
+
+func (lbclient *LBClient) findUnregistered() (unregistered []string, err error) {
+	var (
+		intf            ermis.PrivilegeIntf
+		
+	)
+	//compare the relations of every alias we retrieved with the node name
 	for _, x := range lbclient.Aliases {
 		intf = ermis.Relation{
 			Node: &ermis.Node{
@@ -102,13 +143,12 @@ func (lbclient *LBClient) registerNode(unreg []string) (int, error) {
 		}
 
 	}
-	log.Infof("done with the registration for node %v. exiting...", lbclient.NodeName)
+	log.Infof("successful registration for node %v with the latest load value. exiting node registration...", lbclient.NodeName)
 	return http.StatusCreated, nil
 }
 
 func (lbclient LBClient) updateNode() (int, error) {
 	log.Infof("started update procedure for node %v in every alias", lbclient.NodeName)
-	log.Infof("no of aliases%v", len(lbclient.Aliases))
 	for _, alias := range lbclient.Aliases {
 
 		status := lbclient.findStatus(alias.AliasName)
@@ -138,7 +178,7 @@ func (lbclient LBClient) updateNode() (int, error) {
 		}
 
 	}
-	log.Infof("successful load update for node %v. exiting...", lbclient.NodeName)
+	log.Infof("successful load update for node %v. exiting load update...", lbclient.NodeName)
 	return http.StatusOK, nil
 }
 

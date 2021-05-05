@@ -84,6 +84,7 @@ type (
 		LastModification sql.NullTime `                                                       valid:"-"`
 		Hostgroup        string       `  gorm:"type:varchar(40);not null"                     valid:"optional, hostgroup"`
 		Aliases          []Relation   `                                                       valid:"optional"`
+	    
 	}
 
 	//dBFunc type which accept *gorm.DB and return error, used for transactions
