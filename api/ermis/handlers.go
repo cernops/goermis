@@ -158,6 +158,12 @@ func CreateAlias(c echo.Context) error {
 		return MessageToUser(c, http.StatusBadRequest,
 			"failed to create "+alias.AliasName+" in DNS, but managed to delete the new entry from database.Error: "+errd.Error(), "home.html")
 	}
+
+	//Create secret in tbag
+	if err := alias.createSecret();err !=nil{
+		return MessageToUser(c, http.StatusBadRequest,
+			"failed to create secret for "+alias.AliasName+" with error: "+err.Error(), "home.html")
+	}
 	//Success message
 	return MessageToUser(c, http.StatusCreated,
 		temp.AliasName+" created successfully ", "home.html")

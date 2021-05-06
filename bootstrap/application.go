@@ -20,6 +20,7 @@ type (
 		Log      Logging
 		DNS      DNS
 		Timers   Timers
+		Tbag     Tbag
 	}
 	//App struct describes application config parameters
 	App struct {
@@ -67,6 +68,10 @@ type (
 	//Timers describes the parameters for configuring the different timers
 	Timers struct {
 		Alarms int
+	}
+	//The host which has access to tbag for saving the secrets
+	Tbag struct {
+		Host string
 	}
 )
 

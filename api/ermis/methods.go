@@ -9,6 +9,7 @@ import (
 
 	"gorm.io/gorm"
 
+	"gitlab.cern.ch/lb-experts/goermis/auth"
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 	"gitlab.cern.ch/lb-experts/goermis/db"
 )
@@ -84,7 +85,6 @@ type (
 		LastModification sql.NullTime `                                                       valid:"-"`
 		Hostgroup        string       `  gorm:"type:varchar(40);not null"                     valid:"optional, hostgroup"`
 		Aliases          []Relation   `                                                       valid:"optional"`
-	    
 	}
 
 	//dBFunc type which accept *gorm.DB and return error, used for transactions
@@ -281,4 +281,14 @@ func (alias Alias) updateAlarms() (err error) {
 		}
 	}
 	return nil
+}
+
+func (alias Alias) createSecret() error {
+	newsecret := generateRandomSecret()
+	err := auth.PostSecret(alias.AliasName, newsecret)
+	if err != nil {
+		return err
+	}
+	return nil
+
 }

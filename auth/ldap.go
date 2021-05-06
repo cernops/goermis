@@ -76,3 +76,8 @@ func query(base string, filter string) *ldap.SearchRequest {
 		[]ldap.Control{})
 	return q
 }
+
+//CheckCud checks a user if he is member of egroup
+func CheckCud(username string) bool {
+	return isMemberOf(username, "ermis-lbaas-admins")
+}
