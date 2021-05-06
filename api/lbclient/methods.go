@@ -27,55 +27,51 @@ func (lbclient *LBClient) findAliases() (err error) {
 	return nil
 }
 
-func (lbclient *LBClient) missingfromdb()  []string{
+func (lbclient *LBClient) missingfromdb() []string {
 	var (
-		 missingfromdb []string
+		missingfromdb []string
 	)
 
-	for _, v1 := range lbclient.Status{
-			found := false
-			for _, v2 := range lbclient.Aliases {
-				if v1.AliasName == v2.AliasName{
-					found = true
-					break
-					}
-				}
-			// String not found. We add it to return slice
-			if !found {
-				missingfromdb = append(missingfromdb, v1.AliasName)
-				}
+	for _, v1 := range lbclient.Status {
+		found := false
+		for _, v2 := range lbclient.Aliases {
+			if v1.AliasName == v2.AliasName {
+				found = true
+				break
 			}
-	return  missingfromdb
+		}
+		// String not found. We add it to return slice
+		if !found {
+			missingfromdb = append(missingfromdb, v1.AliasName)
+		}
+	}
+	return missingfromdb
 }
 
-
-func (lbclient *LBClient) missingfromstatus()  []string{
+func (lbclient *LBClient) missingfromstatus() []string {
 	var (
-		 missingfromstatus []string
+		missingfromstatus []string
 	)
 
-	for _, v1 := range lbclient.Aliases{
-			found := false
-			for _, v2 := range lbclient.Status {
-				if v1.AliasName == v2.AliasName{
-					found = true
-					break
-					}
-				}
-			// String not found. We add it to return slice
-			if !found {
-				missingfromstatus = append(missingfromstatus, v1.AliasName)
-				}
+	for _, v1 := range lbclient.Aliases {
+		found := false
+		for _, v2 := range lbclient.Status {
+			if v1.AliasName == v2.AliasName {
+				found = true
+				break
 			}
-	return  missingfromstatus
+		}
+		// String not found. We add it to return slice
+		if !found {
+			missingfromstatus = append(missingfromstatus, v1.AliasName)
+		}
+	}
+	return missingfromstatus
 }
-
-
 
 func (lbclient *LBClient) findUnregistered() (unregistered []string, err error) {
 	var (
-		intf            ermis.PrivilegeIntf
-		
+		intf ermis.PrivilegeIntf
 	)
 	//compare the relations of every alias we retrieved with the node name
 	for _, x := range lbclient.Aliases {

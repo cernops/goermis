@@ -6,17 +6,11 @@ import (
 	"net/http"
 )
 
-
-
-
-
-
 var aipwnConn *UserAuth
 
-
 func init() {
-	aipwnConn = GetConn("https://woger.cern.ch:8202/pwn/v1/owner/")
-	if err := aipwnConn.InitConnection(); err != nil {
+	aipwnConn = getConn("https://woger.cern.ch:8202/pwn/v1/owner/")
+	if err := aipwnConn.initConnection(); err != nil {
 		log.Error("Error while initiating the ai-pwn connection: https://woger.cern.ch:8202/pwn/v1/owner/" + err.Error())
 	}
 }
@@ -59,13 +53,7 @@ func (l *UserAuth) pwnHg(username string) []string {
 
 }
 
-
-
 //GetPwn returns a list of hostgroups where the user is owner or privileged
 func GetPwn(username string) (pwnedHg []string) {
 	return aipwnConn.pwnHg(username)
 }
-
-
-
-

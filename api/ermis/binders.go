@@ -95,7 +95,6 @@ func sanitazeInCreation(c echo.Context, resource Resource) (object Alias) {
 	object.PollingInterval = 300
 	object.TTL = 60
 	object.Clusters = "none"
-	
 
 	return
 }

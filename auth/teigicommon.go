@@ -20,9 +20,8 @@ type UserAuth struct {
 	Client           *http.Client
 }
 
-
 //GetConn prepares the initial structure for starting a connection
-func GetConn(url string) *UserAuth {
+func getConn(url string) *UserAuth {
 	var (
 		cfg  = bootstrap.GetConf()
 		conn = &UserAuth{
@@ -38,7 +37,7 @@ func GetConn(url string) *UserAuth {
 }
 
 //InitConnection initiates a new connection with teigi
-func (l *UserAuth) InitConnection() error {
+func (l *UserAuth) initConnection() error {
 	caCert, err := ioutil.ReadFile(l.authRogerCA)
 	if err != nil {
 		log.Error(err)

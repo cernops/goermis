@@ -17,14 +17,14 @@ var (
 )
 
 func init() {
-	tbagConn = GetConn("https://woger.cern.ch:8201/tbag/v2/host/")
-	if err := tbagConn.InitConnection(); err != nil {
+	tbagConn = getConn("https://woger.cern.ch:8201/tbag/v2/host/")
+	if err := tbagConn.initConnection(); err != nil {
 		log.Error("Error while initiating the tbag connection: https://woger.cern.ch:8201/tbag/v2/host/" + err.Error())
 	}
 }
 
 //GetSecret queries tbag for the secret of an alias
-func (l *UserAuth) GetSecret(aliasname string) []string {
+func (l *UserAuth) get(aliasname string) []string {
 	type msg struct {
 		Content []string
 	}
@@ -78,7 +78,7 @@ func (l *UserAuth) GetSecret(aliasname string) []string {
 }
 
 //
-func (l *UserAuth) PostSecret(aliasname, secret string) error {
+func (l *UserAuth) post(aliasname, secret string) error {
 	URL := l.authRogerBaseURL + cfg.Tbag.Host + "/secret/" + aliasname + "_secret"
 	load := fmt.Sprintf("secret:%v", secret)
 	jsonload, err := json.Marshal(load)
@@ -106,7 +106,7 @@ func (l *UserAuth) PostSecret(aliasname, secret string) error {
 	return nil
 
 }
-func (l *UserAuth) DeleteSecret(aliasname string) error {
+func (l *UserAuth) delete(aliasname string) error {
 	URL := l.authRogerBaseURL + cfg.Tbag.Host + "/secret/" + aliasname + "_secret"
 
 	log.Infof("Deleting secret for alias %v in tbag", aliasname)
@@ -128,4 +128,14 @@ func (l *UserAuth) DeleteSecret(aliasname string) error {
 
 	return nil
 
+}
+
+func PostSecret(aliasname, secret string) error {
+	return tbagConn.post(aliasname, secret)
+}
+func DeleteSecret(aliasname string) error {
+	return tbagConn.delete(aliasname)
+}
+func GetSecret(aliasname string) []string {
+	return tbagConn.get(aliasname)
 }

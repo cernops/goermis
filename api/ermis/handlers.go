@@ -160,7 +160,7 @@ func CreateAlias(c echo.Context) error {
 	}
 
 	//Create secret in tbag
-	if err := alias.createSecret();err !=nil{
+	if err := alias.createSecret(); err != nil {
 		return MessageToUser(c, http.StatusBadRequest,
 			"failed to create secret for "+alias.AliasName+" with error: "+err.Error(), "home.html")
 	}
