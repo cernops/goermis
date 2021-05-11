@@ -29,3 +29,6 @@ log:
   stdout: true
 dns:
    manager: ##REPLACE_BY_IP##
+teigi: 
+  tbag: https://woger.cern.ch:8201/tbag/v2/host/
+  pwn:  https://woger.cern.ch:8202/pwn/v1/owner/
