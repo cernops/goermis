@@ -73,6 +73,11 @@ func TestNewConfig(t *testing.T) {
 		DNS: bootstrap.DNS{
 			Manager: "168.92.45.2",
 		},
+		Teigi: bootstrap.Teigi{
+			Host: "goermis.cern.ch",
+			Tbag: "https://woger.cern.ch:8201/tbag/v2/host/",
+			Pwn:  "https://woger.cern.ch:8202/pwn/v1/owner/",
+		},
 	}
 	fmt.Println("Now we will check that config file is readable")
 	output, err := bootstrap.NewConfig("test_config.yaml")

@@ -6,15 +6,6 @@ import (
 	"net/http"
 )
 
-var aipwnConn *UserAuth
-
-func init() {
-	aipwnConn = getConn(cfg.Teigi.Pwn)
-	if err := aipwnConn.initConnection(); err != nil {
-		log.Errorf("error while initiating the pwn connection: %v, error: %v", cfg.Teigi.Pwn, err)
-	}
-}
-
 //PwnHg queries teigi for the hostgroups where user is owner/memeber/privileged
 func (l *UserAuth) pwnHg(username string) []string {
 	type msg struct {
@@ -55,5 +46,10 @@ func (l *UserAuth) pwnHg(username string) []string {
 
 //GetPwn returns a list of hostgroups where the user is owner or privileged
 func GetPwn(username string) (pwnedHg []string) {
+	aipwnConn := getConn(cfg.Teigi.Pwn)
+	if err := aipwnConn.initConnection(); err != nil {
+		log.Errorf("error while initiating the pwn connection: %v, error: %v", cfg.Teigi.Pwn, err)
+		return
+	}
 	return aipwnConn.pwnHg(username)
 }

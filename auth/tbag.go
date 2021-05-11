@@ -11,17 +11,9 @@ import (
 )
 
 var (
-	tbagConn     *UserAuth
 	secretsCache map[string][]string
 	cfg          = bootstrap.GetConf()
 )
-
-func init() {
-	tbagConn = getConn(cfg.Teigi.Tbag)
-	if err := tbagConn.initConnection(); err != nil {
-		log.Error("Error while initiating the tbag connection: https://woger.cern.ch:8201/tbag/v2/host/" + err.Error())
-	}
-}
 
 //GetSecret queries tbag for the secret of an alias
 func (l *UserAuth) get(aliasname string) []string {
@@ -131,11 +123,23 @@ func (l *UserAuth) delete(aliasname string) error {
 }
 
 func PostSecret(aliasname, secret string) error {
+	tbagConn := getConn(cfg.Teigi.Tbag)
+	if err := tbagConn.initConnection(); err != nil {
+		return fmt.Errorf("error while initiating the tbag connection: https://woger.cern.ch:8201/tbag/v2/host/, error %v", err)
+	}
 	return tbagConn.post(aliasname, secret)
 }
 func DeleteSecret(aliasname string) error {
+	tbagConn := getConn(cfg.Teigi.Tbag)
+	if err := tbagConn.initConnection(); err != nil {
+		return fmt.Errorf("error while initiating the tbag connection: https://woger.cern.ch:8201/tbag/v2/host/, error %v", err)
+	}
 	return tbagConn.delete(aliasname)
 }
 func GetSecret(aliasname string) []string {
+	tbagConn := getConn(cfg.Teigi.Tbag)
+	if err := tbagConn.initConnection(); err != nil {
+		return []string{}
+	}
 	return tbagConn.get(aliasname)
 }
