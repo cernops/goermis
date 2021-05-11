@@ -165,6 +165,7 @@ func CreateAlias(c echo.Context) error {
 
 	}
 
+
 	//Success message
 	return MessageToUser(c, http.StatusCreated,
 		temp.AliasName+" created successfully ", "home.html")

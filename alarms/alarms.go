@@ -70,7 +70,7 @@ func processThis(alarm ermis.Alarm) (err error) {
 //SendNotification sends an e-mail to the recipient when alarm is triggered
 func SendNotification(alias, recipient, name string, parameter int) error {
 	log.Infof("Sending a notification to %v that the alert %s on %s has been triggered (less than %d nodes)", recipient, alias, name, parameter)
-	msg := []byte("To: " + alias + "\r\n" +
+	msg := []byte("To: " + recipient + "\r\n" +
 		fmt.Sprintf("Subject: Alert on the alias %s: only %d hosts\r\n\r\nThe alert %s (%d) on %s has been triggered", alias, parameter, name, parameter, alias))
 	err := smtp.SendMail("localhost:25",
 		nil,

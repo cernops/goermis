@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"net/smtp"
 
 	"gorm.io/gorm"
 
@@ -289,14 +290,24 @@ func (alias Alias) createSecret() error {
 	if err != nil {
 		return err
 	}
-	return nil
+	return alias.sendSecretToUser(newsecret)
 
 }
 func (alias Alias) deleteSecret() error {
-	err := auth.DeleteSecret(alias.AliasName)
-	if err != nil {
-		return err
-	}
-	return nil
+	return auth.DeleteSecret(alias.AliasName)
+}
 
+//SendNotification sends an e-mail to the recipient when alarm is triggered
+func (alias Alias) sendSecretToUser(secret string) error {
+	recipient := alias.User + "@cern.ch"
+	log.Infof("Sending the new secret of alias %v to %v", alias.AliasName, alias.User)
+	msg := []byte("To: " + alias.User + "\r\n" +
+		fmt.Sprintf("Subject: New secret created for alias %s: Please provide this to the nodes behind that alias. If not sure, check documentation(https://configdocs.web.cern.ch)\nSecret: %s ", alias.AliasName, secret))
+
+	err := smtp.SendMail("localhost:25",
+		nil,
+		"lbd@cern.ch",
+		[]string{recipient},
+		msg)
+	return err
 }
