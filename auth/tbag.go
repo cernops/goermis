@@ -17,7 +17,7 @@ var (
 )
 
 func init() {
-	tbagConn = getConn("https://woger.cern.ch:8201/tbag/v2/host/")
+	tbagConn = getConn(cfg.Teigi.Tbag)
 	if err := tbagConn.initConnection(); err != nil {
 		log.Error("Error while initiating the tbag connection: https://woger.cern.ch:8201/tbag/v2/host/" + err.Error())
 	}
@@ -36,7 +36,7 @@ func (l *UserAuth) get(aliasname string) []string {
 		return secretsCache[aliasname]
 	}
 
-	URL := l.authRogerBaseURL + cfg.Tbag.Host + "/secret/" + aliasname + "_secret"
+	URL := l.authRogerBaseURL + cfg.Teigi.Host + "/secret/" + aliasname + "_secret"
 
 	log.Info("Querying tbag for the secret of node" + aliasname + ". URL = " + URL)
 	req, err := http.NewRequest("GET", URL, nil)
@@ -79,7 +79,7 @@ func (l *UserAuth) get(aliasname string) []string {
 
 //
 func (l *UserAuth) post(aliasname, secret string) error {
-	URL := l.authRogerBaseURL + cfg.Tbag.Host + "/secret/" + aliasname + "_secret"
+	URL := l.authRogerBaseURL + cfg.Teigi.Host + "/secret/" + aliasname + "_secret"
 	load := fmt.Sprintf("secret:%v", secret)
 	jsonload, err := json.Marshal(load)
 	if err != nil {
@@ -107,7 +107,7 @@ func (l *UserAuth) post(aliasname, secret string) error {
 
 }
 func (l *UserAuth) delete(aliasname string) error {
-	URL := l.authRogerBaseURL + cfg.Tbag.Host + "/secret/" + aliasname + "_secret"
+	URL := l.authRogerBaseURL + cfg.Teigi.Host + "/secret/" + aliasname + "_secret"
 
 	log.Infof("Deleting secret for alias %v in tbag", aliasname)
 	req, err := http.NewRequest("DELETE", URL, nil)

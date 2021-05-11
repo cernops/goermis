@@ -55,6 +55,7 @@ func deleteTransactions(alias Alias) (err error) {
 			return errors.New("Failed to delete alias from DB with error: " + err.Error())
 
 		}
+		
 		//Delete node with no other relations
 		for _, relation := range alias.Relations {
 			if tx.Model(&relation.Node).Association("Aliases").Count() == 0 {

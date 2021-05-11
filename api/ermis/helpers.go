@@ -113,7 +113,7 @@ func customValidators() {
 			part := strings.Split(str, ".")
 			for _, p := range part {
 				if !allowed.MatchString(p) || !govalidator.InRange(len(p), 2, 40) {
-					log.Error("Not valid node name: " + str)
+					log.Errorf("Not valid node name: %v", str)
 					return false
 				}
 			}
@@ -129,7 +129,7 @@ func customValidators() {
 		if len(str) > 0 {
 			var allowed = regexp.MustCompile(`^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$`)
 			if !allowed.MatchString(str) || !govalidator.InRange(len(str), 2, 511) {
-				log.Error("Not valid cname: " + str)
+				log.Errorf("Not valid cname: %v ", str)
 				return false
 			}
 			return true
@@ -147,12 +147,12 @@ func customValidators() {
 				return false
 			}
 			if !govalidator.IsEmail(alarm[1]) {
-				log.Error("No valid e-mail address " + alarm[1] + " in alarm " + str)
+				log.Errorf("No valid e-mail address %v in alarm %v ", alarm[1], str)
 				return false
 
 			}
 			if !govalidator.IsInt(alarm[2]) {
-				log.Error("No valid parameter value " + alarm[2] + " in alarm " + str)
+				log.Errorf("No valid parameter value %v in alarm %v", alarm[2], str)
 				return false
 
 			}
@@ -176,7 +176,7 @@ func customValidators() {
 		if len(str) > 0 {
 			var allowed = regexp.MustCompile(`^[a-z][a-z0-9\_\/]*[a-z0-9]$`)
 			if !allowed.MatchString(str) || !govalidator.InRange(len(str), 2, 50) {
-				log.Error("Not valid hostgroup: " + str)
+				log.Errorf("Not valid hostgroup: %v ", str)
 				return false
 			}
 			return true
@@ -194,9 +194,9 @@ func MessageToUser(c echo.Context, status int, message string, page string) erro
 	httphost := c.Request().Header.Get("X-Forwarded-Host")
 	if message != "" {
 		if 200 <= status && status < 300 {
-			log.Info("[" + username + "]" + message)
+			log.Infof("[%v]%v", username, message)
 		} else {
-			log.Error("[" + username + "]" + message)
+			log.Errorf("[%v]%v", username, message)
 		}
 	}
 

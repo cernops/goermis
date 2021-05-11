@@ -237,7 +237,6 @@ func sanitazeInUpdate(c echo.Context, current Alias, new Resource) (Alias, error
 	for k, field := range fields {
 		if len(field) != 0 {
 			split := Explode(contentType, field)
-			log.Info(split)
 			for _, node := range split {
 				current.Relations = append(current.Relations, Relation{
 					AliasID:   current.ID,

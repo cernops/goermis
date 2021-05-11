@@ -1,6 +1,6 @@
 package ermis
 
-/*This file contains the route handlers */
+/*This file contains the router handlers */
 import (
 	"fmt"
 	"net"
@@ -109,7 +109,7 @@ func CreateAlias(c echo.Context) error {
 	retrieved, _ := GetObjects(temp.AliasName)
 	if len(retrieved) != 0 {
 		return MessageToUser(c, http.StatusConflict,
-			"alias "+retrieved[0].AliasName+" already exists ", "home.html")
+			fmt.Sprintf("alias %v already exists", retrieved[0].AliasName), "home.html")
 	}
 	log.Infof("[%v] duplicate check passed for alias %v",
 		username, temp.AliasName)
@@ -120,7 +120,7 @@ func CreateAlias(c echo.Context) error {
 	//Validate structure
 	if ok, err := govalidator.ValidateStruct(alias); err != nil || !ok {
 		return MessageToUser(c, http.StatusBadRequest,
-			"validation error for "+temp.AliasName+" : "+err.Error(), "home.html")
+			fmt.Sprintf("validation error for %v: %v", temp.AliasName, err), "home.html")
 	}
 	log.Infof("[%v] validation passed for alias %v",
 		username, temp.AliasName)
@@ -128,42 +128,43 @@ func CreateAlias(c echo.Context) error {
 	//Create object in DB
 	if err := alias.createObjectInDB(); err != nil {
 		return MessageToUser(c, http.StatusBadRequest,
-			"creation error for "+temp.AliasName+" : "+err.Error(), "home.html")
+			fmt.Sprintf("creation error for %v: %v", temp.AliasName, err), "home.html")
 	}
 	log.Infof("[%v] created %v in database, now creating in DNS  ",
 		username, alias.AliasName)
 
 	//Create in DNS
-	if errd := alias.createInDNS(); errd != nil {
+	if err := alias.createInDNS(); err != nil {
 		log.Errorf("[%v] failed to create entry in DNS, initiating rollback for alias %v\nError:%v",
-			username, alias.AliasName, errd)
+			alias.User, alias.AliasName, err)
 
-		//We dont know the newly assigned ID for our alias
-		//We need the ID for clearing its associations
-		newlycreated, err := GetObjects(alias.AliasName)
+		//rollback only DB , after failed DNS creation
+		err := alias.RollbackInCreate(true, false)
 		if err != nil {
-			//Failed to rollback the newly created alias
 			return MessageToUser(c, http.StatusBadRequest,
-				"could not find the stray alias "+alias.AliasName+"in DB after failing to create it, with error"+": "+err.Error(), "home.html")
-		}
+				fmt.Sprint(err), "home.html")
 
-		//If it fails to create alias in DNS, we delete from DB what we created in the previous step.
-		if err := newlycreated[0].deleteObjectInDB(); err != nil {
-
-			//Failed to rollback the newly created alias
-			return MessageToUser(c, http.StatusBadRequest,
-				"found stray alias "+alias.AliasName+" but failed to delete it from DB after failing to create in DNS, with error: "+err.Error(), "home.html")
 		}
-		//Failed to create in DNS, but managed to delete the newly created alias in DB
+		//on successful rollback
 		return MessageToUser(c, http.StatusBadRequest,
-			"failed to create "+alias.AliasName+" in DNS, but managed to delete the new entry from database.Error: "+errd.Error(), "home.html")
+			fmt.Sprintf("failed to create alias %v in DNS, database rolled back", alias.AliasName), "home.html")
+
 	}
 
 	//Create secret in tbag
 	if err := alias.createSecret(); err != nil {
-		return MessageToUser(c, http.StatusBadRequest,
-			"failed to create secret for "+alias.AliasName+" with error: "+err.Error(), "home.html")
+		log.Errorf("[%v] failed to create secret in tbag for alias %v, initiating rollback\nerror:%v",
+			alias.User, alias.AliasName, err)
+
+		//rollback db and dns after failed secret creation
+		err := alias.RollbackInCreate(true, true)
+		if err != nil {
+			return MessageToUser(c, http.StatusBadRequest,
+				fmt.Sprint(err), "home.html")
+		}
+
 	}
+
 	//Success message
 	return MessageToUser(c, http.StatusCreated,
 		temp.AliasName+" created successfully ", "home.html")
@@ -215,26 +216,39 @@ func DeleteAlias(c echo.Context) error {
 
 		log.Infof("[%v] deleted from the database, now deleting from the DNS %v",
 			username, aliasToDelete)
+
 		//Now delete from DNS.
 		if err := alias[0].deleteFromDNS(); err != nil {
-			log.Errorf("[%v] something went wrong while deleting %v from DNS, now will try to rollback ",
+			log.Errorf("[%v] something went wrong while deleting %v from DNS, initiating the rollback",
 				username, aliasToDelete)
 
-			//If deletion from DNS fails, we recreate the object in DB.
-			if err := alias[0].createObjectInDB(); err != nil {
-				//Failed to rollback deletion
-				return MessageToUser(c, http.StatusBadRequest,
-					"failed to recreate "+alias[0].AliasName+"in DB, after failing to delete it from DNS with error"+": "+err.Error(), "home.html")
+			//rollback db deletion
+			if err := alias[0].RollbackInDelete(true, false); err != nil {
+				return MessageToUser(c, http.StatusBadRequest, err.Error(), "home.html")
+
 			}
-			//Rollback message when deletion from DNS fails
-			return MessageToUser(c, http.StatusBadRequest,
-				"failed to delete "+alias[0].AliasName+"in DNS with error"+": "+err.Error(), "home.html")
 		}
+
+		//Delete secret from tbag
+		if err := alias[0].deleteSecret(); err != nil {
+			log.Errorf("[%v] failed to delete the secret from tbag for alias %v, initiating the rollback",
+				username, aliasToDelete)
+
+			//rollback db and dns deletions
+			if err := alias[0].RollbackInDelete(true, true); err != nil {
+				return MessageToUser(c, http.StatusBadRequest, err.Error(), "home.html")
+
+			}
+		}
+
+		//OK
 		return MessageToUser(c, http.StatusOK,
-			aliasToDelete+" deleted successfully ", "home.html")
+			fmt.Sprintf("%v deleted successfully", aliasToDelete), "home.html")
 
 	}
-	return MessageToUser(c, http.StatusNotFound, aliasToDelete+" not found", "home.html")
+
+	//NOTFOUND
+	return MessageToUser(c, http.StatusNotFound, fmt.Sprintf("%v not found", aliasToDelete), "home.html")
 
 }
 
@@ -278,7 +292,7 @@ func ModifyAlias(c echo.Context) error {
 	alias, err := sanitazeInUpdate(c, retrieved[0], temp)
 	if err != nil {
 		return MessageToUser(c, http.StatusBadRequest,
-			"failed to sanitize "+temp.AliasName+" : "+err.Error(), "home.html")
+			fmt.Sprintf("failed to sanitize %v: %v ", temp.AliasName, err), "home.html")
 
 	}
 	defer c.Request().Body.Close()
@@ -288,7 +302,7 @@ func ModifyAlias(c echo.Context) error {
 	//Validate the object alias , with the now-updated fields
 	if ok, err := govalidator.ValidateStruct(alias); err != nil || !ok {
 		return MessageToUser(c, http.StatusBadRequest,
-			"validation error for alias "+temp.AliasName+" : "+err.Error(), "home.html")
+			fmt.Sprintf("validation error for alias %v: %v", temp.AliasName, err), "home.html")
 	}
 	log.Infof("[%v] validation check passed for %v",
 		username, temp.AliasName)
@@ -296,14 +310,14 @@ func ModifyAlias(c echo.Context) error {
 	// Update alias
 	if err := alias.updateAlias(); err != nil {
 		return MessageToUser(c, http.StatusBadRequest,
-			"update error for alias "+alias.AliasName+" : "+err.Error(), "home.html")
+			fmt.Sprintf("update error for alias %v: %v ", alias.AliasName, err), "home.html")
 	}
 	log.Infof("[%v] updated alias %v, now will check his associations", username, alias.AliasName)
 
 	// Update his cnames
 	if err := alias.updateCnames(); err != nil {
 		return MessageToUser(c, http.StatusBadRequest,
-			"update error for alias "+alias.AliasName+" : "+err.Error(), "home.html")
+			fmt.Sprintf("update error for alias %v: %v ", alias.AliasName, err), "home.html")
 	}
 	log.Infof("[%v] finished the cnames update for %v",
 		username, temp.AliasName)
@@ -311,7 +325,7 @@ func ModifyAlias(c echo.Context) error {
 	// Update his nodes
 	if err := alias.updateNodes(); err != nil {
 		return MessageToUser(c, http.StatusBadRequest,
-			"update error for alias "+alias.AliasName+" : "+err.Error(), "home.html")
+			fmt.Sprintf("update error for alias %v: %v ", alias.AliasName, err), "home.html")
 	}
 	log.Infof("[%v] finished the nodes update for %v ",
 		username, temp.AliasName)
@@ -319,7 +333,7 @@ func ModifyAlias(c echo.Context) error {
 	// Update his alarms
 	if err := alias.updateAlarms(); err != nil {
 		return MessageToUser(c, http.StatusBadRequest,
-			"update error for alias "+alias.AliasName+" : "+err.Error(), "home.html")
+			fmt.Sprintf("update error for alias %v: %v ", alias.AliasName, err), "home.html")
 	}
 	log.Infof("[%v] the database was updated successfully, now we can update the DNS", username)
 
@@ -330,24 +344,24 @@ func ModifyAlias(c echo.Context) error {
 
 		log.Errorf("[%v] could not update %v  in DNS, starting the rollback procedure",
 			username, alias.AliasName)
-		//Delete the DB updates we just made and existing DNS entries
+		//Delete the DB updates we just made
 		if err = alias.deleteObjectInDB(); err != nil {
 			return MessageToUser(c, http.StatusAccepted,
-				"could not delete updates while rolling back a failed DNS update for alias "+alias.AliasName, "home.html")
+				fmt.Sprintf("failed to delete update for alias %v during rollback", alias.AliasName), "home.html")
 		}
 		//Recreate the alias as it was before the update
 		if err = retrieved[0].createObjectInDB(); err != nil {
 			return MessageToUser(c, http.StatusAccepted,
-				"could not restore previous state while rolling back a failed DNS update for alias "+alias.AliasName, "home.html")
+				fmt.Sprintf("failed to restore previous state for alias %v, during rollback", alias.AliasName), "home.html")
 		}
 		//Successful rollback message
 		return MessageToUser(c, http.StatusAccepted,
-			"failed to update DNS for alias "+alias.AliasName+". Rolling back to previous state", "home.html")
+			fmt.Sprintf("rolled back to previous state completed for alias %v	, please try again later or contact admin", alias.AliasName), "home.html")
 	}
 
 	//Success message
 	return MessageToUser(c, http.StatusAccepted,
-		alias.AliasName+" updated Successfully", "home.html")
+		fmt.Sprintf("%v updated Successfully", alias.AliasName), "home.html")
 
 }
 

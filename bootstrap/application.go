@@ -20,7 +20,7 @@ type (
 		Log      Logging
 		DNS      DNS
 		Timers   Timers
-		Tbag     Tbag
+		Teigi    Teigi
 	}
 	//App struct describes application config parameters
 	App struct {
@@ -70,8 +70,10 @@ type (
 		Alarms int
 	}
 	//The host which has access to tbag for saving the secrets
-	Tbag struct {
+	Teigi struct {
 		Host string
+		Tbag string
+		Pwn  string
 	}
 )
 
@@ -98,7 +100,7 @@ func init() {
 	Log.SetHeader("${time_rfc3339} ${level} ${short_file} ${line} ")
 	file, err := os.OpenFile(GetConf().Log.LoggingFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
-		Log.Error("Failed to log to file, using default stderr" + err.Error())
+		Log.Errorf("failed to log to file, using default stderr %v", err)
 	}
 	if GetConf().Log.Stdout {
 		mw := io.MultiWriter(os.Stdout, file)

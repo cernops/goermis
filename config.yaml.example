@@ -35,7 +35,9 @@ dns:
 timers:
   #in minutes
   alarms:         --change--  #frequency of alarms checking
-
-
+teigi:
+  host: --change-- #the host that runs goermis and has access to tbag
+  tbag: --change-- #API of tbag
+  pwn:  --change-- #API of pwn
 
   

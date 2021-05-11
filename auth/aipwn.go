@@ -9,9 +9,9 @@ import (
 var aipwnConn *UserAuth
 
 func init() {
-	aipwnConn = getConn("https://woger.cern.ch:8202/pwn/v1/owner/")
+	aipwnConn = getConn(cfg.Teigi.Pwn)
 	if err := aipwnConn.initConnection(); err != nil {
-		log.Error("Error while initiating the ai-pwn connection: https://woger.cern.ch:8202/pwn/v1/owner/" + err.Error())
+		log.Errorf("error while initiating the pwn connection: %v, error: %v", cfg.Teigi.Pwn, err)
 	}
 }
 
@@ -22,10 +22,10 @@ func (l *UserAuth) pwnHg(username string) []string {
 	}
 	m := msg{}
 	URL := l.authRogerBaseURL + username + "/"
-	log.Info("[" + username + "] Querying teigi for user's hostgroups. url = " + URL)
+	log.Infof("[%v] querying teigi for user's hostgroups. url = %v", username, URL)
 	req, err := http.NewRequest("GET", URL, nil)
 	if err != nil {
-		log.Error("Error on creating request object. ", err.Error())
+		log.Errorf("error on creating request object %v ", err)
 		return []string{}
 	}
 	req.Header.Set("Content-Type", "application/json")
@@ -37,12 +37,12 @@ func (l *UserAuth) pwnHg(username string) []string {
 	}
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Error("["+username+"]Error reading Body of Request ", err.Error())
+		log.Errorf("[%v] error reading body of request %v ", username, err)
 		return []string{}
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusUnauthorized {
-		log.Error("["+username+"]User not authorized.Status Code: ", resp.StatusCode)
+		log.Errorf("[%v] user not authorized.status code: %v", username, resp.StatusCode)
 		return []string{}
 	}
 	if err = json.Unmarshal(data, &m); err != nil {

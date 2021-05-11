@@ -73,10 +73,7 @@ func Conn() *LandbSoap {
 
 func tokenExpired(then time.Time) bool {
 	duration := time.Since(then)
-	if duration.Hours() >= 10 {
-		return true
-	}
-	return false
+	return duration.Hours() >= 10
 }
 
 //InitConnection initiates a SOAP connection

@@ -292,3 +292,11 @@ func (alias Alias) createSecret() error {
 	return nil
 
 }
+func (alias Alias) deleteSecret() error {
+	err := auth.DeleteSecret(alias.AliasName)
+	if err != nil {
+		return err
+	}
+	return nil
+
+}

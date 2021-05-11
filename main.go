@@ -53,7 +53,7 @@ func main() {
 				ticker.Stop()
 				return
 			case <-ticker.C:
-				log.Info("24 hours passed, preparing to execution check alarms")
+				log.Infof("%v minutes passed, preparing to check for active alarms",cfg.Timers.Alarms)
 				alarms.PeriodicAlarmCheck()
 			}
 		}
@@ -72,7 +72,7 @@ func main() {
 			cfg.Certs.GoermisKey)
 		//Avoiding uneccesary logs and failures when restarting
 		if !strings.HasSuffix(err.Error(), "bind: address already in use") {
-			log.Fatal("Failed to start server: " + err.Error())
+			log.Fatalf("Failed to start server: %v",err)
 
 		}
 	}()
