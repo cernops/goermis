@@ -150,21 +150,21 @@ func CreateAlias(c echo.Context) error {
 			fmt.Sprintf("failed to create alias %v in DNS, database rolled back", alias.AliasName), "home.html")
 
 	}
+	/*
+		//Create secret in tbag
+		if err := alias.createSecret(); err != nil {
+			log.Errorf("[%v] failed to create secret in tbag for alias %v, initiating rollback\nerror:%v",
+				alias.User, alias.AliasName, err)
 
-	//Create secret in tbag
-	if err := alias.createSecret(); err != nil {
-		log.Errorf("[%v] failed to create secret in tbag for alias %v, initiating rollback\nerror:%v",
-			alias.User, alias.AliasName, err)
+			//rollback db and dns after failed secret creation
+			err := alias.RollbackInCreate(true, true)
+			if err != nil {
+				return MessageToUser(c, http.StatusBadRequest,
+					fmt.Sprint(err), "home.html")
+			}
 
-		//rollback db and dns after failed secret creation
-		err := alias.RollbackInCreate(true, true)
-		if err != nil {
-			return MessageToUser(c, http.StatusBadRequest,
-				fmt.Sprint(err), "home.html")
 		}
-
-	}
-
+	*/
 
 	//Success message
 	return MessageToUser(c, http.StatusCreated,
@@ -229,19 +229,19 @@ func DeleteAlias(c echo.Context) error {
 
 			}
 		}
+		/*
+			//Delete secret from tbag
+			if err := alias[0].deleteSecret(); err != nil {
+				log.Errorf("[%v] failed to delete the secret from tbag for alias %v, initiating the rollback",
+					username, aliasToDelete)
 
-		//Delete secret from tbag
-		if err := alias[0].deleteSecret(); err != nil {
-			log.Errorf("[%v] failed to delete the secret from tbag for alias %v, initiating the rollback",
-				username, aliasToDelete)
+				//rollback db and dns deletions
+				if err := alias[0].RollbackInDelete(true, true); err != nil {
+					return MessageToUser(c, http.StatusBadRequest, err.Error(), "home.html")
 
-			//rollback db and dns deletions
-			if err := alias[0].RollbackInDelete(true, true); err != nil {
-				return MessageToUser(c, http.StatusBadRequest, err.Error(), "home.html")
-
+				}
 			}
-		}
-
+		*/
 		//OK
 		return MessageToUser(c, http.StatusOK,
 			fmt.Sprintf("%v deleted successfully", aliasToDelete), "home.html")

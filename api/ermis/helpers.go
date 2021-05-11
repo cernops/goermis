@@ -2,8 +2,6 @@ package ermis
 
 /* This file contains helper functions and custom validator tags*/
 import (
-	"encoding/base64"
-	"math/rand"
 	"regexp"
 	"strconv"
 	"strings"
@@ -85,7 +83,7 @@ func EqualCnames(cname1, cname2 []Cname) bool {
 	}
 	return true
 }
-
+/*
 func generateRandomSecret() string {
 	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 	s := make([]rune, 10)
@@ -96,7 +94,7 @@ func generateRandomSecret() string {
 	secret := base64.StdEncoding.EncodeToString([]byte(string(s)))
 	return secret
 }
-
+*/
 /*//////////////Custom Validator Tags/////////////////////////*/
 
 //customValidators adds our new tags in the govalidator
