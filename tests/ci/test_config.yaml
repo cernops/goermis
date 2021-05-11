@@ -32,3 +32,8 @@ log:
   stdout: true
 dns:
   manager: 168.92.45.2  
+teigi:
+  host: goermis.cern.ch  
+  tbag: https://woger.cern.ch:8201/tbag/v2/host/
+  pwn:  https://woger.cern.ch:8202/pwn/v1/owner/
+
