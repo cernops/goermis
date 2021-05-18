@@ -37,7 +37,7 @@ func PostHandler(c echo.Context) error {
 	lbclient.NodeName = c.Request().Header.Get("NameFromCert")
 	//make sure there is a nodename
 	if lbclient.NodeName == "" {
-		return messageToNode(http.StatusBadRequest, fmt.Sprint("Nodename cannot be empty"))
+		return messageToNode(http.StatusBadRequest, "nodename cannot be empty")
 	}
 	log.Infof("node %v sent its status, first lets retrieve the aliases from db", lbclient.NodeName)
 	//retrieve reported aliases from database
@@ -67,14 +67,21 @@ func PostHandler(c echo.Context) error {
 		}
 	}
 	/*prepare to report for missing aliases in both sides*/
-
+	finalmsg := fmt.Sprintf("process completed for node %v", lbclient.NodeName)
 	//check for reported aliases, missing from db
 	missingfromdb := lbclient.missingfromdb()
+	if len(missingfromdb) != 0 {
+		finalmsg += fmt.Sprintf("##aliases not found in database: %v", missingfromdb)
+	}
 
 	//check for db aliases, missing from status report
-	missingfromreport := lbclient.missingfromstatus()
+	notreported := lbclient.missingfromstatus()
+	if len(notreported) != 0 {
+		finalmsg += fmt.Sprintf("##aliases which did not receive an update: %v", notreported)
 
-	return messageToNode(http.StatusOK, fmt.Sprintf("process completed for node %v.\n Aliases not found in database: %v\nAliases which did not receive an update:%v", lbclient.NodeName, missingfromdb, missingfromreport))
+	}
+
+	return messageToNode(http.StatusOK, finalmsg)
 
 }
 func messageToNode(status int, message string) error {

@@ -10,6 +10,7 @@ import (
 
 	"github.com/asaskevich/govalidator"
 	"github.com/labstack/echo/v4"
+	"gitlab.cern.ch/lb-experts/goermis/auth"
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 	"gitlab.cern.ch/lb-experts/goermis/db"
 )
@@ -150,21 +151,20 @@ func CreateAlias(c echo.Context) error {
 			fmt.Sprintf("failed to create alias %v in DNS, database rolled back", alias.AliasName), "home.html")
 
 	}
-	/*
-		//Create secret in tbag
-		if err := alias.createSecret(); err != nil {
-			log.Errorf("[%v] failed to create secret in tbag for alias %v, initiating rollback\nerror:%v",
-				alias.User, alias.AliasName, err)
 
-			//rollback db and dns after failed secret creation
-			err := alias.RollbackInCreate(true, true)
-			if err != nil {
-				return MessageToUser(c, http.StatusBadRequest,
-					fmt.Sprint(err), "home.html")
-			}
+	//Create secret in tbag
+	if err := alias.createSecret(); err != nil {
+		log.Errorf("[%v] failed to create secret in tbag for alias %v, initiating rollback\nerror:%v",
+			alias.User, alias.AliasName, err)
 
+		//rollback db and dns after failed secret creation
+		err := alias.RollbackInCreate(true, true)
+		if err != nil {
+			return MessageToUser(c, http.StatusBadRequest,
+				fmt.Sprint(err), "home.html")
 		}
-	*/
+
+	}
 
 	//Success message
 	return MessageToUser(c, http.StatusCreated,
@@ -229,8 +229,10 @@ func DeleteAlias(c echo.Context) error {
 
 			}
 		}
-		/*
-			//Delete secret from tbag
+
+		//Delete secret from tbag
+		if len(auth.GetSecret(alias[0].AliasName)) != 0 {
+
 			if err := alias[0].deleteSecret(); err != nil {
 				log.Errorf("[%v] failed to delete the secret from tbag for alias %v, initiating the rollback",
 					username, aliasToDelete)
@@ -241,7 +243,8 @@ func DeleteAlias(c echo.Context) error {
 
 				}
 			}
-		*/
+		}
+
 		//OK
 		return MessageToUser(c, http.StatusOK,
 			fmt.Sprintf("%v deleted successfully", aliasToDelete), "home.html")

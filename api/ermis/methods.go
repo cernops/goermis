@@ -6,9 +6,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"net/smtp"
 
 	"gorm.io/gorm"
 
+	"gitlab.cern.ch/lb-experts/goermis/auth"
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 	"gitlab.cern.ch/lb-experts/goermis/db"
 )
@@ -82,7 +84,6 @@ type (
 		ID               int          `  gorm:"unique;not null;auto_increment;primaryKey"     valid:"optional,int" `
 		NodeName         string       `  gorm:"not null;type:varchar(40);unique"              valid:"required, nodes"`
 		LastModification sql.NullTime `                                                       valid:"-"`
-		Hostgroup        string       `  gorm:"type:varchar(40);not null"                     valid:"optional, hostgroup"`
 		Aliases          []Relation   `                                                       valid:"optional"`
 	}
 
@@ -281,7 +282,7 @@ func (alias Alias) updateAlarms() (err error) {
 	}
 	return nil
 }
-/*
+
 func (alias Alias) createSecret() error {
 	newsecret := generateRandomSecret()
 	err := auth.PostSecret(alias.AliasName, newsecret)
@@ -309,4 +310,3 @@ func (alias Alias) sendSecretToUser(secret string) error {
 		msg)
 	return err
 }
-*/

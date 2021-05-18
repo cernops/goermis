@@ -129,6 +129,7 @@ func PostSecret(aliasname, secret string) error {
 	}
 	return tbagConn.post(aliasname, secret)
 }
+
 func DeleteSecret(aliasname string) error {
 	tbagConn := getConn(cfg.Teigi.Tbag)
 	if err := tbagConn.initConnection(); err != nil {
@@ -136,6 +137,7 @@ func DeleteSecret(aliasname string) error {
 	}
 	return tbagConn.delete(aliasname)
 }
+
 func GetSecret(aliasname string) []string {
 	tbagConn := getConn(cfg.Teigi.Tbag)
 	if err := tbagConn.initConnection(); err != nil {

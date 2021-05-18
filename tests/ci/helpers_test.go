@@ -401,9 +401,9 @@ func TestValidation(t *testing.T) {
 						Blacklist: true,
 						AliasID:   1,
 						Node: &ermis.Node{
-							ID:        2,
-							NodeName:  "testnode.cern.ch",
-							Hostgroup: "aiermis",
+							ID:       2,
+							NodeName: "testnode.cern.ch",
+
 							LastModification: sql.NullTime{
 								Time:  time.Now(),
 								Valid: true,
@@ -628,25 +628,6 @@ func TestValidation(t *testing.T) {
 						Blacklist: true,
 						Node: &ermis.Node{
 							NodeName: "*&%$", //malformed
-						},
-					},
-				},
-			},
-			expected: false,
-		},
-		//Case 17: Malformed hostgroup in Node type
-		{caseID: 17,
-			input: ermis.Alias{
-				AliasName: "seed.cern.ch",
-				BestHosts: 1,
-				External:  "no",
-				Hostgroup: "aiermis",
-				Relations: []ermis.Relation{
-					{
-						Blacklist: true,
-						Node: &ermis.Node{
-							NodeName:  "testnode.cern.ch",
-							Hostgroup: "@#!?", //malformed
 						},
 					},
 				},
