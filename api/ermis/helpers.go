@@ -85,7 +85,7 @@ func EqualCnames(cname1, cname2 []Cname) bool {
 	}
 	return true
 }
-
+//generateRandomSecret returns a base64 encoded string of 10 characters
 func generateRandomSecret() string {
 	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 	s := make([]rune, 10)

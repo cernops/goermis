@@ -15,12 +15,6 @@ import (
 //createInDNS creates 1 alias entry if the view is "internal" and
 //an additional entry if the view is "external"
 func (alias Alias) createInDNS() error {
-
-	//check for existing aliases in DNS with the same name
-	entries := landbsoap.Conn().DNSDelegatedSearch(strings.Split(alias.AliasName, ".")[0] + "*")
-	//Double-check that DNS doesn't contain such an alias
-
-	if len(entries) == 0 {
 		log.Infof("[%v] preparing to add %v in DNS", alias.User, alias.AliasName)
 		//If view is external, we need to create two entries in DNS
 		views := make(map[string]string)
@@ -49,10 +43,6 @@ func (alias Alias) createInDNS() error {
 			}
 		}
 		return nil
-
-	}
-	return errors.New("Alias entry with the same name exist in DNS, skipping creation")
-
 }
 
 //B) DELETE
