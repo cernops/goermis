@@ -163,6 +163,8 @@ func CreateAlias(c echo.Context) error {
 			return MessageToUser(c, http.StatusBadRequest,
 				fmt.Sprint(err), "home.html")
 		}
+		return MessageToUser(c, http.StatusBadRequest,
+			fmt.Sprintf("failed to create the secret of alias %v, creating aborted", alias.AliasName), "home.html")
 
 	}
 

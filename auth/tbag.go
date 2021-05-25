@@ -125,7 +125,7 @@ func (l *UserAuth) delete(aliasname string) error {
 func PostSecret(aliasname, secret string) error {
 	tbagConn := getConn(cfg.Teigi.Tbag)
 	if err := tbagConn.initConnection(); err != nil {
-		return fmt.Errorf("error while initiating the tbag connection: https://woger.cern.ch:8201/tbag/v2/host/, error %v", err)
+		return fmt.Errorf("error while initiating the tbag connection: https://woger.cern.ch:8202/tbag/v2/host/, error %v", err)
 	}
 	return tbagConn.post(aliasname, secret)
 }
@@ -133,7 +133,7 @@ func PostSecret(aliasname, secret string) error {
 func DeleteSecret(aliasname string) error {
 	tbagConn := getConn(cfg.Teigi.Tbag)
 	if err := tbagConn.initConnection(); err != nil {
-		return fmt.Errorf("error while initiating the tbag connection: https://woger.cern.ch:8201/tbag/v2/host/, error %v", err)
+		return fmt.Errorf("error while initiating the tbag connection: https://woger.cern.ch:8202/tbag/v2/host/, error %v", err)
 	}
 	return tbagConn.delete(aliasname)
 }

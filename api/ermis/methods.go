@@ -50,14 +50,14 @@ type (
 
 	//Relation describes the many-to-many relation between nodes/aliases
 	Relation struct {
-		ID        int          `  gorm:"not null;auto_increment"  valid:"optional, int" `
-		Node      *Node        `                                  valid:"required"`
-		NodeID    int          ` gorm:"not null"                  valid:"optional, int"`
-		Alias     *Alias       `                                  valid:"optional"`
-		AliasID   int          ` gorm:"not null"                  valid:"optional,int"`
-		Blacklist bool         ` gorm:"not null"                  valid:"-"`
-		Load      int          `                                  valid:"optional, int"`
-		LastCheck sql.NullTime `valid:"-"`
+		ID             int          `  gorm:"not null;auto_increment"  valid:"optional, int" `
+		Node           *Node        `                                  valid:"required"`
+		NodeID         int          ` gorm:"not null"                  valid:"optional, int"`
+		Alias          *Alias       `                                  valid:"optional"`
+		AliasID        int          ` gorm:"not null"                  valid:"optional,int"`
+		Blacklist      bool         ` gorm:"not null"                  valid:"-"`
+		Load           int          `                                  valid:"optional, int"`
+		LastLoadUpdate sql.NullTime `gorm:"type:date"                  valid:"-"`
 	}
 	//Alarm describes the one to many relation between an alias and its alarms
 	Alarm struct {
@@ -300,9 +300,9 @@ func (alias Alias) deleteSecret() error {
 func (alias Alias) sendSecretToUser(secret string) error {
 	recipient := alias.User + "@cern.ch"
 	log.Infof("Sending the new secret of alias %v to %v", alias.AliasName, alias.User)
-	msg := []byte("To: " + alias.User + "\r\n" +
+	msg := []byte("To: " + recipient + "\r\n" +
 		fmt.Sprintf("Subject: New secret created for alias %s: Please provide this to the nodes behind that alias. If not sure, check documentation(https://configdocs.web.cern.ch)\nSecret: %s ", alias.AliasName, secret))
-
+	//fmt.Sprintf("Subject: Alert on the alias %s: only %d hosts\r\n\r\nThe alert %s (%d) on %s has been triggered", alias, parameter, name, parameter, alias))
 	err := smtp.SendMail("localhost:25",
 		nil,
 		"lbd@cern.ch",

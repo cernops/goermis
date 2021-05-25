@@ -122,7 +122,7 @@ func (lbclient *LBClient) registerNode(unreg []string) (int, error) {
 					},
 				},
 				Load: status.Load,
-				LastCheck: sql.NullTime{
+				LastLoadUpdate: sql.NullTime{
 					Time:  time.Now(),
 					Valid: true,
 				},
@@ -161,7 +161,7 @@ func (lbclient LBClient) updateNode() (int, error) {
 					Where("alias_id=? AND node_id=?", alias.ID, rel.NodeID).Updates(
 					ermis.Relation{
 						Load: status.Load,
-						LastCheck: sql.NullTime{
+						LastLoadUpdate: sql.NullTime{
 							Time:  time.Now(),
 							Valid: true,
 						}}).Error
