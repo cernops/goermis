@@ -10,7 +10,6 @@ import (
 
 	"github.com/asaskevich/govalidator"
 	"github.com/labstack/echo/v4"
-	"gitlab.cern.ch/lb-experts/goermis/auth"
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 	"gitlab.cern.ch/lb-experts/goermis/db"
 )
@@ -151,7 +150,7 @@ func CreateAlias(c echo.Context) error {
 			fmt.Sprintf("failed to create alias %v in DNS, database rolled back", alias.AliasName), "home.html")
 
 	}
-
+    /*TO DO
 	//Create secret in tbag
 	if err := alias.createSecret(); err != nil {
 		log.Errorf("[%v] failed to create secret in tbag for alias %v, initiating rollback\nerror:%v",
@@ -167,6 +166,7 @@ func CreateAlias(c echo.Context) error {
 			fmt.Sprintf("failed to create the secret of alias %v, creating aborted", alias.AliasName), "home.html")
 
 	}
+     */
 
 	//Success message
 	return MessageToUser(c, http.StatusCreated,
@@ -231,7 +231,7 @@ func DeleteAlias(c echo.Context) error {
 
 			}
 		}
-
+        /*TODO
 		//Delete secret from tbag
 		if len(auth.GetSecret(alias[0].AliasName)) != 0 {
 
@@ -246,7 +246,7 @@ func DeleteAlias(c echo.Context) error {
 				}
 			}
 		}
-
+        */
 		//OK
 		return MessageToUser(c, http.StatusOK,
 			fmt.Sprintf("%v deleted successfully", aliasToDelete), "home.html")
