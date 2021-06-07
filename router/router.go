@@ -49,7 +49,7 @@ func New() *echo.Echo {
 	lbweb.GET("/checkname", api.CheckNameDNS)
 
 	//CLI routes
-	lbterm := e.Group("/p/api/v1")
+	lbterm := e.Group("/krb/api/v1")
 	lbterm.Use(api.CheckAuthorization)
 	lbterm.GET("/raw/", api.GetAliasRaw)
 	lbterm.GET("/alias/", api.GetAlias)
