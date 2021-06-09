@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"gitlab.cern.ch/lb-experts/goermis/api/ermis"
+	"gitlab.cern.ch/lb-experts/goermis/auth"
 	"gitlab.cern.ch/lb-experts/goermis/db"
 )
 
@@ -103,10 +104,10 @@ func (lbclient *LBClient) registerNode(unreg []string) (int, error) {
 			status := lbclient.findStatus(alias.AliasName)
 
 			log.Infof("checking if node %v is authorized to register on alias %v", lbclient.NodeName, alias.AliasName)
-			/*if !checkLbclientAuth(status.AliasName, status.Secret) {
+			if !checkLbclientAuth(status.AliasName, status.Secret) {
 				err := fmt.Errorf("unauthorized to register the load for node %v and alias %v, secret missmatch", lbclient.NodeName, status.AliasName)
 				return http.StatusUnauthorized, err
-			}*/
+			}
 
 			log.Infof("preparing the relation between node %v and alias %v", lbclient.NodeName, alias.AliasName)
 			relation := ermis.Relation{
@@ -150,10 +151,10 @@ func (lbclient LBClient) updateNode() (int, error) {
 		status := lbclient.findStatus(alias.AliasName)
 
 		log.Infof("checking if node %v is authorized to update alias %v", lbclient.NodeName, alias.AliasName)
-		/*if !checkLbclientAuth(status.AliasName, status.Secret) {
+		if !checkLbclientAuth(status.AliasName, status.Secret) {
 			err := fmt.Errorf("unauthorized to update the load for node %v and alias %v, secret missmatch", lbclient.NodeName, status.AliasName)
 			return http.StatusUnauthorized, err
-		}*/
+		}
 		log.Infof("preparing to update the load for node %v and alias %v", lbclient.NodeName, alias.AliasName)
 		for _, rel := range alias.Relations {
 			if rel.Node.NodeName == lbclient.NodeName {
@@ -178,7 +179,6 @@ func (lbclient LBClient) updateNode() (int, error) {
 	return http.StatusOK, nil
 }
 
-/*
 func checkLbclientAuth(aliasname, secret string) bool {
 	return ermis.StringInSlice(secret, auth.GetSecret(aliasname))
-}*/
+}

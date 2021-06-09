@@ -6,9 +6,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"net/smtp"
 
 	"gorm.io/gorm"
 
+	"gitlab.cern.ch/lb-experts/goermis/auth"
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 	"gitlab.cern.ch/lb-experts/goermis/db"
 )
@@ -280,7 +282,7 @@ func (alias Alias) updateAlarms() (err error) {
 	}
 	return nil
 }
-/*TODO
+
 func (alias Alias) createSecret() error {
 	newsecret := generateRandomSecret()
 	err := auth.PostSecret(alias.AliasName, newsecret)
@@ -308,4 +310,3 @@ func (alias Alias) sendSecretToUser(secret string) error {
 		msg)
 	return err
 }
-*/

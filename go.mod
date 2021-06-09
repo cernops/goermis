@@ -7,6 +7,7 @@ require (
 	github.com/go-asn1-ber/asn1-ber v1.5.3 // indirect
 	github.com/go-ldap/ldap/v3 v3.3.0
 	github.com/go-sql-driver/mysql v1.6.0
+	github.com/jcmturner/gokrb5/v8 v8.4.2
 	github.com/kr/text v0.2.0 // indirect
 	github.com/labstack/echo/v4 v4.2.1
 	github.com/labstack/gommon v0.3.0

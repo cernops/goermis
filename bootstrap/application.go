@@ -71,9 +71,11 @@ type (
 	}
 	//The host which has access to tbag for saving the secrets
 	Teigi struct {
-		Host string
-		Tbag string
-		Pwn  string
+		Host    string
+		Service string
+		Ssltbag string
+		Krbtbag string
+		Pwn     string
 	}
 )
 
