@@ -1,4 +1,3 @@
-
 //Function initialize_table is used to initialize the table, populate it and deactivate the input buttons and forms
 function initialize_nodes(data, mode) {
 
@@ -13,13 +12,17 @@ function initialize_nodes(data, mode) {
         {
             text: "Load",
             key: "load"
+        },
+        {
+            text: "Last Load Update",
+            key: "lastloadupdate"
         }],
         getControl: function (columnKey) {
             var disabled = "disabled='true'";
             if (columnKey == "access") {
                 return '<select class="form-control"><option value="0">Allow</option><option value="1">Forbidden</option></select>';
             }
-            if (columnKey == "load"){
+            if (columnKey == "load" || columnKey=="lastloadupdate"){
                 return '<input type="text" class="form-control" ' + disabled + '/>';
             }
             return '<input type="text" class="form-control" />';
@@ -61,7 +64,8 @@ function DisplayReceivedNodes(AllowedNodes, ForbiddenNodes) {
             KeyValue.push({
                 "name": entry.split(':')[0],
                 "access": 0,
-                "load":entry.split(':')[1]
+                "load":entry.split(':')[1],
+                "lastloadupdate": entry.split(":")[2]
             });
         })
     }
@@ -70,7 +74,7 @@ function DisplayReceivedNodes(AllowedNodes, ForbiddenNodes) {
         var forbidden = ForbiddenNodes.filter(Boolean);
         forbidden.forEach(function (entry) {
             KeyValue.push({
-                "name": entry.split(':')[0], 
+                "name": entry.split(':')[0], //remove load value
                 "access": 1,
                 "load":entry.split(':')[1]
             });

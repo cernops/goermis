@@ -42,7 +42,7 @@ function initialize_form(retrieveData, action) {
   //reset the form, some browser have a nasty habit of leaving stuff behind
   //clearForm();
   if (retrieveData) {
-    getData('../p/api/v1/alias/', mode);
+    getData('../krb/api/v1/alias/', mode);
 
   } else {
     loaderWindow('close');
@@ -100,7 +100,7 @@ function loadCluster(name, newCluster, editable) {
   } else {
     newCluster.clearCluster();
     populateClass(name, newCluster);
-    currentCNames = newCluster.getCNames().split(',');
+    currentCNames = newCluster.getCNames();
     toggleEditing(editable);
     writeFields(newCluster);
     checkSubmit(newCluster);
@@ -257,7 +257,8 @@ function populateClass(name, clusterObject) {
   var visibility = cluster.external;
   var replies = cluster.best_hosts;
   var hostgroup = cluster.hostgroup;
-  var cnames = cluster.cnames;
+  var cnames = cluster.cnames.join(",");
+  
 
 
   if (visibility == "yes") { visibility = true; }
