@@ -35,28 +35,28 @@ var (
 	log  = bootstrap.GetLog()
 )
 
-//Conn is nothing
+//Conn creates a SOAP connection to landb
 func Conn() *LandbSoap {
 	cfg := bootstrap.GetConf()
 	password := cfg.Soap.SoapPassword
 	decodedPass, err := base64.StdEncoding.DecodeString(password)
 	if err != nil {
-		log.Fatal("Error decoding SOAP password")
+		log.Error("Error decoding SOAP password")
 	}
 
 	soap = LandbSoap{
 		Username:  cfg.Soap.SoapUser,
 		Password:  string(decodedPass),
 		Ca:        "/etc/ssl/certs/ca-bundle.crt",
-		HostCert:  cfg.Certs.GoermisCert,
-		HostKey:   cfg.Certs.GoermisKey,
+		HostCert:  cfg.Certs.ErmisCert,
+		HostKey:   cfg.Certs.ErmisKey,
 		URL:       cfg.Soap.SoapURL,
 		AuthToken: "",
 		Client:    &http.Client{}}
 
 	for _, file := range []string{soap.HostCert, soap.HostKey} {
 		if _, err := os.Stat(file); err != nil {
-			log.Fatalf("The certificate '%v' does not exist ", file)
+			log.Errorf("The certificate '%v' does not exist ", file)
 		}
 
 	}
@@ -65,7 +65,7 @@ func Conn() *LandbSoap {
 	if soap.AuthToken == "" || tokenExpired(soap.CreatedAt) {
 		err := soap.InitConnection()
 		if err != nil {
-			log.Fatal("Error initiating SOAP interface")
+			log.Error("Error initiating SOAP interface")
 		}
 	}
 	return &soap
@@ -73,24 +73,21 @@ func Conn() *LandbSoap {
 
 func tokenExpired(then time.Time) bool {
 	duration := time.Since(then)
-	if duration.Hours() >= 10 {
-		return true
-	}
-	return false
+	return duration.Hours() >= 10
 }
 
 //InitConnection initiates a SOAP connection
 func (landbself *LandbSoap) InitConnection() error {
 	caCert, err := ioutil.ReadFile(landbself.Ca)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
 	}
 	caCertPool := x509.NewCertPool()
 	caCertPool.AppendCertsFromPEM(caCert)
 
 	cert, err := tls.LoadX509KeyPair(landbself.HostCert, landbself.HostKey)
 	if err != nil {
-		log.Fatalf("Error loading the certificate (%v): %v", landbself.HostCert, err)
+		log.Errorf("Error loading the certificate (%v): %v", landbself.HostCert, err)
 	}
 
 	landbself.Client = &http.Client{
@@ -116,24 +113,24 @@ func (landbself *LandbSoap) InitConnection() error {
 
 	authreq, err := http.NewRequest("POST", landbself.URL, bytes.NewReader(authpayload))
 	if err != nil {
-		log.Fatal("Error on creating request object. ", err.Error())
+		log.Errorf("Error on creating request object. %v", err.Error())
 		return err
 	}
 	authreq.Header.Set("Content-type", "text/xml")
 	authreq.Header.Set("SOAPAction", authSoapAction)
 	authresp, err := landbself.Client.Do(authreq)
 	if err != nil {
-		log.Fatal("Error on dispatching request. ", err.Error())
+		log.Errorf("Error on dispatching request. %v", err.Error())
 		return err
 	}
 
 	authreqhtmlData, err := ioutil.ReadAll(authresp.Body)
 	if err != nil {
-		fmt.Println(err)
+		log.Error(err)
 		return err
 	}
 	defer authresp.Body.Close()
-	fmt.Printf("Status is %v\n", authresp.Status)
+	log.Debugf("Status is %v\n", authresp.Status)
 	//fmt.Printf(string(authreqhtmlData) + "\n")
 
 	type AuthToken struct {
@@ -151,7 +148,7 @@ func (landbself *LandbSoap) InitConnection() error {
 	//err = xml.NewDecoder(authresp.Body).Decode(authresult)
 	err = xml.NewDecoder(bytes.NewReader(authreqhtmlData)).Decode(authresult)
 	if err != nil {
-		log.Fatal("Error on unmarshaling xml. ", err.Error())
+		log.Errorf("Error on unmarshaling xml. %v ", err.Error())
 		return err
 	}
 
@@ -175,25 +172,25 @@ func (landbself *LandbSoap) doSoap(payloadBody string, soapAction, httpMethod st
 
 	req, err := http.NewRequest(httpMethod, landbself.URL, bytes.NewReader([]byte(strings.TrimSpace(payload))))
 	if err != nil {
-		log.Fatal("Error on creating request object. ", err.Error())
+		log.Errorf("Error on creating request object. %v", err.Error())
 		return false
 	}
 	req.Header.Set("Content-type", "text/xml")
 	req.Header.Set("SOAPAction", "urn:"+soapAction)
 	resp, err := landbself.Client.Do(req)
 	if err != nil {
-		log.Fatal("Error on dispatching request. ", err.Error())
+		log.Errorf("Error on dispatching request. %v", err.Error())
 		return false
 	}
 
 	htmlData, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println(err)
+		log.Error(err)
 		return false
 	}
 	defer resp.Body.Close()
-	fmt.Printf("Status is %v\n", resp.Status)
-	fmt.Printf(string(htmlData) + "\n")
+	log.Infof("Status is %v\n", resp.Status)
+	//log.Debugf(string(htmlData) + "\n")
 
 	decoder := xml.NewDecoder(bytes.NewReader(htmlData))
 	result := false
@@ -211,15 +208,16 @@ func (landbself *LandbSoap) doSoap(payloadBody string, soapAction, httpMethod st
 				if err != nil {
 					break
 				}
-				fmt.Printf("innerThing = %v\n", innerThing0)
-				fmt.Printf("innerThing = %T\n", innerThing0)
+				log.Debugf("innerThing = %v\n", innerThing0)
+				log.Debugf("innerThing = %T\n", innerThing0)
 				innerThingVal, err := decoder.Token()
 				if err != nil {
 					break
 				}
-				fmt.Printf("innerThingVal = %v\n", innerThingVal)
-				fmt.Printf("innerThingVal = %T\n", innerThingVal)
+				log.Debugf("innerThingVal = %v\n", innerThingVal)
+				log.Debugf("innerThingVal = %T\n", innerThingVal)
 				chardata, _ := innerThingVal.(xml.CharData)
+				log.Debugf("%v", chardata)
 				result, err = strconv.ParseBool(string(chardata))
 				if err != nil {
 					break
@@ -236,7 +234,7 @@ func (landbself *LandbSoap) doSoap(payloadBody string, soapAction, httpMethod st
 					}
 					//fmt.Printf("faultcode = %v\n", faultcodeVal)
 					chardata, _ := faultcodeVal.(xml.CharData)
-					fmt.Printf("faultcode = %v\n", string(chardata))
+					log.Debugf("faultcode = %v\n", string(chardata))
 					continue
 				}
 				if se.Name.Local == "faultstring" {
@@ -246,7 +244,7 @@ func (landbself *LandbSoap) doSoap(payloadBody string, soapAction, httpMethod st
 					}
 					//fmt.Printf("faultstring = %v\n", faultstringVal)
 					chardata, _ := faultstringVal.(xml.CharData)
-					fmt.Printf("faultcode = %v\n", string(chardata))
+					log.Debugf("faultcode = %v\n", string(chardata))
 					continue
 				}
 				if se.Name.Local == "detail" {
@@ -256,13 +254,13 @@ func (landbself *LandbSoap) doSoap(payloadBody string, soapAction, httpMethod st
 					}
 					//fmt.Printf("detail = %v\n", detailVal)
 					chardata, _ := detailVal.(xml.CharData)
-					fmt.Printf("detail = %v\n", string(chardata))
+					log.Debugf("detail = %v\n", string(chardata))
 					continue
 				}
 			}
 		}
 	}
-	fmt.Printf("Result = %v\n", result)
+	log.Debugf("Result = %v\n", result)
 	//fmt.Printf("Result = %T\n", result
 	return result
 }
@@ -360,30 +358,30 @@ func (landbself *LandbSoap) DNSDelegatedSearch(search string) []DNSDelegatedEntr
 
 	req, err := http.NewRequest("POST", landbself.URL, bytes.NewReader(dnsDelegatedSearchPayload))
 	if err != nil {
-		log.Fatal("Error on creating request object. ", err.Error())
+		log.Errorf("Error on creating request object. %v", err.Error())
 		return []DNSDelegatedEntry{}
 	}
 	req.Header.Set("Content-type", "text/xml")
 	req.Header.Set("SOAPAction", "urn:"+dnsDelegatedSearchSoapAction)
 	resp, err := landbself.Client.Do(req)
 	if err != nil {
-		log.Fatal("Error on dispatching request. ", err.Error())
+		log.Errorf("Error on dispatching request. %v", err.Error())
 		return []DNSDelegatedEntry{}
 	}
 
 	htmlData, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println(err)
+		log.Error(err)
 		return []DNSDelegatedEntry{}
 	}
 	defer resp.Body.Close()
-	fmt.Printf("Status is %v\n", resp.Status)
+	log.Debugf("Status is %v\n", resp.Status)
 	//fmt.Printf(string(htmlData) + "\n")
 
 	result := new(SearchResult)
 	err = xml.NewDecoder(bytes.NewReader(htmlData)).Decode(result)
 	if err != nil {
-		log.Fatal("Error on unmarshaling xml. ", err.Error())
+		log.Errorf("Error on unmarshaling xml. %v", err.Error())
 		return []DNSDelegatedEntry{}
 	}
 

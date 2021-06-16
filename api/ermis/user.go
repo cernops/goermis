@@ -1,4 +1,4 @@
-package api
+package ermis
 
 /*This file contains the struct and methods that temporary
 store a username and its authorization results. The purpose is

@@ -11,7 +11,7 @@
 
         $(document).ready(function () {
                 loaderWindow();
-                getData('../p/api/v1/alias/');
+                getData('../krb/api/v1/alias/');
 
                 $('#clusterList').change(function () {
                         location = $('#clusterList').val();

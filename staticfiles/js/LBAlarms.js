@@ -69,7 +69,7 @@ function validEmail(value) {
 function DisplayAlarms(data) {
     var datalist = [];
     if (data) {
-        alarms = data.split(",")
+        alarms = data
         for (var i = 0; i < alarms.length; i++) {
             info = (alarms[i]).split(":")
             datalist.push({

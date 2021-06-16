@@ -1,4 +1,4 @@
-package api
+package ermis
 
 /*This file contains the template handlers*/
 import (

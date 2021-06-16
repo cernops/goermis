@@ -7,8 +7,8 @@ soap:
    soap_keyname_i: ITPES-INTERNAL
    soap_url: https://network.cern.ch/sc/soap/soap.fcgi?v=6
 certs:
-   goermis_cert: /etc/httpd/conf/ermiscert.pem
-   goermis_key: /etc/httpd/conf/ermiskey.pem
+   ermis_cert: /etc/httpd/conf/ermiscert.pem
+   ermis_key: /etc/httpd/conf/ermiskey.pem
    ca_cert: /etc/httpd/conf/ca.pem
 
 database:
@@ -29,3 +29,6 @@ log:
   stdout: true
 dns:
    manager: ##REPLACE_BY_IP##
+teigi: 
+  tbag: https://woger.cern.ch:8201/tbag/v2/host/
+  pwn:  https://woger.cern.ch:8202/pwn/v1/owner/
