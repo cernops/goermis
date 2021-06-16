@@ -1,9 +1,10 @@
-package api
+package ermis
 
 /*This file contains the functions that transform the binded
 data from the Resource struct to the ORM one(and vice versa)
 This is done to allow a more Object oriented experience later on */
 import (
+	"database/sql"
 	"strconv"
 	"strings"
 	"time"
@@ -87,12 +88,13 @@ func sanitazeInCreation(c echo.Context, resource Resource) (object Alias) {
 	//Default values while creating
 	object.Statistics = "long"
 	object.Tenant = "golang"
-	object.LastModification = time.Now()
+	//Time
+	object.LastModification.Time = time.Now()
+	object.LastModification.Valid = true
 	object.Metric = "cmsfrontier"
 	object.PollingInterval = 300
 	object.TTL = 60
 	object.Clusters = "none"
-	object.Behaviour = "mindless"
 
 	return
 }
@@ -119,12 +121,12 @@ func parse(queryResults []Alias) Objects {
 		//The ones that are the same
 		temp.ID = element.ID
 		temp.AliasName = element.AliasName
-		temp.Behaviour = element.Behaviour
 		temp.BestHosts = element.BestHosts
 		temp.Clusters = element.Clusters
 		temp.Hostgroup = element.Hostgroup
 		temp.External = element.External
-		temp.LastModification = element.LastModification
+		//Time
+		temp.LastModification = element.LastModification.Time
 		temp.Metric = element.Metric
 		temp.PollingInterval = element.PollingInterval
 		temp.TTL = element.TTL
@@ -162,12 +164,12 @@ func parse(queryResults []Alias) Objects {
 		temp.ForbiddenNodes = []string{}
 		temp.AllowedNodes = []string{}
 		if len(element.Relations) != 0 {
-
 			for _, v := range element.Relations {
-				if v.Blacklist == true {
-					temp.ForbiddenNodes = append(temp.ForbiddenNodes, v.Node.NodeName)
+				nameload := v.Node.NodeName + ":" + strconv.Itoa(v.Load) + ":" + v.LastLoadUpdate.Time.String()
+				if v.Blacklist {
+					temp.ForbiddenNodes = append(temp.ForbiddenNodes, nameload)
 				} else {
-					temp.AllowedNodes = append(temp.AllowedNodes, v.Node.NodeName)
+					temp.AllowedNodes = append(temp.AllowedNodes, nameload)
 				}
 
 			}
@@ -227,7 +229,8 @@ func sanitazeInUpdate(c echo.Context, current Alias, new Resource) (Alias, error
 	}
 
 	//Nodes
-	//Keep a copy of relations, that we need to determine the ID of existing nodes
+	//Keep a copy of relations, that we need to determine the ID of existing relations, with assigned ID
+	//If we didnt do this, what would happen is that a new ID=0 would be assigned.
 	copyOfRelations := current.Relations
 	current.Relations = []Relation{}
 	fields := map[bool][]string{false: new.AllowedNodes, true: new.ForbiddenNodes}
@@ -240,10 +243,13 @@ func sanitazeInUpdate(c echo.Context, current Alias, new Resource) (Alias, error
 					NodeID:    FindNodeID(node, copyOfRelations),
 					Blacklist: k,
 					Node: &Node{
-						ID:               FindNodeID(node, copyOfRelations),
-						NodeName:         node,
-						LastModification: time.Now(),
-						Hostgroup:        current.Hostgroup}})
+						ID:       FindNodeID(node, copyOfRelations),
+						NodeName: node,
+						LastModification: sql.NullTime{
+							Time:  time.Now(),
+							Valid: true,
+						},
+					}})
 			}
 		}
 	}

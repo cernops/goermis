@@ -1,56 +1,45 @@
+
+
 {{ block "header_sidebar_text" .}}Display an LB Alias{{end}}
 
 {{block "scripts" .}}
 <script src="/staticfiles/js/LBCluster.js">
-</script>
+        </script>
 <script src="/staticfiles/js/LBDis.js">
-</script>
+        </script>
 {{ end }}
 
 {{ define "content" }}
 <div class="content clearfix">
-        <div class="field field-name-body field-type-text-with-summary field-label-hidden">
-                <div class="field-items">
-                        <div class="field-item even" property="content:encoded"></div>
-                </div>
-        </div>
-        <form class="webform-client-form" enctype="application/x-www-form-urlencoded" action="/modify_alias"
-                method="post" id="webform-client-form-3" accept-charset="UTF-8">
-                <div>
-                        <input type="hidden" name="csrf" value={{.csrf}}>
+    <div class="field field-name-body field-type-text-with-summary field-label-hidden"><div class="field-items"><div class="field-item even" property="content:encoded"></div></div></div><form class="webform-client-form" enctype="application/x-www-form-urlencoded" action="/modify_alias" method="post" id="webform-client-form-3" accept-charset="UTF-8"><div>
+        <input type = "hidden" name = "csrf" value = {{.csrf}} >
 
-                        {{ template "alias_select.html" .}}
+        {{ template "alias_select.html" .}}
 
 
-                        {{ template "alias.html" .}}
+        {{ template "alias.html" .}}
+        
+        {{ template "external.html" .}} 
 
-                        {{ template "external.html" .}}
+<div class="form-item webform-component webform-component-markup" id="webform-component-alias-members">
+ <p><strong>LB Alias Members</strong></p>
+<p>Only Puppet managed nodes can be used as alias members. Alias members have to be defined following the documentation in the following URL:</p>
+<p><a href="https://configdocs.web.cern.ch/configdocs/dnslb/aliasmembers.html">https://configdocs.web.cern.ch/configdocs/dnslb/aliasmembers.html</a></p>
 
-                        <div class="form-item webform-component webform-component-markup"
-                                id="webform-component-alias-members">
-                                <p><strong>LB Alias Members</strong></p>
-                                <p>Only Puppet managed nodes can be used as alias members. Alias members have to be
-                                        defined following the documentation in the following URL:</p>
-                                <p><a href="https://configdocs.web.cern.ch/configdocs/dnslb/aliasmembers.html">https://configdocs.web.cern.ch/configdocs/dnslb/aliasmembers.html</a>
-                                </p>
+</div>
+<div class="form-item webform-component webform-component-markup" id="webform-component-alias-logs">
+ <p id=alias-log-headtext><strong>LB Alias Log</strong></p>
+<p><a id="alias-log" href="https://timber.cern.ch/public/_plugin/kibana/#/dashboard/temp/LBD::lbalias">Log of the alias in Timber</a></p>
 
-                        </div>
-                        <div class="form-item webform-component webform-component-markup"
-                                id="webform-component-alias-logs">
-                                <p id=alias-log-headtext><strong>LB Alias Log</strong></p>
-                                <p><a id="alias-log"
-                                                href="https://timber.cern.ch/public/_plugin/kibana/#/dashboard/temp/LBD::lbalias">Log
-                                                of the alias in Timber</a></p>
+</div>
 
-                        </div>
+{{template "hostgroup.html" .}}
 
-                        {{template "hostgroup.html" .}}
+{{template "advanced.html" .}}
+{{ template "nodes.html" .}} 
+{{ template "alarms.html" .}}
 
-                        {{template "advanced.html" .}}
-                        {{ template "nodes.html" .}}
-                        {{ template "alarms.html" .}}
-
-                </div>
-</div> <!-- /.section, /#content -->
+</div></div> <!-- /.section, /#content -->
 
 {{ end }}
+

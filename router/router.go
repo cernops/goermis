@@ -5,12 +5,8 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"gitlab.cern.ch/lb-experts/goermis/api"
-	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
-)
-
-var (
-	log = bootstrap.GetLog()
+	"gitlab.cern.ch/lb-experts/goermis/api/ermis"
+	"gitlab.cern.ch/lb-experts/goermis/api/lbclient"
 )
 
 //New Echo Context
@@ -30,32 +26,36 @@ func New() *echo.Echo {
 	lbweb := e.Group("/lbweb")
 
 	//Custom middleware in API
-	lbweb.Use(api.CheckAuthorization)
+	lbweb.Use(ermis.CheckAuthorization)
 	//CSRF
 	lbweb.Use(middleware.CSRFWithConfig(middleware.CSRFConfig{
 		Skipper: middleware.DefaultSkipper, TokenLength: 32,
 		TokenLookup: "form:csrf", ContextKey: "csrf", CookieName: "_csrf", CookieMaxAge: 86400,
 	}))
 
-	lbweb.GET("/", api.HomeHandler)
-	lbweb.GET("/create", api.CreateHandler)
-	lbweb.GET("/modify", api.ModifyHandler)
-	lbweb.GET("/display", api.DisplayHandler)
-	lbweb.GET("/delete", api.DeleteHandler)
-	lbweb.GET("/logs", api.LogsHandler)
-	lbweb.POST("/new_alias", api.CreateAlias)
-	lbweb.POST("/delete_alias", api.DeleteAlias)
-	lbweb.POST("/modify_alias", api.ModifyAlias)
-	lbweb.GET("/checkname", api.CheckNameDNS)
+	lbweb.GET("/", ermis.HomeHandler)
+	lbweb.GET("/create", ermis.CreateHandler)
+	lbweb.GET("/modify", ermis.ModifyHandler)
+	lbweb.GET("/display", ermis.DisplayHandler)
+	lbweb.GET("/delete", ermis.DeleteHandler)
+	lbweb.GET("/logs", ermis.LogsHandler)
+	lbweb.POST("/new_alias", ermis.CreateAlias)
+	lbweb.POST("/delete_alias", ermis.DeleteAlias)
+	lbweb.POST("/modify_alias", ermis.ModifyAlias)
+	lbweb.GET("/checkname", ermis.CheckNameDNS)
 
 	//CLI routes
-	lbterm := e.Group("/p/api/v1")
-	lbterm.Use(api.CheckAuthorization)
-	lbterm.GET("/raw/", api.GetAliasRaw)
-	lbterm.GET("/alias/", api.GetAlias)
-	lbterm.DELETE("/alias/", api.DeleteAlias)
-	lbterm.POST("/alias/", api.CreateAlias)
-	lbterm.PATCH("/alias/:id/", api.ModifyAlias)
+	entrypoint := e.Group("/krb/api/v1")
+	entrypoint.Use(ermis.CheckAuthorization)
+	entrypoint.GET("/raw/", ermis.GetAliasRaw)
+	entrypoint.GET("/alias/", ermis.GetAlias)
+	entrypoint.DELETE("/alias/", ermis.DeleteAlias)
+	entrypoint.POST("/alias/", ermis.CreateAlias)
+	entrypoint.PATCH("/alias/:id/", ermis.ModifyAlias)
+
+	//lbclients
+	lbc := e.Group("/lb/api/v1")
+	lbc.POST("/lbclient/", lbclient.PostHandler)
 
 	return e
 }

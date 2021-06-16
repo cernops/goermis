@@ -1,32 +1,18 @@
-package api
+package ermis
 
 /* This file contains helper functions and custom validator tags*/
 import (
+	"encoding/base64"
+	"math/rand"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/asaskevich/govalidator"
 	"github.com/labstack/echo/v4"
-	"gitlab.cern.ch/lb-experts/goermis/db"
-)
-
-var (
-	conn = db.GetConn()
 )
 
 /*////////////Helper Functions///////////////////*/
-
-//ContainsCname returns true if a cname can be found in a list of Cname objects
-func ContainsCname(s []Cname, e string) bool {
-	for _, a := range s {
-		if a.Cname == e {
-			return true
-		}
-	}
-	return false
-
-}
 
 /*When it comes to nodes/cnames/alarms, i strived for standardization
 So instead of having some as string type and some as array, i decided to
@@ -36,9 +22,7 @@ echo binder we are using binds the whole string of elements in the [0] of our []
 Since, the revamp of the UI has not been part of my project scope(where we could change how data is sent),
 explode solves that issue, by splitting the element [0] when content type is form.
 */
-
-//Explode takes as input a slice if the first and only element is a comma-separated
-//string , it splits that string and returns a full slice
+//Turn this slice []string{"a,b,c"} to this one ==> []string{"a","b","c"}
 func Explode(contentType string, slice []string) []string {
 	if contentType == "application/json" {
 		return slice
@@ -50,36 +34,6 @@ func Explode(contentType string, slice []string) []string {
 		log.Error("Received an unpredictable content type, not sure how to bind array fields")
 		return []string{}
 	}
-
-}
-
-//ContainsAlarm checks if an alarm object is in a slice of objects
-func ContainsAlarm(s []Alarm, a Alarm) bool {
-	for _, alarm := range s {
-		if alarm.Name == a.Name &&
-			alarm.Recipient == a.Recipient &&
-			alarm.Parameter == a.Parameter {
-			return true
-		}
-	}
-	return false
-
-}
-
-//ContainsNode checks if a node has a relation with an alias
-// and the status of that relation(allowed or forbidden)
-func ContainsNode(a []Relation, b Relation) (bool, bool) {
-	for _, v := range a {
-		if v.Node.NodeName == b.Node.NodeName {
-			if v.Blacklist == b.Blacklist {
-				//name, blacklist
-				return true, true
-			}
-			return true, false
-		}
-
-	}
-	return false, false
 
 }
 
@@ -117,28 +71,49 @@ func StringInSlice(a string, list []string) bool {
 
 //EqualCnames compares two arrays of Cname type
 func EqualCnames(cname1, cname2 []Cname) bool {
+	var (
+		intf ContainsIntf
+	)
 	if len(cname1) != len(cname2) {
 		return false
 	}
 	for _, v := range cname1 {
-		if !ContainsCname(cname2, v.Cname) {
+		intf = v
+		if !Contains(intf, cname2) {
 			return false
 		}
 	}
 	return true
 }
 
+func generateRandomSecret() string {
+	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+	s := make([]rune, 10)
+	for i := range s {
+		s[i] = letters[rand.Intn(len(letters))]
+	}
+
+	secret := base64.StdEncoding.EncodeToString([]byte(string(s)))
+	return secret
+}
+
 /*//////////////Custom Validator Tags/////////////////////////*/
 
 //customValidators adds our new tags in the govalidator
 func customValidators() {
+	govalidator.TagMap["hash"] = govalidator.Validator(func(str string) bool {
+		len := "60"
+		match, _ := regexp.MatchString("^[a-zA-Z0-9^/.$]{"+len+"}$", str)
+		return match
+	})
+
 	govalidator.TagMap["nodes"] = govalidator.Validator(func(str string) bool {
 		if len(str) > 0 {
 			var allowed = regexp.MustCompile(`^[a-z][a-z0-9\-]*[a-z0-9]$`)
 			part := strings.Split(str, ".")
 			for _, p := range part {
 				if !allowed.MatchString(p) || !govalidator.InRange(len(p), 2, 40) {
-					log.Error("Not valid node name: " + str)
+					log.Errorf("Not valid node name: %v", str)
 					return false
 				}
 			}
@@ -154,7 +129,7 @@ func customValidators() {
 		if len(str) > 0 {
 			var allowed = regexp.MustCompile(`^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$`)
 			if !allowed.MatchString(str) || !govalidator.InRange(len(str), 2, 511) {
-				log.Error("Not valid cname: " + str)
+				log.Errorf("Not valid cname: %v ", str)
 				return false
 			}
 			return true
@@ -172,12 +147,12 @@ func customValidators() {
 				return false
 			}
 			if !govalidator.IsEmail(alarm[1]) {
-				log.Error("No valid e-mail address " + alarm[1] + " in alarm " + str)
+				log.Errorf("No valid e-mail address %v in alarm %v ", alarm[1], str)
 				return false
 
 			}
 			if !govalidator.IsInt(alarm[2]) {
-				log.Error("No valid parameter value " + alarm[2] + " in alarm " + str)
+				log.Errorf("No valid parameter value %v in alarm %v", alarm[2], str)
 				return false
 
 			}
@@ -201,7 +176,7 @@ func customValidators() {
 		if len(str) > 0 {
 			var allowed = regexp.MustCompile(`^[a-z][a-z0-9\_\/]*[a-z0-9]$`)
 			if !allowed.MatchString(str) || !govalidator.InRange(len(str), 2, 50) {
-				log.Error("Not valid hostgroup: " + str)
+				log.Errorf("Not valid hostgroup: %v ", str)
 				return false
 			}
 			return true
@@ -211,7 +186,7 @@ func customValidators() {
 
 }
 
-/*/////////////Unified way to return responses to user/////////////////////////////*/
+/*/////////////Unified way to return responses to user /////////////////////////////*/
 
 //MessageToUser renders the reply for the user
 func MessageToUser(c echo.Context, status int, message string, page string) error {
@@ -219,9 +194,9 @@ func MessageToUser(c echo.Context, status int, message string, page string) erro
 	httphost := c.Request().Header.Get("X-Forwarded-Host")
 	if message != "" {
 		if 200 <= status && status < 300 {
-			log.Info("[" + username + "]" + message)
+			log.Infof("[%v]%v", username, message)
 		} else {
-			log.Error("[" + username + "]" + message)
+			log.Errorf("[%v]%v", username, message)
 		}
 	}
 

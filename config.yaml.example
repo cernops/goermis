@@ -24,13 +24,26 @@ soap:
    soap_keyname_i: --change--
    soap_url:       --change--
 certs:
-   goermis_cert:   --change--
-   goermis_key:    --change--
+   ermis_cert:     --change--
+   ermis_key:      --change--
+   host_cert:      --change--
+   host_key:       --change--
    ca_cert:        --change--
 log:  
   logging_file:    --change--
   stdout:          --change-- 
 dns:
   manager:         --change--  
+timers:
+  #in minutes
+  alarms:         --change--  #frequency of alarms checking
+teigi:
+  host:           --change-- #the hostname that runs goermis and has access to tbag
+  service:        --change-- #tbag service
+  ssltbag:        --change-- #API of tbag that accepts GET method via SSL
+  krbtbag:        --change-- #API of tbag that accepts POST method via krb
+  pwn:            --change-- #API of pwn
+
+  
 
   

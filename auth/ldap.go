@@ -49,7 +49,7 @@ func isMemberOf(username string, group string) bool {
 		searchReq = query(base, nestedFilter)
 		result, err = conn.Search(searchReq)
 		if err != nil && result == nil {
-			log.Error("User" + username + " is not member in any of nested e-groups")
+			log.Errorf("user %v is not member in any of nested e-groups", username)
 			return false
 		}
 
@@ -57,7 +57,7 @@ func isMemberOf(username string, group string) bool {
 
 	if len(result.Entries) == 1 && result.Entries[0].GetAttributeValue("cn") == username {
 
-		log.Debug("Got ", result.Entries[0].GetAttributeValue("cn"), " search results")
+		log.Debugf("got %v search results", result.Entries[0].GetAttributeValue("cn"))
 		return true
 
 	}
@@ -75,4 +75,9 @@ func query(base string, filter string) *ldap.SearchRequest {
 		[]string{"cn"}, //attrs
 		[]ldap.Control{})
 	return q
+}
+
+//CheckCud checks a user if he is member of egroup
+func CheckCud(username string) bool {
+	return isMemberOf(username, "ermis-lbaas-admins")
 }
