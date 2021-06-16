@@ -1,4 +1,4 @@
-package api
+package ermis
 
 /*This file contains the middleware that scans every
 request before it reaches its handler. The checks include
@@ -65,11 +65,11 @@ func askTeigi(c echo.Context, nextHandler echo.HandlerFunc, username string) err
 		//...and there is no hostgroup field in the Request,allow to PATCH other fields
 		//if the user is authorized in the old hostgroup
 		if newHg == "" && authInOldHg {
-			log.Info("[" + GetUsername() + "] Authorized by teigi for PATCH, using existing hostgroup")
+			log.Infof("[%v] authorized by teigi for PATCH, using existing hostgroup", GetUsername())
 			return nextHandler(c)
 			//When PATCH-ing hostgroup value itself, verify user in both hostgroups
 		} else if authInNewHg && authInOldHg {
-			log.Info("[" + GetUsername() + "] Authorized by teigi for PATCH, using both hg")
+			log.Infof("[%v] authorized by teigi for PATCH, using both hg", GetUsername())
 			return nextHandler(c)
 		}
 		return MessageToUser(c, http.StatusUnauthorized,
@@ -79,7 +79,7 @@ func askTeigi(c echo.Context, nextHandler echo.HandlerFunc, username string) err
 		//Here we authorize the creation of new aliases(no hostgroup value in DB),
 		// if teigi gives the OK for the new hostgroup value.
 		if authInNewHg && oldHg == "" {
-			log.Info("[" + GetUsername() + "] Authorized by teigi to POST new alias")
+			log.Infof("[%v] authorized by teigi to POST new alias", GetUsername())
 			return nextHandler(c)
 
 			//When modifying , check both hostgroups
@@ -93,7 +93,7 @@ func askTeigi(c echo.Context, nextHandler echo.HandlerFunc, username string) err
 	case "DELETE":
 		//We make sure user is auth in the existing hg
 		if authInOldHg {
-			log.Info("[" + GetUsername() + "] Authorized by teigi for DELETE")
+			log.Infof("[%v] authorized by teigi for DELETE", GetUsername())
 			return nextHandler(c)
 		}
 		return MessageToUser(c, http.StatusUnauthorized,

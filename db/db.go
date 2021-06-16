@@ -31,9 +31,9 @@ var (
 func InitDB() {
 	//Loglevels for GORM are {INFO,WARN,ERROR,SILENT}
 	if *bootstrap.DebugLevel {
-		value = 4 //this is INFO
+		value = 4 //this is ERROR --> works like DEBUG in this case
 	} else {
-		value = 2 //this is ERROR --> works like DEBUG in this case
+		value = 2 // This is INFO
 	}
 
 	DBlogger := logger.New(

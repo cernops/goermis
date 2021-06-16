@@ -1,4 +1,3 @@
-
 //Function initialize_table is used to initialize the table, populate it and deactivate the input buttons and forms
 function initialize_nodes(data, mode) {
 
@@ -9,10 +8,22 @@ function initialize_nodes(data, mode) {
         }, {
             text: "Access Control",
             key: "access"
+        },
+        {
+            text: "Load",
+            key: "load"
+        },
+        {
+            text: "Last Load Update",
+            key: "lastloadupdate"
         }],
         getControl: function (columnKey) {
+            var disabled = "disabled='true'";
             if (columnKey == "access") {
                 return '<select class="form-control"><option value="0">Allow</option><option value="1">Forbidden</option></select>';
+            }
+            if (columnKey == "load" || columnKey=="lastloadupdate"){
+                return '<input type="text" class="form-control" ' + disabled + '/>';
             }
             return '<input type="text" class="form-control" />';
         },
@@ -40,27 +51,32 @@ function initialize_nodes(data, mode) {
         $(".form-control").attr("disabled", true);
     }
 
+   
 }
 //FUnction that populates the table with the received data
 function DisplayReceivedNodes(AllowedNodes, ForbiddenNodes) {
     var KeyValue = [];
     //Split and filter the allowed nodes, push them in the array
     if (AllowedNodes != null) {
-        var allowed = AllowedNodes.split(",").filter(Boolean);
+        var allowed = AllowedNodes.filter(Boolean);
         allowed.forEach(function (entry) {
+
             KeyValue.push({
-                "name": entry,
-                "access": 0
+                "name": entry.split(':')[0],
+                "access": 0,
+                "load":entry.split(':')[1],
+                "lastloadupdate": entry.split(":")[2]
             });
         })
     }
     //Split and filter the string of Forbidden nodes, push them on the same array
     if (ForbiddenNodes != null) {
-        var forbidden = ForbiddenNodes.split(",").filter(Boolean);
+        var forbidden = ForbiddenNodes.filter(Boolean);
         forbidden.forEach(function (entry) {
             KeyValue.push({
-                "name": entry,
-                "access": 1
+                "name": entry.split(':')[0], //remove load value
+                "access": 1,
+                "load":entry.split(':')[1]
             });
         })
     }

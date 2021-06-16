@@ -1,4 +1,4 @@
-package api
+package ermis
 
 /*This file contains the DB transactions*/
 import (
@@ -55,6 +55,7 @@ func deleteTransactions(alias Alias) (err error) {
 			return errors.New("Failed to delete alias from DB with error: " + err.Error())
 
 		}
+		
 		//Delete node with no other relations
 		for _, relation := range alias.Relations {
 			if tx.Model(&relation.Node).Association("Aliases").Count() == 0 {
@@ -102,7 +103,7 @@ func deleteNodeTransactions(v Relation) (err error) {
 }
 
 //addNodeTransactions adds a node in the DB
-func addNodeTransactions(v Relation) (err error) {
+func AddNodeTransactions(v Relation) (err error) {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
 		//Either create a new node or find an existing one
 		//Remember that its a many-2-many relationship, so nodes
@@ -119,7 +120,10 @@ func addNodeTransactions(v Relation) (err error) {
 			&Relation{
 				AliasID:   v.AliasID,
 				NodeID:    v.Node.ID,
-				Blacklist: v.Blacklist},
+				Blacklist: v.Blacklist,
+				Load:      v.Load,
+				LastLoadUpdate: v.LastLoadUpdate,
+			},
 		).Error; err != nil {
 			tx.Rollback()
 			return err

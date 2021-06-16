@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"gitlab.cern.ch/lb-experts/goermis/alarms"
-	"gitlab.cern.ch/lb-experts/goermis/api"
+	"gitlab.cern.ch/lb-experts/goermis/api/ermis"
 	"gitlab.cern.ch/lb-experts/goermis/bootstrap"
 	"gitlab.cern.ch/lb-experts/goermis/db"
 	"gitlab.cern.ch/lb-experts/goermis/router"
@@ -24,10 +24,12 @@ const (
 
 var (
 	log = bootstrap.GetLog()
+	cfg = bootstrap.GetConf()
 )
 
 func main() {
 	bootstrap.ParseFlags()
+	bootstrap.SetLogLevel()
 	log.Info("============Service Started=============")
 
 	// Echo instance
@@ -39,8 +41,9 @@ func main() {
 	autoMigrateTables()
 
 	//Alarms periodic check/update
-	log.Info("24 hours passed, preparing to execution check alarms")
-	ticker := time.NewTicker(24 * time.Hour)
+
+	ticker := time.NewTicker(time.Duration(cfg.Timers.Alarms) * time.Minute)
+
 	/*done channel can be used to stop the ticker if needed,
 	by issuing the command "done<-true". For now, it runs constantly */
 	done := make(chan bool)
@@ -51,11 +54,13 @@ func main() {
 				ticker.Stop()
 				return
 			case <-ticker.C:
+				log.Debugf("%v minutes passed, preparing to check for active alarms", cfg.Timers.Alarms)
 				alarms.PeriodicAlarmCheck()
 			}
 		}
 	}()
-	log.Info("Alarms updated")
+	log.Debug("alarms updated")
+
 	/* Start server
 	       Error handling is done a bit differently in this situation. The reason is that
 		   when server is restarted we force it to reuse the same socket. Despite being successfully
@@ -63,22 +68,24 @@ func main() {
 		   to shut down the service */
 
 	go func() {
-		cfg := bootstrap.GetConf()
+
 		err := echo.StartTLS(":8080",
-			cfg.Certs.GoermisCert,
-			cfg.Certs.GoermisKey)
-		//Avoiding uneccesary logs and failures when restarting 
+			cfg.Certs.ErmisCert,
+			cfg.Certs.ErmisKey)
+		//Avoiding uneccesary logs and failures when restarting
 		if !strings.HasSuffix(err.Error(), "bind: address already in use") {
-			log.Fatal("Failed to start server: " + err.Error())
+			log.Fatalf("Failed to start server: %v", err)
 
 		}
 	}()
 
 	// Wait for interrupt signal to gracefully shutdown the server with
 	// a timeout of 10 seconds. It is needed to accomplish socket recycling
-	quit := make(chan os.Signal)
+	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
-	<-quit
+	s := <-quit
+	log.Infof("received quit signal %v", s)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := echo.Shutdown(ctx); err != nil {
@@ -90,6 +97,6 @@ func main() {
 
 // autoMigrateTables: migrate table columns using GORM. Will not delete/change types for security reasons
 func autoMigrateTables() {
-	db.GetConn().AutoMigrate(&api.Alias{}, &api.Node{}, &api.Cname{}, &api.Alarm{}, &api.Relation{})
+	db.GetConn().AutoMigrate(&ermis.Alias{}, &ermis.Node{}, &ermis.Cname{}, &ermis.Alarm{}, &ermis.Relation{})
 
 }
