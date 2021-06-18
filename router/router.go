@@ -45,7 +45,7 @@ func New() *echo.Echo {
 	lbweb.GET("/checkname", ermis.CheckNameDNS)
 
 	//CLI routes
-	entrypoint := e.Group("/krb/api/v1")
+	entrypoint := e.Group("/p/api/v1")
 	entrypoint.Use(ermis.CheckAuthorization)
 	entrypoint.GET("/raw/", ermis.GetAliasRaw)
 	entrypoint.GET("/alias/", ermis.GetAlias)

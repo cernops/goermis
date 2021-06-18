@@ -12,7 +12,7 @@ import requests
 # from behave import step
 from requests_kerberos import HTTPKerberosAuth
 
-url = "https://goermis02.cern.ch/krb/api/v1/alias/"
+url = "https://goermis02.cern.ch/p/api/v1/alias/"
 # url = "https://aiermis.cern.ch/p/api/v1/alias/"
 headers = {'content-type': 'application/json',
            'Accept': 'application/json', "WWW-Authenticate": "Negotiate"}
