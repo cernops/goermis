@@ -47,6 +47,8 @@ CERN.CH  = {
 `
 )
 
+var secretsCache = make(map[string]string)
+
 //GetSecret queries tbag for the secret of an alias
 func (l *UserAuth) get(aliasname string) string {
 	type msg struct {
@@ -55,7 +57,7 @@ func (l *UserAuth) get(aliasname string) string {
 	var (
 		message msg
 	)
-	secretsCache := make(map[string]string)
+
 	//check local cache first
 	if v, found := secretsCache[aliasname]; found && len(v) != 0 {
 		return secretsCache[aliasname]
@@ -180,5 +182,11 @@ func GetSecret(aliasname string) string {
 
 func DeleteSecret(aliasname string) error {
 	conn := getConn(cfg.Teigi.Krbtbag, cfg.Certs.HostCert, cfg.Certs.HostKey)
+	//delete from local secret cache (basically a map)
+	_, ok := secretsCache[aliasname]
+	if ok {
+		delete(secretsCache, aliasname)
+	}
+    //send a delete request to tbag
 	return conn.modify("DELETE", aliasname, "")
 }
