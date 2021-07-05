@@ -47,6 +47,8 @@ install -p -m0644 config/systemd/ermis.service  %{buildroot}/lib/systemd/system
 /lib/systemd/system/ermis.service
 
 %changelog
+* Mon Jul 05 2021 Kristian Kouros <kristian.kouros@cern.ch> - 1.3.0
+- edit ermis.service
 * Fri Jul 03 2020 Pablo Saiz <pablo.saiz@cern.ch>           - 0.0.3
 - Include staticfiles
 * Mon May 25 2020 Pablo Saiz <pablo.saiz@cern.ch>           - 0.0.2
