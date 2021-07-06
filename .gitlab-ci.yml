@@ -41,6 +41,7 @@ variables:
 
   BUILD_7: 'True'
   BUILD_8: 'True'
+  BUILD_8s: 'True'
 
   DIST_8: .el8
   DIST_7: .ai7

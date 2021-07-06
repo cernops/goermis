@@ -15,8 +15,9 @@ installgo:
 srpm: installgo
 	echo "Creating the source rpm"
 	mkdir -p SOURCES version
+	go mod edit -replace gitlab.cern.ch/lb-experts/goermis=/builddir/build/BUILD/$(PKG)
 	go mod vendor
-	tar zcf SOURCES/$(PKG).tgz  --exclude SOURCES --exclude .git --exclude .koji --exclude .gitlab-ci.yml --exclude go.mod --exclude go.sum --transform "s||$(PKG)/|" .
+	tar zcf SOURCES/$(PKG).tgz  --exclude SOURCES --exclude .git --exclude .koji --exclude .gitlab-ci.yml --transform "s||$(PKG)/|" .
 	rpmbuild -bs --define 'dist $(DIST)' --define "_topdir $(PWD)/build" --define '_sourcedir $(PWD)/SOURCES' $(SPECFILE)
 
 rpm: srpm
