@@ -22,7 +22,7 @@ var (
 type (
 	//Alias structure is a model for describing the alias
 	Alias struct { //DB definitions    --Validation-->               //Validation
-		ID               int          `  gorm:"auto_increment;primaryKey"             valid:"optional, int"`
+		ID               int          `  gorm:"type:int(11);auto_increment;primaryKey"             valid:"optional, int"`
 		AliasName        string       `  gorm:"not null;type:varchar(40);unique"      valid:"required,dns" `
 		BestHosts        int          `  gorm:"type:smallint(6);not null"             valid:"required,best_hosts"`
 		External         string       `  gorm:"type:varchar(15);not null"             valid:"required,in(yes|no|external|internal)"`
@@ -50,19 +50,19 @@ type (
 
 	//Relation describes the many-to-many relation between nodes/aliases
 	Relation struct {
-		ID             int          `  gorm:"not null;auto_increment"  valid:"optional, int" `
+		ID             int          `  gorm:"type:int(11);not null;auto_increment"  valid:"optional, int" `
 		Node           *Node        `                                  valid:"required"`
-		NodeID         int          ` gorm:"not null"                  valid:"optional, int"`
+		NodeID         int          ` gorm:"type:int(11);not null"                  valid:"optional, int"`
 		Alias          *Alias       `                                  valid:"optional"`
-		AliasID        int          ` gorm:"not null"                  valid:"optional,int"`
+		AliasID        int          ` gorm:"type:int(11);not null"                  valid:"optional,int"`
 		Blacklist      bool         ` gorm:"not null"                  valid:"-"`
 		Load           int          `                                  valid:"optional, int"`
 		LastLoadUpdate sql.NullTime `gorm:"type:date"                  valid:"-"`
 	}
 	//Alarm describes the one to many relation between an alias and its alarms
 	Alarm struct {
-		ID           int          `  gorm:"auto_increment;primaryKey"   valid:"optional, int"`
-		AlarmAliasID int          `  gorm:"not null"                    valid:"optional,int"`
+		ID           int          `  gorm:"type:int(11);auto_increment;primaryKey"   valid:"optional, int"`
+		AlarmAliasID int          `  gorm:"type:int(11);not null"                    valid:"optional,int"`
 		Alias        string       `  gorm:"type:varchar(40);not null"   valid:"required, dns" `
 		Name         string       `  gorm:"type:varchar(20);not null"   valid:"required, in(minimum)"`
 		Recipient    string       `  gorm:"type:varchar(40);not null"   valid:"required, email"`
@@ -74,14 +74,14 @@ type (
 
 	//Cname structure is a model for the cname description
 	Cname struct {
-		ID           int    `  gorm:"auto_increment;primaryKey"         valid:"optional,int"`
-		CnameAliasID int    `  gorm:"not null"                          valid:"optional,int"`
+		ID           int    `  gorm:"type:int(11);auto_increment;primaryKey"         valid:"optional,int"`
+		CnameAliasID int    `  gorm:"type:int(11);not null"                          valid:"optional,int"`
 		Cname        string `  gorm:"type:varchar(40);not null;unique"  valid:"required, cnames" `
 	}
 
 	//Node structure defines the model for the nodes params Node struct {
 	Node struct {
-		ID               int          `  gorm:"unique;not null;auto_increment;primaryKey"     valid:"optional,int" `
+		ID               int          `  gorm:"type:int(11);unique;not null;auto_increment;primaryKey"     valid:"optional,int" `
 		NodeName         string       `  gorm:"not null;type:varchar(40);unique"              valid:"required, nodes"`
 		LastModification sql.NullTime `                                                       valid:"-"`
 		Aliases          []Relation   `                                                       valid:"optional"`
