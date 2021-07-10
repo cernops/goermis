@@ -45,6 +45,8 @@ install -p -m0644 config/systemd/ermis.service  %{buildroot}/lib/systemd/system
 /lib/systemd/system/ermis.service
 
 %changelog
+* Sat Jul 10 2021 Kristian Kouros <kristian.kouros@cern.ch> - 1.3.0-6
+- specify data types for ID fields
 * Mon Jul 05 2021 Kristian Kouros <kristian.kouros@cern.ch> - 1.3.0-5
 - build for lb8s
 * Mon Jul 05 2021 Kristian Kouros <kristian.kouros@cern.ch> - 1.3.0-4
