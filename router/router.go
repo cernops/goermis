@@ -34,6 +34,7 @@ func New() *echo.Echo {
 	}))
 
 	lbweb.GET("/", ermis.HomeHandler)
+	lbweb.GET("/api/v1/alias/", ermis.GetAlias)
 	lbweb.GET("/create", ermis.CreateHandler)
 	lbweb.GET("/modify", ermis.ModifyHandler)
 	lbweb.GET("/display", ermis.DisplayHandler)
