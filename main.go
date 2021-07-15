@@ -19,7 +19,7 @@ const (
 	// Version number
 	Version = "1.3.0"
 	// Release number
-	Release = "6"
+	Release = "7"
 )
 
 var (
