@@ -30,10 +30,8 @@ const (
  chpw_prompt = true
  rdns = true
 
-
 [domain_realm]
 .cern.ch = CERN.CH
-
 
 [realms]
 CERN.CH  = {
