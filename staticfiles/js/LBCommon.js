@@ -42,7 +42,7 @@ function initialize_form(retrieveData, action) {
   //reset the form, some browser have a nasty habit of leaving stuff behind
   //clearForm();
   if (retrieveData) {
-    getData('../p/api/v1/alias/', mode);
+    getData('api/v1/alias/', mode);
 
   } else {
     loaderWindow('close');
