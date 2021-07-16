@@ -1,10 +1,7 @@
-# THIS IS A TEMPORARY SOLUTION FOR KEEPING THE DOCKER IMAGES UP-TO-DATE
-# THE PERMANENT SOLUTION IS AT THE END AND CAN BE USED ONCE THE RPM FILE IS ON THE REPO
-
 FROM cern/c8-base
 LABEL maintainer="LB-Experts <lb-experts@cern.ch>"
 RUN  mkdir -p  /var/lib/ermis/ /var/log/ermis/ && \
-     dnf -y  install "dnf-command(config-manager)"
+     dnf -y  install "dnf-command(config-manager)" 
 #     dnf config-manager --add-repo  http://linuxsoft.cern.ch/internal/repos/lb8-stable/x86_64/os  && \
 #    ( yum install -y ermis || true)
 EXPOSE 8080

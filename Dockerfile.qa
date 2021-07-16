@@ -1,15 +1,8 @@
 FROM cern/c8-base
 LABEL maintainer="LB-Experts <lb-experts@cern.ch>"
-WORKDIR /
-COPY .  .
-RUN yum -y install golang git &&\
-    go version &&\
-    go mod download &&\
-    go build -o goermis .   &&\
-    mkdir -p  /var/lib/ermis/ /var/log/ermis/  
-    
-COPY staticfiles      /var/lib/ermis/staticfiles
-COPY templates        /var/lib/ermis/templates
+RUN  mkdir -p  /var/lib/ermis/ /var/log/ermis/ && \
+     dnf -y  install "dnf-command(config-manager)" && \
+     dnf config-manager --add-repo  http://linuxsoft.cern.ch/internal/repos/lb8-qa/x86_64/os  && \
+    ( yum install -y ermis || true)
 EXPOSE 8080
-ENTRYPOINT ["/goermis"]
-CMD ["-config=/usr/local/etc/goermis.yaml", "-home=/var/lib/ermis/"]
+CMD ["ermis", "-config=/usr/local/etc/goermis.yaml", "-home=/var/lib/ermis/"]
