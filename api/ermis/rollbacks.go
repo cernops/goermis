@@ -38,15 +38,28 @@ func (alias Alias) RollbackInDelete(db, dns bool) error {
 		//If deletion from DNS fails, we recreate the object in DB.
 		err := alias.createObjectInDB()
 		if err != nil {
-			return fmt.Errorf("failed to recreate alias %v in database, as part of the creation rollback, error %v", alias.AliasName, err)
+			return fmt.Errorf("[%v] failed to recreate alias %v in database, as part of the creation rollback, error %v", alias.User, alias.AliasName, err)
 		}
 	}
 	if dns {
 		err := alias.createInDNS()
 		if err != nil {
-			return fmt.Errorf("failed to recreate alias %v in DNS, as part of the deletion rollback, error %v", alias.AliasName, err)
+			return fmt.Errorf("[%v] failed to recreate alias %v in DNS, as part of the deletion rollback, error %v", alias.User, alias.AliasName, err)
 		}
 	}
 
 	return nil
+}
+
+func (alias Alias) RollbackInModify(oldstate Alias) error {
+	//Delete the DB updates we just made
+	if err := alias.deleteObjectInDB(); err != nil {
+		return fmt.Errorf("[%v] failed to clean the new updates while rolling back alias %v", alias.User, alias.AliasName)
+	}
+	//Recreate the alias as it was before the update
+	if err := oldstate.createObjectInDB(); err != nil {
+		
+			return fmt.Errorf("[%v] failed to restore previous state for alias %v, during rollback",alias.User, alias.AliasName)
+	}
+   return nil
 }

@@ -51,8 +51,10 @@ func New() *echo.Echo {
 	entrypoint.GET("/raw/", ermis.GetAliasRaw)
 	entrypoint.GET("/alias/", ermis.GetAlias)
 	entrypoint.DELETE("/alias/", ermis.DeleteAlias)
+	entrypoint.DELETE("/alias/force/", ermis.PurgeAlias)
 	entrypoint.POST("/alias/", ermis.CreateAlias)
 	entrypoint.PATCH("/alias/:id/", ermis.ModifyAlias)
+	entrypoint.PATCH("/alias/:id/force/", ermis.PurgeCname)
 
 	//lbclients
 	lbc := e.Group("/lb/api/v1")

@@ -51,11 +51,12 @@ func aliasUpdateTransactions(a Alias) (err error) {
 func deleteTransactions(alias Alias) (err error) {
 	return WithinTransaction(func(tx *gorm.DB) (err error) {
 		if tx.Select(clause.Associations).
+			Where("alias_name=? OR id=?", alias.AliasName, alias.ID).
 			Delete(&alias); err != nil {
 			return errors.New("Failed to delete alias from DB with error: " + err.Error())
 
 		}
-		
+
 		//Delete node with no other relations
 		for _, relation := range alias.Relations {
 			if tx.Model(&relation.Node).Association("Aliases").Count() == 0 {
@@ -118,10 +119,10 @@ func AddNodeTransactions(v Relation) (err error) {
 		//existing or newly created node
 		if err = tx.Create(
 			&Relation{
-				AliasID:   v.AliasID,
-				NodeID:    v.Node.ID,
-				Blacklist: v.Blacklist,
-				Load:      v.Load,
+				AliasID:        v.AliasID,
+				NodeID:         v.Node.ID,
+				Blacklist:      v.Blacklist,
+				Load:           v.Load,
 				LastLoadUpdate: v.LastLoadUpdate,
 			},
 		).Error; err != nil {

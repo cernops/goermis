@@ -71,7 +71,7 @@ func (alias Alias) deleteFromDNS() error {
 			if landbsoap.Conn().DNSDelegatedRemove(alias.AliasName, view) {
 				log.Infof("[%v] %v/%v has been deleted", alias.User, alias.AliasName, view)
 			} else {
-				return errors.New("Failed to delete " + alias.AliasName + "/" + view + " from DNS. Rolling Back")
+				return errors.New("Failed to delete " + alias.AliasName + "/" + view + " from DNS")
 
 			}
 
