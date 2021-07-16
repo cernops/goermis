@@ -76,7 +76,8 @@ function DisplayReceivedNodes(AllowedNodes, ForbiddenNodes) {
             KeyValue.push({
                 "name": entry.split(':')[0], //remove load value
                 "access": 1,
-                "load":entry.split(':')[1]
+                "load":entry.split(':')[1],
+                "lastloadupdate": entry.split(":")[2]
             });
         })
     }
