@@ -517,11 +517,10 @@ func checkexistance(alias, method string) (result []Alias, err error) {
 		return nil, err
 	}
 
-	/****** check in landb ******/
-	entries := landbsoap.Conn().DNSDelegatedSearch(strings.Split(result[0].AliasName, ".")[0] + "*")
-
 	//if the check was initiated in create handler, then alias should not exist
 	if method == "create" {
+		/****** check in landb with the alias(when creating, alias is always the alias name) ******/
+		entries := landbsoap.Conn().DNSDelegatedSearch(strings.Split(alias, ".")[0] + "*")
 		if len(result) != 0 {
 			return nil, fmt.Errorf("cannot continue with %v, because there is an existing entry for alias %v in database", method, alias)
 
@@ -536,6 +535,9 @@ func checkexistance(alias, method string) (result []Alias, err error) {
 			return nil, fmt.Errorf("cannot continue with %v, because alias %v doesn't exist in database", method, alias)
 
 		}
+		
+		/****** check in landb with the alias name that was retrieved in the beginning(because when PATCHING, alias is the ID value) ******/
+		entries := landbsoap.Conn().DNSDelegatedSearch(strings.Split(result[0].AliasName, ".")[0] + "*")
 		if len(entries) == 0 {
 			return nil, fmt.Errorf("cannot continue with %v, because alias %v doesn't exist in LANDB", method, alias)
 
