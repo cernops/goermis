@@ -165,7 +165,12 @@ func parse(queryResults []Alias) Objects {
 		temp.AllowedNodes = []string{}
 		if len(element.Relations) != 0 {
 			for _, v := range element.Relations {
-				nameload := v.Node.NodeName + ":" + strconv.Itoa(v.Load) + ":" + v.LastLoadUpdate.Time.String()
+				nameload := v.Node.NodeName + ":" + strconv.Itoa(v.Load) + ":"
+				if v.LastLoadUpdate.Valid {
+					nameload = nameload + v.LastLoadUpdate.Time.String()
+				} else {
+					nameload = nameload + "no update "
+				}
 				if v.Blacklist {
 					temp.ForbiddenNodes = append(temp.ForbiddenNodes, nameload)
 				} else {
