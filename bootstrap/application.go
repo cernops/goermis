@@ -97,7 +97,8 @@ func init() {
 	Log.SetHeader("${time_rfc3339} ${level} ${short_file} ${line} ")
 	file, err := os.OpenFile(GetConf().Log.LoggingFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
-		Log.Errorf("failed to log to file, using default stderr %v", err)
+		Log.Errorf("failed to log to file, using default stderr: '%v'", err)
+		return
 	}
 	if GetConf().Log.Stdout {
 		mw := io.MultiWriter(os.Stdout, file)

@@ -15,26 +15,30 @@ import (
 	"gitlab.cern.ch/lb-experts/goermis/views"
 )
 
-const (
-	// Version number
-	Version = "1.3.0"
-	// Release number
-	Release = "7"
-)
-
 var (
-	log = bootstrap.GetLog()
-	cfg = bootstrap.GetConf()
+	// Version number
+	// This should be overwritten with `go build -ldflags "-X main.Version='HELLO_THERE'"`
+	Version = "head"
+	// Release number
+	// It should also be overwritten
+	Release = "no_release"
+	log     = bootstrap.GetLog()
+	cfg     = bootstrap.GetConf()
 )
 
 func main() {
+	ermis.SetVersion(Version, Release)
 	bootstrap.ParseFlags()
 	bootstrap.SetLogLevel()
-	log.Info("============Service Started=============")
+	log.Infof("============Service Started. Ermis version %v-%v =============", Version, Release)
 
 	// Echo instance
 	echo := router.New()
-	db.InitDB()
+	err := db.InitDB()
+	if err != nil {
+		log.Error("Error with the database")
+		return
+	}
 	defer db.Close()
 	//Initiate template views
 	views.InitViews(echo)

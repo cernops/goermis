@@ -24,3 +24,5 @@ require (
 	gorm.io/driver/mysql v1.0.5
 	gorm.io/gorm v1.21.6
 )
+
+replace gitlab.cern.ch/lb-experts/goermis => /builddir/build/BUILD/ermis-1.4.0

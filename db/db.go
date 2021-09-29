@@ -28,7 +28,7 @@ var (
 )
 
 // InitDB Initiating the db connection
-func InitDB() {
+func InitDB() error {
 	//Loglevels for GORM are {INFO,WARN,ERROR,SILENT}
 	if *bootstrap.DebugLevel {
 		value = 4 //this is ERROR --> works like DEBUG in this case
@@ -49,6 +49,10 @@ func InitDB() {
 
 	//A generic interface that allows us pinging, pooling, and managing idle connections
 	sqlDB, err = sql.Open(cfg.Database.Adapter, connection)
+	if err != nil {
+		log.Errorf("Error connecting to the database. Let's quit: '%v'", err)
+		return err
+	}
 	/*On top of the generic sql interface, we create a
 	gorm interface that allows us to actually use the gorm tools
 	Reference: https://gorm.io/docs/generic_interface.html */
@@ -63,6 +67,7 @@ func InitDB() {
 	}); err != nil {
 		sqlDB.Close()
 		fmt.Println("Connection  error")
+		return err
 	}
 
 	sqlDB.Ping()
@@ -81,6 +86,7 @@ func InitDB() {
 
 	// SetConnMaxLifetime sets the maximum amount of time a connection may be reused.
 	sqlDB.SetConnMaxLifetime(time.Duration(cfg.Database.ConnMaxLifetime) * time.Minute)
+	return nil
 }
 
 //GetConn returns a db connection
