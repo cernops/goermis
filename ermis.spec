@@ -9,8 +9,8 @@
 %global debug_package	%{nil}
 
 Name: ermis
-Version: #REPLACE_BY_VERSION#
-Release: #REPLACE_BY_RELEASE#%{?dist}
+Version: 1.4.0
+Release: 1%{?dist}
 
 Summary: CERN LB DNS Web interface
 License: ASL 2.0
@@ -28,7 +28,7 @@ Web interface for ermis
 %setup -n %{name}-%{version} -q
 
 %build
-go build -o ermis -mod=vendor
+go build -o ermis -mod=vendor -ldflags "-X main.Version=%{version} -X main.Release=%{release}"
 
 
 %install

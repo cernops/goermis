@@ -27,9 +27,9 @@
 <body class="html not-front not-logged-in one-sidebar sidebar-first page-node page-node- page-node-3 node-type-webform">
     <h1 id="loadbalancing">{{ block "header_text" .}}DNS Load Balancing Service{{ end }}</h1>
     <div id="navbar">
-        {{ if .Auth  }}
+        {{ if .Auth }}
         <p>Logged in as {{.User}}</p>
-        {{- $url := printf "%s%s/%s%s" "https://" .Host "redirect_uri?logout=https://" .Host  -}}
+        {{- $url := printf "%s%s/%s%s" "https://" .Host "redirect_uri?logout=https://" .Host -}}
         <p><a id="logout" href={{$url}}>CERN SSO Logout</a>
             {{ else }}
         <p>Not authorized. To use the service, please log in</p>
@@ -37,7 +37,7 @@
     </div>
 
     <div id="sidebar">
-        {{ if .Auth  }}
+        {{ if .Auth }}
         {{ block "sidebar" .}}
         <!-- <div id="main-wrapper" class="clearfix"> -->
         <!-- <div id="main" class="clearfix"> -->
@@ -59,10 +59,14 @@
                                         <li class="last leaf"><a href="logs">LB Alias Logs</a></li>
                                     </ul>
                                 </li>
+                                <li><a href="https://configdocs.web.cern.ch/dnslb/alias.html">Documentation</a></li>
+                                <li><a id="about" onclick="alert('Goermis version: {{.Version}}')">About</a></li>
                             </ul>
                         </div>
                     </div>
-		    Please, check the <a href="https://cern.service-now.com/service-portal?id=privacy_policy&se=load-balancing-services">usage of personal data</a> in the Load Balancing service
+                    Please, check the <a
+                        href="https://cern.service-now.com/service-portal?id=privacy_policy&se=load-balancing-services">usage
+                        of personal data</a> in the Load Balancing service
                 </div>
             </div>
         </div> <!-- /.section, /#sidebar-first -->
@@ -71,7 +75,7 @@
     </div>
 
     <div id="content">
-        {{ if .Auth  }}
+        {{ if .Auth }}
         <h2>{{ block "header_sidebar_text" .}}{{ end }}</h2>
         {{ block "scripts" .}}{{end}}
         {{ block "content" .}}{{end}}

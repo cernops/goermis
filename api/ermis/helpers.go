@@ -3,6 +3,7 @@ package ermis
 /* This file contains helper functions and custom validator tags*/
 import (
 	"encoding/base64"
+	"fmt"
 	"math/rand"
 	"regexp"
 	"strconv"
@@ -11,6 +12,18 @@ import (
 	"github.com/asaskevich/govalidator"
 	"github.com/labstack/echo/v4"
 )
+
+var (
+	// These variable will come from the top project
+	Version = ""
+	Release = ""
+)
+
+// Sets the version and release number
+func SetVersion(my_version, my_release string) {
+    Version = my_version
+    Release = my_release
+}
 
 /*////////////Helper Functions///////////////////*/
 
@@ -206,5 +219,6 @@ func MessageToUser(c echo.Context, status int, message string, page string) erro
 		"User":    username,
 		"Message": message,
 		"Host":    httphost,
+		"Version": fmt.Sprintf("%s-%s", Version, Release ),
 	})
 }
