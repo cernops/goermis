@@ -114,11 +114,17 @@ func CreateAlias(c echo.Context) error {
 		username, temp.AliasName)
 
 	/******check existance in all distributed systems******/
-	_, err := checkexistance(temp.AliasName, "create")
+	my_alias, inLanDB, err := checkexistance(temp.AliasName)
 	if err != nil {
 		return MessageToUser(c, http.StatusBadRequest,
 			fmt.Sprint(err), "home.html")
 	}
+        if len(my_alias)>0 {
+            return MessageToUser(c, http.StatusConflict, "The alias already exist in the database", "home.html")
+        }
+        if inLanDB {
+            return MessageToUser(c, http.StatusConflict, "The alias already exist in lanDB", "home.html")
+        }
 
 	log.Infof("[%v] duplicate check passed for alias %v",
 		username, temp.AliasName)
@@ -209,11 +215,14 @@ func DeleteAlias(c echo.Context) error {
 		username, aliasToDelete)
 
 	/******check existance in all systems and retrieve alias object******/
-	alias, err := checkexistance(aliasToDelete, "delete")
+	alias, _, err := checkexistance(aliasToDelete)
 	if err != nil {
 		return MessageToUser(c, http.StatusBadRequest,
 			fmt.Sprint(err), "home.html")
 	}
+        if alias == nil {
+            return MessageToUser(c, http.StatusNotFound, "Alias not found", "home.html")
+        }
 
 	log.Infof("[%v] retrieved alias %v from database, ready to delete it",
 		username, aliasToDelete)
@@ -283,11 +292,15 @@ func ModifyAlias(c echo.Context) error {
 	}
 
 	/******check its existance is all systems and retrieve alias profile******/
-	retrieved, err := checkexistance(param, "modify")
+	retrieved, _, err := checkexistance(param)
 	if err != nil {
 		return MessageToUser(c, http.StatusBadRequest,
 			fmt.Sprint(err), "home.html")
 	}
+ 
+        if len(retrieved) == 0 {
+            return MessageToUser(c, http.StatusNotFound, "The alias does not exist", "home.html")
+        }
 
 	log.Infof("[%v] existance check passed and retrieved existing data for %v",
 		username, temp.AliasName)
@@ -510,41 +523,15 @@ func CheckNameDNS(c echo.Context) error {
 }
 
 //checkexistance checks if alias can be found in db and dns. return that object if found
-func checkexistance(alias, method string) (result []Alias, err error) {
+func checkexistance(alias string) (result []Alias, inLanDB bool, err error) {
 	/****** retrieve from db, alias can be name or ID ******/
 	result, err = GetObjects(alias)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
+	/****** check in landb with the alias(when creating, alias is always the alias name) ******/
+	entries := landbsoap.Conn().DNSDelegatedSearch(strings.Split(alias, ".")[0] + "*")
 
-	//if the check was initiated in create handler, then alias should not exist
-	if method == "create" {
-		/****** check in landb with the alias(when creating, alias is always the alias name) ******/
-		entries := landbsoap.Conn().DNSDelegatedSearch(strings.Split(alias, ".")[0] + "*")
-		if len(result) != 0 {
-			return nil, fmt.Errorf("cannot continue with %v, because there is an existing entry for alias %v in database", method, alias)
-
-		}
-		if len(entries) != 0 {
-			return nil, fmt.Errorf("cannot continue with %v, because there is an existing entry for alias %v in LANDB", method, alias)
-
-		}
-		//else if the check is initiated in delete/modify, the alias should exist before performing any action
-	} else if method == "modify" || method == "delete" {
-		if len(result) == 0 {
-			return nil, fmt.Errorf("cannot continue with %v, because alias %v doesn't exist in database", method, alias)
-
-		}
-		
-		/****** check in landb with the alias name that was retrieved in the beginning(because when PATCHING, alias is the ID value) ******/
-		entries := landbsoap.Conn().DNSDelegatedSearch(strings.Split(result[0].AliasName, ".")[0] + "*")
-		if len(entries) == 0 {
-			return nil, fmt.Errorf("cannot continue with %v, because alias %v doesn't exist in LANDB", method, alias)
-
-		}
-
-	}
-
-	return result, nil
+	return result, len(entries)!=0, nil
 
 }

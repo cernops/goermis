@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"net/smtp"
 
 	"gorm.io/gorm"
 
@@ -285,27 +284,8 @@ func (alias Alias) updateAlarms() (err error) {
 
 func (alias Alias) createSecret() error {
 	newsecret := generateRandomSecret()
-	err := auth.PostSecret(alias.AliasName, newsecret)
-	if err != nil {
-		return err
-	}
-	return alias.sendSecretToUser(newsecret)
-
+	return auth.PostSecret(alias.AliasName, newsecret)
 }
 func (alias Alias) deleteSecret() error {
 	return auth.DeleteSecret(alias.AliasName)
-}
-
-//SendNotification sends an e-mail to the recipient when alarm is triggered
-func (alias Alias) sendSecretToUser(secret string) error {
-	recipient := alias.User + "@cern.ch"
-	log.Infof("Sending the new secret of alias %v to %v", alias.AliasName, alias.User)
-	msg := []byte("To: " + recipient + "\r\n" +
-		fmt.Sprintf("Subject: New secret created for alias %s\r\n\r\nPlease provide this secret to the nodes you want to appear behind alias %v. For instructions, check documentation(https://configdocs.web.cern.ch).\nSecret value: %s ", alias.AliasName, alias.AliasName, secret))
-	err := smtp.SendMail("localhost:25",
-		nil,
-		"lbd@cern.ch",
-		[]string{recipient},
-		msg)
-	return err
 }
