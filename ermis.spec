@@ -10,13 +10,13 @@
 
 Name: ermis
 Version: 1.4.0
-Release: 1%{?dist}
+Release: 2%{?dist}
 
 Summary: CERN LB DNS Web interface
 License: ASL 2.0
 URL: https://%{import_path}
 Source: %{name}-%{version}.tgz
-BuildRequires: golang >= 1.14
+BuildRequires: golang >= 1.14 systemd
 ExclusiveArch: x86_64
 
 %description
@@ -44,7 +44,18 @@ install -p -m0644 config/systemd/ermis.service  %{buildroot}/lib/systemd/system
 /var/lib/ermis/
 /lib/systemd/system/ermis.service
 
+%post
+%systemd_post ermis.service
+
+%preun
+%systemd_preun ermis.service
+
+%postun
+%systemd_postun_with_restart ermis.service
+
 %changelog
+* Fri Oct  1 2021 Pablo Saiz <pablo.saiz@cern.ch>           - 1.4.0-2
+- Adding systemd start/stop during the rpm installation
 * Thu Jul 15 2021 Kristian Kouros <kristian.kouros@cern.ch> - 1.3.0-7
 - add OIDC protected GET entrypoint
 * Sat Jul 10 2021 Kristian Kouros <kristian.kouros@cern.ch> - 1.3.0-6
