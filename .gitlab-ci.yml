@@ -103,3 +103,11 @@ bench-go14:
     - *installGo14
     - go14 test ./tests/benchmarking/... -bench=. -benchmem
     - go14 test ./tests/benchmarking/... -bench=. -benchmem -race
+
+fmt-my-project:
+  stage: prebuild
+  script:
+    - yum install -y golang
+    - MOD_FILES=$(find . -name "*.go"  -exec /usr/bin/go fmt {} \;)
+    - echo "FILES MODIFIED $MOD_FILES"
+    - if [ "$MOD_FILES" != "" ]; then false; fi

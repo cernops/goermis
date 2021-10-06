@@ -185,6 +185,6 @@ func DeleteSecret(aliasname string) error {
 	if ok {
 		delete(secretsCache, aliasname)
 	}
-    //send a delete request to tbag
+	//send a delete request to tbag
 	return conn.modify("DELETE", aliasname, "")
 }
