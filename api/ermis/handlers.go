@@ -119,12 +119,12 @@ func CreateAlias(c echo.Context) error {
 		return MessageToUser(c, http.StatusBadRequest,
 			fmt.Sprint(err), "home.html")
 	}
-        if len(my_alias)>0 {
-            return MessageToUser(c, http.StatusConflict, "The alias already exist in the database", "home.html")
-        }
-        if inLanDB {
-            return MessageToUser(c, http.StatusConflict, "The alias already exist in lanDB", "home.html")
-        }
+	if len(my_alias) > 0 {
+		return MessageToUser(c, http.StatusConflict, "The alias already exist in the database", "home.html")
+	}
+	if inLanDB {
+		return MessageToUser(c, http.StatusConflict, "The alias already exist in lanDB", "home.html")
+	}
 
 	log.Infof("[%v] duplicate check passed for alias %v",
 		username, temp.AliasName)
@@ -220,9 +220,9 @@ func DeleteAlias(c echo.Context) error {
 		return MessageToUser(c, http.StatusBadRequest,
 			fmt.Sprint(err), "home.html")
 	}
-        if alias == nil {
-            return MessageToUser(c, http.StatusNotFound, "Alias not found", "home.html")
-        }
+	if alias == nil {
+		return MessageToUser(c, http.StatusNotFound, "Alias not found", "home.html")
+	}
 
 	log.Infof("[%v] retrieved alias %v from database, ready to delete it",
 		username, aliasToDelete)
@@ -297,10 +297,10 @@ func ModifyAlias(c echo.Context) error {
 		return MessageToUser(c, http.StatusBadRequest,
 			fmt.Sprint(err), "home.html")
 	}
- 
-        if len(retrieved) == 0 {
-            return MessageToUser(c, http.StatusNotFound, "The alias does not exist", "home.html")
-        }
+
+	if len(retrieved) == 0 {
+		return MessageToUser(c, http.StatusNotFound, "The alias does not exist", "home.html")
+	}
 
 	log.Infof("[%v] existance check passed and retrieved existing data for %v",
 		username, temp.AliasName)
@@ -532,6 +532,6 @@ func checkexistance(alias string) (result []Alias, inLanDB bool, err error) {
 	/****** check in landb with the alias(when creating, alias is always the alias name) ******/
 	entries := landbsoap.Conn().DNSDelegatedSearch(strings.Split(alias, ".")[0] + "*")
 
-	return result, len(entries)!=0, nil
+	return result, len(entries) != 0, nil
 
 }

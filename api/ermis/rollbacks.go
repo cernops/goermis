@@ -58,8 +58,8 @@ func (alias Alias) RollbackInModify(oldstate Alias) error {
 	}
 	//Recreate the alias as it was before the update
 	if err := oldstate.createObjectInDB(); err != nil {
-		
-			return fmt.Errorf("[%v] failed to restore previous state for alias %v, during rollback",alias.User, alias.AliasName)
+
+		return fmt.Errorf("[%v] failed to restore previous state for alias %v, during rollback", alias.User, alias.AliasName)
 	}
-   return nil
+	return nil
 }

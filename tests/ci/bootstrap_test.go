@@ -63,10 +63,10 @@ func TestNewConfig(t *testing.T) {
 		},
 		Certs: bootstrap.Certs{
 			ErmisCert: "/etc/httpd/conf/ermiscert.pem",
-			ErmisKey: "/etc/httpd/conf/ermiskey.pem",
-			HostCert: "/etc/httpd/conf/hostcert.pem",
-			HostKey: "/etc/httpd/conf/hostkey.pem",
-			CACert: "/etc/httpd/conf/ca.pem",
+			ErmisKey:  "/etc/httpd/conf/ermiskey.pem",
+			HostCert:  "/etc/httpd/conf/hostcert.pem",
+			HostKey:   "/etc/httpd/conf/hostkey.pem",
+			CACert:    "/etc/httpd/conf/ca.pem",
 		},
 		Log: bootstrap.Logging{
 			LoggingFile: "/var/log/ermis/ermis.log",
@@ -76,12 +76,12 @@ func TestNewConfig(t *testing.T) {
 			Manager: "168.92.45.2",
 		},
 		Teigi: bootstrap.Teigi{
-			User: "dummyuser",
+			User:     "dummyuser",
 			Password: "dummypassword",
-			Service: "lbaliases",
-			Ssltbag: "https://woger.cern.ch:8202/tbag/v2/hosttree/",
-			Krbtbag: "https://woger.cern.ch:8201/tbag/v2/service/",
-			Pwn:     "https://woger.cern.ch:8202/pwn/v1/owner/",
+			Service:  "lbaliases",
+			Ssltbag:  "https://woger.cern.ch:8202/tbag/v2/hosttree/",
+			Krbtbag:  "https://woger.cern.ch:8201/tbag/v2/service/",
+			Pwn:      "https://woger.cern.ch:8202/pwn/v1/owner/",
 		},
 	}
 	fmt.Println("Now we will check that config file is readable")
